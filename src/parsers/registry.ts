@@ -1,0 +1,59 @@
+import type { Platform } from "../types/settlement";
+import { parseAladin } from "./aladin";
+import { parseEpyrus } from "./epyrus";
+import { parseGuruCompany } from "./guruCompany";
+import { parseKyobo } from "./kyobo";
+import { parseMootoon } from "./mootoon";
+import { parseNovelpia } from "./novelpia";
+import type { ParserContext, ParserResult, PlatformParser, TabularRow } from "./parserContract";
+import { parseYes24 } from "./yes24";
+
+export const parserRegistry = {
+  novelpia: parseNovelpia,
+  mootoon: parseMootoon,
+  epyrus: parseEpyrus,
+  kyobo: parseKyobo,
+  yes24: parseYes24,
+  aladin: parseAladin,
+  guru_company: parseGuruCompany,
+} satisfies Partial<Record<Platform, PlatformParser>>;
+
+export type SupportedParserPlatform = keyof typeof parserRegistry;
+
+export const supportedParserPlatforms = Object.keys(parserRegistry) as SupportedParserPlatform[];
+
+export function getParser(platform: Platform): PlatformParser | undefined {
+  return parserRegistry[platform as SupportedParserPlatform];
+}
+
+export function parsePlatformRows(
+  platform: Platform,
+  context: ParserContext,
+  rows: TabularRow[],
+): ParserResult {
+  const parser = getParser(platform);
+  const parserContext = {
+    ...context,
+    platform,
+  };
+
+  if (!parser) {
+    return {
+      rows: [],
+      issues: [
+        {
+          issueId: `${context.batchId}-${platform}-mapping_failed-file`,
+          batchId: context.batchId,
+          company: context.company,
+          platform,
+          severity: "error",
+          issueType: "mapping_failed",
+          message: `Parser for platform "${platform}" is not implemented.`,
+          sourceFileName: context.sourceFileName,
+        },
+      ],
+    };
+  }
+
+  return parser(parserContext, rows);
+}
