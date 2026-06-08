@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import {
-  mockExports,
   mockIssues,
   mockSettlementRows,
   mockUploads,
 } from "../data/mockSettlement";
+import { createExportPackages } from "../exporters";
 import { BatchHeader } from "./BatchHeader";
 import { ExportSection } from "./ExportSection";
 import { ReviewSection } from "./ReviewSection";
@@ -17,19 +17,19 @@ export function AppShell() {
   const [selectedRowId, setSelectedRowId] = useState(mockSettlementRows[1].rowId);
   const selectedRow = mockSettlementRows.find((row) => row.rowId === selectedRowId) ?? mockSettlementRows[0];
   const selectedRowIssues = mockIssues.filter((issue) => selectedRow.issues.includes(issue.issueId));
+  const exportPackages = useMemo(() => createExportPackages(mockSettlementRows).packages, []);
 
   const totals = useMemo(() => {
     const uploadedFiles = mockUploads.reduce((sum, upload) => sum + upload.fileCount, 0);
     const requiredFiles = mockUploads.reduce((sum, upload) => sum + upload.requiredFileCount, 0);
-    const readyExports = mockExports.filter((artifact) => artifact.status === "ready").length;
     return {
       uploadedFiles,
       requiredFiles,
       rows: mockSettlementRows.length,
       issues: mockIssues.length,
-      readyExports,
+      readyExports: exportPackages.length,
     };
-  }, []);
+  }, [exportPackages.length]);
 
   return (
     <main className="min-h-screen bg-ink-950 text-slate-100">
@@ -47,7 +47,7 @@ export function AppShell() {
               selectedRowId={selectedRowId}
               onSelectRow={setSelectedRowId}
             />
-            <ExportSection readyExports={totals.readyExports} />
+            <ExportSection exportPackages={exportPackages} readyExports={totals.readyExports} />
           </div>
         </section>
       </div>
