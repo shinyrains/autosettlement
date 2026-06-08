@@ -1,6 +1,7 @@
 export * from "./parserContract";
 export * from "./seriesContract";
 export * from "./seriesCalcConstants";
+export * from "./seriesColumnMappings";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";
