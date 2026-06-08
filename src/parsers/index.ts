@@ -6,6 +6,7 @@ export * from "./seriesCalcUtils";
 export * from "./seriesRowToSettlement";
 export * from "./seriesSingleFileParser";
 export * from "./seriesGroupParser";
+export * from "./seriesGroupAggregation";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";
