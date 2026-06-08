@@ -6,6 +6,11 @@ type HtmlTableRow = {
   sourceRowIndex: number;
 };
 
+type HtmlHeader = {
+  columnNames: string[];
+  dataStartIndex: number;
+};
+
 export function parseHtmlXlsAdapter(
   context: FileAdapterContext,
   file: unknown,
@@ -36,16 +41,25 @@ export function parseHtmlXlsAdapter(
     };
   }
 
-  const header = tableRows[0].cells.map((cell, index) => normalizeHeaderCell(cell, index));
-  if (header.every((cell) => cell === "")) {
+  const header = createHeader(dataTable, tableRows);
+  if (header.columnNames.every((cell) => cell === "")) {
     return {
       rows: [],
       issues: [createHtmlXlsParseIssue(context, "HTML XLS header row is missing.")],
     };
   }
 
+  if (header.columnNames.some((cell) => cell === "")) {
+    return {
+      rows: [],
+      issues: [createHtmlXlsParseIssue(context, "HTML XLS header contains an empty header key.")],
+    };
+  }
+
   return {
-    rows: tableRows.slice(1).flatMap((row) => buildRow(header, row, context)),
+    rows: tableRows
+      .slice(header.dataStartIndex)
+      .flatMap((row) => buildRow(header.columnNames, row, context)),
     issues: [],
   };
 }
@@ -65,16 +79,84 @@ function normalizeHeaderCell(cell: string, index: number): string {
   return index === 0 ? cell.replace(/^\uFEFF/, "") : cell;
 }
 
+function createHeader(table: HTMLTableElement, tableRows: HtmlTableRow[]): HtmlHeader {
+  const headerRows = countHeaderRows(table);
+
+  if (headerRows <= 1) {
+    return {
+      columnNames: tableRows[0].cells.map((cell, index) => normalizeHeaderCell(cell, index)),
+      dataStartIndex: 1,
+    };
+  }
+
+  const grid = buildHeaderGrid(table, headerRows);
+  const bottomHeaderRow = grid[headerRows - 1] ?? [];
+
+  return {
+    columnNames: bottomHeaderRow.map((bottomCell, index) => {
+      const topCell = grid[0]?.[index] ?? "";
+      if (topCell === "" || topCell === bottomCell) {
+        return normalizeHeaderCell(bottomCell, index);
+      }
+      if (bottomCell === "") {
+        return "";
+      }
+      return normalizeHeaderCell(`${topCell} / ${bottomCell}`, index);
+    }),
+    dataStartIndex: headerRows,
+  };
+}
+
+function countHeaderRows(table: HTMLTableElement): number {
+  const firstRow = table.querySelector("tr");
+  if (!firstRow) {
+    return 0;
+  }
+
+  const maxRowSpan = Math.max(
+    1,
+    ...Array.from(firstRow.querySelectorAll("th,td")).map((cell) => Number(cell.getAttribute("rowspan") ?? "1")),
+  );
+  return maxRowSpan > 1 ? maxRowSpan : 1;
+}
+
+function buildHeaderGrid(table: HTMLTableElement, headerRows: number): string[][] {
+  const grid: string[][] = [];
+  const rows = Array.from(table.querySelectorAll("tr")).slice(0, headerRows);
+
+  rows.forEach((row, rowIndex) => {
+    grid[rowIndex] ??= [];
+    let columnIndex = 0;
+
+    for (const cell of Array.from(row.querySelectorAll("th,td"))) {
+      while (grid[rowIndex][columnIndex] !== undefined) {
+        columnIndex += 1;
+      }
+
+      const text = normalizeCellText(cell.textContent);
+      const rowSpan = Number(cell.getAttribute("rowspan") ?? "1");
+      const colSpan = Number(cell.getAttribute("colspan") ?? "1");
+
+      for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+        for (let columnOffset = 0; columnOffset < colSpan; columnOffset += 1) {
+          grid[rowIndex + rowOffset] ??= [];
+          grid[rowIndex + rowOffset][columnIndex + columnOffset] = text;
+        }
+      }
+
+      columnIndex += colSpan;
+    }
+  });
+
+  return grid;
+}
+
 function buildRow(
   header: string[],
   sourceRow: HtmlTableRow,
   context: FileAdapterContext,
 ): TabularFileRow[] {
   if (sourceRow.cells.every((cell) => cell === "")) {
-    return [];
-  }
-
-  if (isTotalRow(sourceRow.cells)) {
     return [];
   }
 
