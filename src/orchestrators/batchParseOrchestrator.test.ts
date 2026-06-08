@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { parseCsvAdapter } from "../fileAdapters";
+import type { FileAdapterContext, FileAdapterResult } from "../fileAdapters/types";
+import type { TabularRow } from "../parsers";
+import {
+  SERIES_CATEGORY_COLUMN_MAPPINGS,
+  SERIES_IDENTITY_COLUMNS,
+  SERIES_REFERENCE_COLUMNS,
+} from "../parsers/seriesColumnMappings";
 import { simpleExtractMappings, type SimpleExtractPlatform } from "../parsers/simpleExtractMappings";
-import type { Company, Platform } from "../types/settlement";
+import type { Company, ParseIssue, Platform } from "../types/settlement";
 import { runBatchParseOrchestrator } from "./batchParseOrchestrator";
 
 function createSimpleExtractCsv(
@@ -39,6 +47,7 @@ function createFile(input: {
   saleMonth?: string;
   content: unknown;
   fileKind?: "csv";
+  slot?: string;
 }) {
   return {
     company: input.company,
@@ -46,7 +55,71 @@ function createFile(input: {
     fileKind: input.fileKind ?? "csv",
     fileName: input.fileName,
     saleMonth: input.saleMonth ?? "2026-06",
+    slot: input.slot,
     content: input.content,
+  };
+}
+
+function createSeriesRow(input: {
+  sourceFileName: string;
+  amount: number;
+  title?: string;
+}): TabularRow {
+  return {
+    [SERIES_IDENTITY_COLUMNS.workTitle]: input.title ?? "Same Series Work",
+    [SERIES_IDENTITY_COLUMNS.author]: "Series Author",
+    [SERIES_IDENTITY_COLUMNS.publisher]: "Arete",
+    [SERIES_CATEGORY_COLUMN_MAPPINGS.cookie_auto_charge[5]]: input.amount,
+    [SERIES_REFERENCE_COLUMNS.total]: input.amount,
+    sourceFileName: input.sourceFileName,
+    sourceRowIndex: 2,
+  };
+}
+
+function createSeriesFile(input: {
+  company?: Company;
+  saleMonth?: string;
+  fileName: string;
+  slot: "general" | "app";
+  amount: number;
+}) {
+  return createFile({
+    company: input.company ?? "sr",
+    platform: "series",
+    fileName: input.fileName,
+    saleMonth: input.saleMonth,
+    slot: input.slot,
+    content: createSeriesRow({
+      sourceFileName: input.fileName,
+      amount: input.amount,
+    }),
+  });
+}
+
+function createSeriesFiles(): ReturnType<typeof createSeriesFile>[] {
+  return [
+    createSeriesFile({ fileName: "general-1.csv", slot: "general", amount: 100 }),
+    createSeriesFile({ fileName: "general-2.csv", slot: "general", amount: 200 }),
+    createSeriesFile({ fileName: "general-3.csv", slot: "general", amount: 300 }),
+    createSeriesFile({ fileName: "app-1.csv", slot: "app", amount: 400 }),
+    createSeriesFile({ fileName: "app-2.csv", slot: "app", amount: 500 }),
+    createSeriesFile({ fileName: "app-3.csv", slot: "app", amount: 600 }),
+  ];
+}
+
+function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
+  return (context: FileAdapterContext, file: unknown): FileAdapterResult => {
+    if (context.platform !== "series") {
+      return parseCsvAdapter(context, file);
+    }
+
+    const row = file as TabularRow;
+    const sourceFileName = String(row.sourceFileName);
+
+    return {
+      rows: [row],
+      issues: issueByFileName[sourceFileName] === undefined ? [] : [issueByFileName[sourceFileName]],
+    };
   };
 }
 
@@ -173,7 +246,7 @@ describe("batch parse orchestrator", () => {
     );
   });
 
-  it("returns unsupported platform issues in the batch result", () => {
+  it("returns series group validation issues in the batch result", () => {
     const result = runBatchParseOrchestrator({
       batchId: "batch-parse-4",
       files: [
@@ -196,7 +269,136 @@ describe("batch parse orchestrator", () => {
       expect.objectContaining({ platform: "series", issueType: "mapping_failed" }),
     ]);
     expect(result.fileResults[0]).toEqual(
-      expect.objectContaining({ fileName: "series.csv", status: "failed", issueCount: 1 }),
+      expect.objectContaining({ fileName: "series.csv", status: "success", rowCount: 1, issueCount: 0 }),
+    );
+  });
+
+  it("groups series files by company, saleMonth, and platform before running the group parser", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-series-1",
+        files: createSeriesFiles(),
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        company: "sr",
+        platform: "series",
+        saleMonth: "2026-06",
+        workTitle: "Same Series Work",
+        mailerContentTitle: "Same Series Work",
+        grossSales: 600,
+        settlementAmount: 407.4,
+        sourceFileName: "general-1.csv",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "series",
+        saleMonth: "2026-06",
+        workTitle: "Same Series Work",
+        mailerContentTitle: "Same Series Work(app)",
+        grossSales: 1500,
+        settlementAmount: 1018.5,
+        sourceFileName: "app-1.csv",
+      }),
+    ]);
+    expect(result.fileResults).toHaveLength(6);
+    expect(result.fileResults).toEqual(
+      createSeriesFiles().map((file) =>
+        expect.objectContaining({
+          fileName: file.fileName,
+          status: "success",
+          rowCount: 1,
+          issueCount: 0,
+        }),
+      ),
+    );
+  });
+
+  it("keeps non-series files on the existing single-file orchestrator path", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-mixed-1",
+        files: [
+          createFile({
+            company: "raon",
+            platform: "guru_company",
+            fileName: "raon-guru.csv",
+            content: createSimpleExtractCsv("guru_company", {
+              workTitle: "Simple Work",
+              author: "Simple Author",
+              grossSales: "18420",
+              settlementAmount: "7368",
+            }),
+          }),
+          ...createSeriesFiles(),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        platform: "guru_company",
+        workTitle: "Simple Work",
+        grossSales: 18420,
+      }),
+      expect.objectContaining({
+        platform: "series",
+        mailerContentTitle: "Same Series Work",
+        grossSales: 600,
+      }),
+      expect.objectContaining({
+        platform: "series",
+        mailerContentTitle: "Same Series Work(app)",
+        grossSales: 1500,
+      }),
+    ]);
+  });
+
+  it("does not distribute series group validation issues into per-file results", () => {
+    const files = createSeriesFiles().slice(0, 5);
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-series-invalid",
+        files,
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        platform: "series",
+        issueType: "mapping_failed",
+      }),
+    );
+    expect(result.fileResults).toEqual(
+      files.map((file) =>
+        expect.objectContaining({
+          fileName: file.fileName,
+          status: "success",
+          rowCount: 1,
+          issueCount: 0,
+        }),
+      ),
     );
   });
 
