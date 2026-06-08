@@ -5,6 +5,7 @@ import type {
   PlatformFileGroupParserContext,
 } from "./parserContract";
 import { SERIES_REQUIRED_FILE_COUNTS, type SeriesCalcGroup } from "./seriesCalcConstants";
+import { aggregateSeriesSettlementRows } from "./seriesGroupAggregation";
 import { parseSeriesSingleFileRows } from "./seriesSingleFileParser";
 import type { ParseIssue, ParseIssueType } from "../types/settlement";
 
@@ -19,7 +20,7 @@ export function parseSeriesFileGroup(
     return { rows: [], issues: validationIssues };
   }
 
-  return files.reduce<ParserResult>(
+  const mergedResult = files.reduce<ParserResult>(
     (result, file) => {
       const slot = file.slot as SeriesCalcGroup;
       const singleFileResult = parseSeriesSingleFileRows(createParserContext(context, file), file.rows, slot);
@@ -29,6 +30,11 @@ export function parseSeriesFileGroup(
     },
     { rows: [], issues: [] },
   );
+
+  return {
+    rows: aggregateSeriesSettlementRows(mergedResult.rows),
+    issues: mergedResult.issues,
+  };
 }
 
 function validateSeriesFileGroup(

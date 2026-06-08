@@ -36,7 +36,7 @@ function row(input: {
 }): TabularRow {
   return {
     [SERIES_IDENTITY_COLUMNS.workTitle]: input.title,
-    [SERIES_IDENTITY_COLUMNS.author]: input.author ?? "작가",
+    [SERIES_IDENTITY_COLUMNS.author]: input.author ?? "Series Author",
     [SERIES_IDENTITY_COLUMNS.publisher]: "Arete",
     [SERIES_CATEGORY_COLUMN_MAPPINGS.cookie_auto_charge[5]]: input.cookieAutoCharge,
     [SERIES_REFERENCE_COLUMNS.total]: input.cookieAutoCharge,
@@ -57,7 +57,7 @@ function file(input: {
     slot: input.slot,
     rows: [
       row({
-        title: input.title ?? "같은 작품",
+        title: input.title ?? "Same Work",
         sourceFileName: input.sourceFileName,
         sourceRowIndex: 2,
         cookieAutoCharge: input.amount ?? 100,
@@ -79,34 +79,20 @@ function validFiles(): PlatformFileGroupInput[] {
 }
 
 describe("series group parser", () => {
-  it("validates 3 general and 3 app files, then merges single-file parser rows without aggregation", () => {
+  it("validates 3 general and 3 app files, then aggregates parsed rows by settlement key", () => {
     const result = parseSeriesFileGroup(context, validFiles());
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(6);
-    expect(result.rows.map((parsedRow) => parsedRow.grossSales)).toEqual([
-      100, 200, 300, 400, 500, 600,
-    ]);
-    expect(result.rows.map((parsedRow) => parsedRow.settlementAmount)).toEqual([
-      67.9, 135.8, 203.7, 271.6, 339.5, 407.4,
-    ]);
-    expect(result.rows.slice(0, 3).map((parsedRow) => parsedRow.mailerContentTitle)).toEqual([
-      "같은 작품",
-      "같은 작품",
-      "같은 작품",
-    ]);
-    expect(result.rows.slice(3).map((parsedRow) => parsedRow.mailerContentTitle)).toEqual([
-      "같은 작품(app)",
-      "같은 작품(app)",
-      "같은 작품(app)",
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.map((parsedRow) => parsedRow.grossSales)).toEqual([600, 1500]);
+    expect(result.rows.map((parsedRow) => parsedRow.settlementAmount)).toEqual([407.4, 1018.5]);
+    expect(result.rows.map((parsedRow) => parsedRow.mailerContentTitle)).toEqual([
+      "Same Work",
+      "Same Work(app)",
     ]);
     expect(result.rows.map((parsedRow) => parsedRow.sourceFileName)).toEqual([
       "general-1.xls",
-      "general-2.xls",
-      "general-3.xls",
       "app-1.xls",
-      "app-2.xls",
-      "app-3.xls",
     ]);
   });
 
@@ -172,6 +158,6 @@ describe("series group parser", () => {
     const result = parseSeriesFileGroup(context, files);
 
     expect(result.issues).toContain(inputIssue);
-    expect(result.rows).toHaveLength(6);
+    expect(result.rows).toHaveLength(2);
   });
 });
