@@ -8,8 +8,6 @@ import { Layers3, Search } from "lucide-react";
 import { useMemo } from "react";
 import {
   companyLabels,
-  mockIssues,
-  mockSettlementRows,
   platformLabels,
 } from "../data/mockSettlement";
 import type { ParseIssue, SettlementRow } from "../types/settlement";
@@ -17,11 +15,13 @@ import { DetailLine, Filter, MockFilter } from "./ShellPrimitives";
 import { moneyFormatter } from "./uiShellConfig";
 
 export function ReviewSection({
+  rows,
   selectedRow,
   selectedRowIssues,
   selectedRowId,
   onSelectRow,
 }: {
+  rows: SettlementRow[];
   selectedRow: SettlementRow;
   selectedRowIssues: ParseIssue[];
   selectedRowId: string;
@@ -58,7 +58,7 @@ export function ReviewSection({
     [columnHelper],
   );
   const table = useReactTable({
-    data: mockSettlementRows,
+    data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });

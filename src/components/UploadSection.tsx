@@ -1,23 +1,22 @@
 import { Building2 } from "lucide-react";
 import {
   companyLabels,
-  mockUploads,
   type PlatformUploadCard,
 } from "../data/mockSettlement";
 import type { Company } from "../types/settlement";
 import { MiniMetric, StatusBadge } from "./ShellPrimitives";
 
-export function UploadSection() {
+export function UploadSection({ uploads }: { uploads: PlatformUploadCard[] }) {
   return (
     <section id="step-1" className="grid grid-cols-2 gap-5">
-      <CompanyUploadGroup company="raon" />
-      <CompanyUploadGroup company="sr" />
+      <CompanyUploadGroup company="raon" uploads={uploads} />
+      <CompanyUploadGroup company="sr" uploads={uploads} />
     </section>
   );
 }
 
-function CompanyUploadGroup({ company }: { company: Company }) {
-  const uploads = mockUploads.filter((upload) => upload.company === company);
+function CompanyUploadGroup({ company, uploads: allUploads }: { company: Company; uploads: PlatformUploadCard[] }) {
+  const uploads = allUploads.filter((upload) => upload.company === company);
   const readyCount = uploads.filter((upload) => upload.status === "parsed").length;
   return (
     <section className="rounded-md border border-line bg-ink-850">

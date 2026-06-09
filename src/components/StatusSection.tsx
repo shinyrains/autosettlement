@@ -1,8 +1,9 @@
 import { CircleDot } from "lucide-react";
+import type { ParseIssue } from "../types/settlement";
 import { KpiCard } from "./ShellPrimitives";
 import { IssuePanel } from "./IssuePanel";
 
-export function StatusSection({ rows, issues }: { rows: number; issues: number }) {
+export function StatusSection({ rows, issues }: { rows: number; issues: ParseIssue[] }) {
   return (
     <section id="step-2" className="grid grid-cols-[1fr_1.35fr] gap-5">
       <div className="rounded-md border border-line bg-ink-850 p-5">
@@ -12,7 +13,7 @@ export function StatusSection({ rows, issues }: { rows: number; issues: number }
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <KpiCard label="정규화 행" value={`${rows}`} />
-          <KpiCard label="ParseIssue" value={`${issues}`} tone="warn" />
+          <KpiCard label="ParseIssue" value={`${issues.length}`} tone="warn" />
           <KpiCard label="회사" value="2" />
           <KpiCard label="출력 대상" value="4 files" />
         </div>
@@ -27,7 +28,7 @@ export function StatusSection({ rows, issues }: { rows: number; issues: number }
           ))}
         </div>
       </div>
-      <IssuePanel />
+      <IssuePanel issues={issues} />
     </section>
   );
 }
