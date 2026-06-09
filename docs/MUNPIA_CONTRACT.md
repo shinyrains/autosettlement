@@ -266,6 +266,48 @@ batch orchestrator wiring: allowed
 UI / real-use path connection: still out of scope here
 ```
 
+## 9A. UI Connection Scope (authority freeze)
+
+When Munpia is eventually connected to the batch upload UI, the allowed MVP UI shape is only:
+
+```text
+platform card = company + munpia
+required slot = settlement
+optional slot = authorCorrection
+accepted file kinds = settlement:xlsx, authorCorrection:csv|xlsx
+parse trigger = existing batch parse action
+```
+
+UI rules for that future connection:
+
+- The UI must treat Munpia as a slot-based grouped upload, not as a free-form single file bucket.
+- `settlement` is the only required slot.
+- `authorCorrection` is optional and must remain a separate upload slot.
+- The UI must not provide inline text correction entry, ad-hoc table editing, or hidden correction storage.
+- The UI must not guess `sheetName`, auto-pick a later worksheet, or hide the multi-sheet blocking result.
+- If `authorCorrection` is absent, the UI must still allow parse execution.
+- If `authorCorrection` adapter issues occur, the UI must surface them without treating valid settlement rows as blocked.
+- If `settlement` adapter issues occur, the UI must surface the group as blocked.
+
+Still-blocking integration gaps before real UI wiring:
+
+- Current authority layer still does not define any user-provided `sheetName` input path for future multi-sheet support.
+- Real persistence/update semantics for per-slot file replacement/removal are still not frozen beyond the current mock/UI slice.
+
+Current authority-safe UI state shape for the mock/product boundary:
+
+```ts
+BatchPlatformUpload.slots?: Array<{
+  slotKey: "settlement" | "authorCorrection";
+  required: boolean;
+  acceptedFileKinds: Array<"csv" | "xlsx">;
+  status: "empty" | "uploaded" | "parsed" | "warning" | "error";
+  fileCount: number;
+  sourceFileNames: string[];
+  issueCount: number;
+}>
+```
+
 ## 9B. Parser Shape Decision
 
 Current safety decision:

@@ -256,6 +256,19 @@ type Batch = {
 초안 필드:
 
 ```ts
+type BatchPlatformUploadSlot = {
+  slotId: string;
+  slotKey: "settlement" | "authorCorrection" | "seriesGeneral" | "seriesApp";
+  label: string;
+  required: boolean;
+  acceptedFileKinds: Array<"csv" | "xlsx">;
+  status: "empty" | "uploaded" | "parsed" | "warning" | "error";
+  fileCount: number;
+  sourceFileNames: string[];
+  issueCount: number;
+  lastUploadedAt?: string;
+};
+
 type BatchPlatformUpload = {
   uploadId: string;
   batchId: string;
@@ -267,6 +280,7 @@ type BatchPlatformUpload = {
   parsedRowCount: number;
   issueCount: number;
   lastUploadedAt?: string;
+  slots?: BatchPlatformUploadSlot[];
 };
 ```
 
@@ -282,6 +296,12 @@ type BatchPlatformUpload = {
 - `parsedRowCount`: 정규화된 결과 행 수
 - `issueCount`: 발견된 이슈 수
 - `lastUploadedAt`: 마지막 업로드 시각
+
+현재 경계 메모:
+
+- 이 aggregate 모델만으로는 단일 슬롯 플랫폼 상태 표현에는 충분하다.
+- 하지만 문피아는 `settlement`(required)와 `authorCorrection`(optional) 슬롯 단위 상태가 필요하므로, 현재 `BatchPlatformUpload` 단독 모델만으로는 실 UI 연결에 충분하지 않다.
+- 문피아 UI 연결은 slot-level child model 또는 동등한 authority-approved shape가 추가되기 전까지 `BatchPlatformUpload`만 믿고 진행하면 안 된다.
 
 ### 4.5 SettlementRow
 

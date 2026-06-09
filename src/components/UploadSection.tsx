@@ -42,6 +42,7 @@ function CompanyUploadGroup({ company }: { company: Company }) {
 
 function UploadCard({ upload }: { upload: PlatformUploadCard }) {
   const complete = upload.fileCount >= upload.requiredFileCount;
+  const hasSlots = (upload.slots?.length ?? 0) > 0;
   return (
     <article className="rounded-md border border-line bg-ink-800 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -64,6 +65,25 @@ function UploadCard({ upload }: { upload: PlatformUploadCard }) {
       <p className="mt-3 truncate text-xs text-slate-400">{upload.sourceFileNames[0] ?? "파일 대기"}</p>
       {upload.requiredFileCount === 6 ? (
         <p className="mt-2 rounded border border-line bg-ink-950 px-2 py-1 text-xs text-slate-300">필수 6개: 일반 3개 + 앱 3개</p>
+      ) : null}
+      {hasSlots ? (
+        <div className="mt-4 space-y-2 rounded-md border border-line bg-ink-950/70 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">슬롯 상태</p>
+          {upload.slots?.map((slot) => (
+            <div key={slot.slotId} className="rounded-md border border-line bg-ink-900 px-3 py-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{slot.label}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {slot.required ? "required" : "optional"} · {slot.acceptedFileKinds.join("/")}
+                  </p>
+                </div>
+                <StatusBadge status={slot.status} />
+              </div>
+              <p className="mt-2 truncate text-xs text-slate-400">{slot.sourceFileNames[0] ?? "파일 대기"}</p>
+            </div>
+          ))}
+        </div>
       ) : null}
     </article>
   );

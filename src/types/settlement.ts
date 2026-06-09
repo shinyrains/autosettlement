@@ -41,6 +41,25 @@ export type BatchPlatformUploadStatus =
   | "warning"
   | "error";
 
+export type BatchPlatformUploadSlotKey =
+  | "settlement"
+  | "authorCorrection"
+  | "seriesGeneral"
+  | "seriesApp";
+
+export type BatchPlatformUploadSlot = {
+  slotId: string;
+  slotKey: BatchPlatformUploadSlotKey;
+  label: string;
+  required: boolean;
+  acceptedFileKinds: Array<"csv" | "xlsx">;
+  status: BatchPlatformUploadStatus;
+  fileCount: number;
+  sourceFileNames: string[];
+  issueCount: number;
+  lastUploadedAt?: string;
+};
+
 export type BatchPlatformUpload = {
   uploadId: string;
   batchId: string;
@@ -52,6 +71,7 @@ export type BatchPlatformUpload = {
   parsedRowCount: number;
   issueCount: number;
   lastUploadedAt?: string;
+  slots?: BatchPlatformUploadSlot[];
 };
 
 export type SettlementRow = {
