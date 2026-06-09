@@ -1,0 +1,30 @@
+[
+  {
+    "rowId": "fixture-munpia-013-munpia-sr-999001-web-munpia_settlement_author_partial_skip.xlsx-4",
+    "company": "sr",
+    "platform": "munpia",
+    "saleMonth": "2026-05",
+    "workTitle": "정상 작품",
+    "mailerContentTitle": "정상 작품",
+    "author": "Sample Author",
+    "grossSales": 10000,
+    "settlementAmount": 6300,
+    "sourceFileName": "munpia_settlement_author_partial_skip.xlsx",
+    "sourceRowIndex": 4,
+    "issues": []
+  },
+  {
+    "rowId": "fixture-munpia-013-munpia-sr-999001-app-munpia_settlement_author_partial_skip.xlsx-4",
+    "company": "sr",
+    "platform": "munpia",
+    "saleMonth": "2026-05",
+    "workTitle": "정상 작품",
+    "mailerContentTitle": "정상 작품(app)",
+    "author": "Sample Author",
+    "grossSales": 3000,
+    "settlementAmount": 1575,
+    "sourceFileName": "munpia_settlement_author_partial_skip.xlsx",
+    "sourceRowIndex": 4,
+    "issues": []
+  }
+]

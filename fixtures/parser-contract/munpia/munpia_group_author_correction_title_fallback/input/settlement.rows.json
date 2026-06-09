@@ -1,0 +1,26 @@
+[
+  {
+    "번호": "Total",
+    "작품코드": "TOTAL",
+    "작가": "",
+    "작품": "",
+    "총매출": 0,
+    "IOS매출": 0,
+    "Google매출": 0,
+    "정산": 0,
+    "sourceFileName": "munpia_settlement_author_title_fallback.xlsx",
+    "sourceRowIndex": 2
+  },
+  {
+    "번호": 1,
+    "작품코드": "485076",
+    "작가": "AreteBooks",
+    "작품": "나 혼자 히든농장",
+    "총매출": 29100,
+    "IOS매출": 3000,
+    "Google매출": 4200,
+    "정산": 22415,
+    "sourceFileName": "munpia_settlement_author_title_fallback.xlsx",
+    "sourceRowIndex": 3
+  }
+]

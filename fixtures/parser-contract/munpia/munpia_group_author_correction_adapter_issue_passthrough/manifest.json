@@ -1,0 +1,45 @@
+{
+  "fixtureId": "munpia_group_author_correction_adapter_issue_passthrough",
+  "description": "authorCorrection slot carries an adapter-originated parse issue that should be passed through without blocking valid settlement parsing",
+  "batchId": "fixture-munpia-009",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 2,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Same sanitized settlement rows as the valid single-sheet fixture."
+    },
+    {
+      "fileId": "author-correction-parse-warning",
+      "fileName": "munpia_author_correction_broken.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.rows.json",
+      "issuesPath": "input/authorCorrection.issues.json",
+      "worksheetCount": 1,
+      "rowCount": 0,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "description": "Adapter failed to parse optional correction input, but valid settlement rows should still be emitted."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture locks passthrough behavior for optional-slot adapter issues.",
+    "The optional authorCorrection adapter issue must not block settlement parsing by itself.",
+    "The adapter issue should appear alongside any parser-generated issues; this fixture expects only passthrough."
+  ]
+}

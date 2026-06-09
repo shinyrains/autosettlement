@@ -1,0 +1,32 @@
+{
+  "fixtureId": "munpia_group_empty_settlement_rows",
+  "description": "settlement slot exists but the adapted settlement rows array is empty, so the group returns no rows and no issues",
+  "batchId": "fixture-munpia-010",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_empty_rows_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 0,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Adapter produced an empty settlement rows array. Current contract-safe behavior is an empty successful result with no issues."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture documents the current empty-input boundary instead of silently leaving it untested.",
+    "No blocking issue is emitted because required-column validation only applies when rows are present.",
+    "If future contract policy changes, this fixture should be updated deliberately."
+  ]
+}

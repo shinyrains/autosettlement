@@ -1,0 +1,32 @@
+{
+  "fixtureId": "munpia_group_missing_required_column_blocks",
+  "description": "settlement slot is present but the sanitized settlement rows are missing a required column so the Munpia group must block at the settlement path boundary",
+  "batchId": "fixture-munpia-007",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_missing_ios_sales_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Sanitized parser-ready settlement rows intentionally omit the IOS매출 column to trigger required-column blocking."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture validates required settlement column enforcement at the group settlement path boundary.",
+    "The missing required column is IOS매출, matching the current Munpia required column constants.",
+    "Conservative issue type selection follows the single-file parser contract: missing_column."
+  ]
+}

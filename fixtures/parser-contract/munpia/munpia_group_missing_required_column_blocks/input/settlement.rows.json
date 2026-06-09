@@ -1,0 +1,13 @@
+[
+  {
+    "번호": 1,
+    "작품코드": "485076",
+    "작가": "Sample Author",
+    "작품": "나 혼자 히든농장",
+    "총매출": 29100,
+    "Google매출": 4200,
+    "정산": 22415,
+    "sourceFileName": "munpia_settlement_missing_ios_sales_sample.xlsx",
+    "sourceRowIndex": 3
+  }
+]

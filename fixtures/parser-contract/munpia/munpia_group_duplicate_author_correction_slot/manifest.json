@@ -1,0 +1,50 @@
+{
+  "fixtureId": "munpia_group_duplicate_author_correction_slot",
+  "description": "group manifest declares the optional authorCorrection slot twice so the whole Munpia group must block before row parsing",
+  "batchId": "fixture-munpia-006",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 0,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Minimal placeholder rows artifact for the required settlement slot declaration."
+    },
+    {
+      "fileId": "author-correction-primary",
+      "fileName": "munpia_author_correction_primary.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.primary.rows.json",
+      "rowCount": 0,
+      "description": "Minimal placeholder rows artifact for the first authorCorrection slot declaration."
+    },
+    {
+      "fileId": "author-correction-duplicate",
+      "fileName": "munpia_author_correction_duplicate.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.duplicate.rows.json",
+      "rowCount": 0,
+      "description": "Minimal placeholder rows artifact for the duplicate authorCorrection slot declaration."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture validates group-level slot uniqueness for the optional correction input.",
+    "All input artifacts are intentionally empty because blocking must happen before row parsing.",
+    "Conservative issue type selection: parse_error for an invalid manifest slot configuration."
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "fixtureId": "munpia_group_author_correction_title_fallback",
+  "description": "authorCorrection falls back to matching a blank-work-code correction row by work title",
+  "batchId": "fixture-munpia-012",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_author_title_fallback.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 2,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Settlement row requires correction and no exact work-code correction exists."
+    },
+    {
+      "fileId": "author-correction-main",
+      "fileName": "munpia_author_correction.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "description": "Blank work-code correction row must match by title."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "Fallback is allowed only when the correction row workCode is blank.",
+    "The settlement work code may remain populated; the fallback still keys off title after primary match misses."
+  ]
+}

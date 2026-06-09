@@ -1,0 +1,30 @@
+[
+  {
+    "rowId": "fixture-munpia-009-munpia-sr-485076-web-munpia_settlement_sample.xlsx-3",
+    "company": "sr",
+    "platform": "munpia",
+    "saleMonth": "2026-05",
+    "workTitle": "나 혼자 히든농장",
+    "mailerContentTitle": "나 혼자 히든농장",
+    "author": "Sample Author",
+    "grossSales": 29100,
+    "settlementAmount": 18333,
+    "sourceFileName": "munpia_settlement_sample.xlsx",
+    "sourceRowIndex": 3,
+    "issues": []
+  },
+  {
+    "rowId": "fixture-munpia-009-munpia-sr-485076-app-munpia_settlement_sample.xlsx-3",
+    "company": "sr",
+    "platform": "munpia",
+    "saleMonth": "2026-05",
+    "workTitle": "나 혼자 히든농장",
+    "mailerContentTitle": "나 혼자 히든농장(app)",
+    "author": "Sample Author",
+    "grossSales": 7200,
+    "settlementAmount": 3704,
+    "sourceFileName": "munpia_settlement_sample.xlsx",
+    "sourceRowIndex": 3,
+    "issues": []
+  }
+]

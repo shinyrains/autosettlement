@@ -1,0 +1,43 @@
+{
+  "fixtureId": "munpia_group_author_correction_work_code_happy_path",
+  "description": "authorCorrection corrects a placeholder Munpia author label by exact work code match",
+  "batchId": "fixture-munpia-011",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_author_placeholder.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 2,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Settlement rows include a placeholder author label that requires correction."
+    },
+    {
+      "fileId": "author-correction-main",
+      "fileName": "munpia_author_correction.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "description": "Exact work-code correction row for the placeholder author label."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "Work-code match must win and emit corrected author on both web/app outputs.",
+    "No parser issue is expected for the corrected row."
+  ]
+}

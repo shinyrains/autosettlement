@@ -1,0 +1,12 @@
+[
+  {
+    "issueId": "fixture-munpia-008-settlement-adapter-parse-error",
+    "batchId": "fixture-munpia-008",
+    "company": "sr",
+    "platform": "munpia",
+    "severity": "error",
+    "issueType": "parse_error",
+    "message": "Settlement workbook could not be parsed by the adapter.",
+    "sourceFileName": "munpia_settlement_adapter_error_sample.xlsx"
+  }
+]

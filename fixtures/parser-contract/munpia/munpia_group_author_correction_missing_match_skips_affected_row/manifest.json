@@ -1,0 +1,43 @@
+{
+  "fixtureId": "munpia_group_author_correction_missing_match_skips_affected_row",
+  "description": "an unmapped placeholder author row is skipped while unaffected settlement rows still parse",
+  "batchId": "fixture-munpia-013",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_author_partial_skip.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 3,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "First data row requires author correction but has no match; second data row is normal and must survive."
+    },
+    {
+      "fileId": "author-correction-main",
+      "fileName": "munpia_author_correction.csv",
+      "fileKind": "json_rows",
+      "slot": "authorCorrection",
+      "path": "input/authorCorrection.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "description": "Contains an unrelated correction row so the required placeholder row remains unmatched."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "Only the affected placeholder-author row should be skipped.",
+    "Unaffected normal-author rows must still emit their settlement outputs."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "fixtureId": "munpia_group_settlement_adapter_issue_blocks",
+  "description": "settlement slot carries an adapter-originated parse issue so the Munpia group must block before row parsing",
+  "batchId": "fixture-munpia-008",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_adapter_error_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "issuesPath": "input/settlement.issues.json",
+      "worksheetCount": 1,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Sanitized settlement rows exist, but adapter-level parse_error must block group parsing."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture locks the contract rule that settlement workbook adapter failures block the Munpia group.",
+    "The adapter issue is passed through directly from file.issues.",
+    "Rows must remain empty even if parser-ready rows are present in the fixture."
+  ]
+}

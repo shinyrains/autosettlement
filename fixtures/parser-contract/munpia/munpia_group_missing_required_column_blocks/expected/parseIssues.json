@@ -1,0 +1,12 @@
+[
+  {
+    "issueId": "fixture-munpia-007-munpia-sr-missing-required-column-ios-sales",
+    "batchId": "fixture-munpia-007",
+    "company": "sr",
+    "platform": "munpia",
+    "severity": "error",
+    "issueType": "missing_column",
+    "message": "Munpia required column is missing: IOS매출.",
+    "sourceFileName": "munpia_settlement_missing_ios_sales_sample.xlsx"
+  }
+]
