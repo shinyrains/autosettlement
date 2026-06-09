@@ -1,0 +1,32 @@
+{
+  "fixtureId": "munpia_group_unknown_slot_blocks",
+  "description": "group manifest includes an unknown slot value so the whole Munpia group must block before row parsing",
+  "batchId": "fixture-munpia-005",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "unknown-main",
+      "fileName": "munpia_unknown_slot_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "unknown_slot",
+      "path": "input/unknown-slot.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 0,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Minimal placeholder rows artifact for an intentionally unsupported slot value."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture validates explicit slot-name validation.",
+    "The rows artifact is intentionally empty because blocking must happen before row parsing.",
+    "Conservative issue type selection: parse_error for an unsupported manifest slot value."
+  ]
+}

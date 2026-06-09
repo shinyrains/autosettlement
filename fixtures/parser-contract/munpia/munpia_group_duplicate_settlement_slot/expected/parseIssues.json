@@ -1,0 +1,11 @@
+[
+  {
+    "issueId": "fixture-munpia-004-munpia-sr-duplicate-settlement-slot",
+    "batchId": "fixture-munpia-004",
+    "company": "sr",
+    "platform": "munpia",
+    "severity": "error",
+    "issueType": "parse_error",
+    "message": "Settlement slot is declared more than once for this Munpia group."
+  }
+]
