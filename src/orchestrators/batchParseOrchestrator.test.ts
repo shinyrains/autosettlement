@@ -47,7 +47,7 @@ function createFile(input: {
   fileName: string;
   saleMonth?: string;
   content: unknown;
-  fileKind?: "csv";
+  fileKind?: "csv" | "xlsx";
   slot?: string;
   eventPeriod?: {
     startDate: string;
@@ -180,7 +180,11 @@ function createSeriesFiles(): ReturnType<typeof createSeriesFile>[] {
 
 function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
   return (context: FileAdapterContext, file: unknown): FileAdapterResult => {
-    if (context.platform !== "series" && context.platform !== "ridibooks") {
+    if (
+      context.platform !== "series"
+      && context.platform !== "ridibooks"
+      && context.platform !== "munpia"
+    ) {
       return parseCsvAdapter(context, file);
     }
 
@@ -192,6 +196,51 @@ function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
       issues: issueByFileName[sourceFileName] === undefined ? [] : [issueByFileName[sourceFileName]],
     };
   };
+}
+
+function createMunpiaSettlementRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  return {
+    번호: 1,
+    작품코드: "485076",
+    계정: "munpia-main",
+    작가: "AreteBooks",
+    작품: "나 혼자 히든농장",
+    총매출: 2000,
+    IOS매출: 1000,
+    Google매출: 1000,
+    정산: 2268,
+    sourceFileName: "munpia-settlement.xlsx",
+    sourceRowIndex: 3,
+    ...overrides,
+  };
+}
+
+function createMunpiaAuthorCorrectionRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  return {
+    작품코드: "485076",
+    계정: "munpia-main",
+    작품: "나 혼자 히든농장",
+    작가명: "Corrected Author",
+    sourceFileName: "munpia-author-correction.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createMunpiaFile(input: {
+  fileName: string;
+  slot: "settlement" | "authorCorrection";
+  content: TabularRow[];
+  fileKind?: "csv" | "xlsx";
+}) {
+  return createFile({
+    company: "sr",
+    platform: "munpia",
+    fileName: input.fileName,
+    slot: input.slot,
+    fileKind: input.fileKind ?? (input.slot === "settlement" ? "xlsx" : "csv"),
+    content: input.content,
+  });
 }
 
 function createRidibooksBaseRow(overrides: Partial<TabularRow> = {}): TabularRow {
@@ -992,6 +1041,146 @@ describe("batch parse orchestrator", () => {
       expect.objectContaining({ fileName: "calculate_1 (1).csv", status: "success", rowCount: 2, issueCount: 0 }),
       expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "success", rowCount: 1, issueCount: 0 }),
       expect.objectContaining({ fileName: "ridibooks-mg.csv", status: "success", rowCount: 1, issueCount: 0 }),
+    ]);
+  });
+
+  it("parses munpia settlement and optional authorCorrection as one group", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-munpia-1",
+        files: [
+          createMunpiaFile({
+            fileName: "munpia-settlement.xlsx",
+            slot: "settlement",
+            content: [createMunpiaSettlementRow()],
+          }),
+          createMunpiaFile({
+            fileName: "munpia-author-correction.csv",
+            slot: "authorCorrection",
+            content: [createMunpiaAuthorCorrectionRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+          xlsx: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        company: "sr",
+        platform: "munpia",
+        saleMonth: "2026-06",
+        workTitle: "나 혼자 히든농장",
+        mailerContentTitle: "나 혼자 히든농장",
+        author: "Corrected Author",
+        grossSales: 2000,
+        settlementAmount: 1260,
+        sourceFileName: "munpia-settlement.xlsx",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "munpia",
+        saleMonth: "2026-06",
+        workTitle: "나 혼자 히든농장",
+        mailerContentTitle: "나 혼자 히든농장(app)",
+        author: "Corrected Author",
+        grossSales: 2000,
+        settlementAmount: 1008,
+        sourceFileName: "munpia-settlement.xlsx",
+      }),
+    ]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "munpia-settlement.xlsx", platform: "munpia", status: "success", rowCount: 1, issueCount: 0 }),
+      expect.objectContaining({ fileName: "munpia-author-correction.csv", platform: "munpia", status: "success", rowCount: 1, issueCount: 0 }),
+    ]);
+  });
+
+  it("preserves optional munpia authorCorrection adapter issues without blocking valid settlement rows", () => {
+    const correctionIssue: ParseIssue = {
+      issueId: "batch-munpia-2-author-correction-parse-error",
+      batchId: "batch-munpia-2",
+      company: "sr",
+      platform: "munpia",
+      severity: "error",
+      issueType: "parse_error",
+      message: "Author correction adapter reported a parse error.",
+      sourceFileName: "munpia-author-correction.csv",
+    };
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-munpia-2",
+        files: [
+          createMunpiaFile({
+            fileName: "munpia-settlement.xlsx",
+            slot: "settlement",
+            content: [createMunpiaSettlementRow({ 작가: "Normal Author" })],
+          }),
+          createMunpiaFile({
+            fileName: "munpia-author-correction.csv",
+            slot: "authorCorrection",
+            content: [createMunpiaAuthorCorrectionRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter({ "munpia-author-correction.csv": correctionIssue }),
+          xlsx: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([
+      expect.objectContaining({ platform: "munpia", author: "Normal Author", mailerContentTitle: "나 혼자 히든농장" }),
+      expect.objectContaining({ platform: "munpia", author: "Normal Author", mailerContentTitle: "나 혼자 히든농장(app)" }),
+    ]);
+    expect(result.issues).toEqual([correctionIssue]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "munpia-settlement.xlsx", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "munpia-author-correction.csv", status: "failed", issueCount: 1 }),
+    ]);
+  });
+
+  it("blocks the munpia group when the settlement slot already carries adapter issues", () => {
+    const settlementIssue: ParseIssue = {
+      issueId: "batch-munpia-3-settlement-parse-error",
+      batchId: "batch-munpia-3",
+      company: "sr",
+      platform: "munpia",
+      severity: "error",
+      issueType: "parse_error",
+      message: "Settlement adapter reported a parse error.",
+      sourceFileName: "munpia-settlement.xlsx",
+    };
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-munpia-3",
+        files: [
+          createMunpiaFile({
+            fileName: "munpia-settlement.xlsx",
+            slot: "settlement",
+            content: [createMunpiaSettlementRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          xlsx: createSeriesAdapter({ "munpia-settlement.xlsx": settlementIssue }),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([settlementIssue]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "munpia-settlement.xlsx", platform: "munpia", status: "failed", rowCount: 1, issueCount: 1 }),
     ]);
   });
 

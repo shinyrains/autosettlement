@@ -357,12 +357,15 @@ AutoSettlement의 책임:
 - author correction은 parser 내부 자동 추정이 아니라 `authorCorrection` 업로드 슬롯 기반 file input으로 와야 한다.
 - correction slot은 adapter 이후 `TabularRow[]`로 group parser에 전달되어야 한다.
 - correction slot의 최소 컬럼은 `작품코드`, `작품`, `작가명`이다.
+- correction slot adapter issue는 최종 `ParseIssue[]`에 passthrough되지만, valid settlement path 자체를 자동으로 block하지는 않는다.
 - author correction이 개입되므로, production input contract는 single-file-only보다 group parser shape가 더 안전하다.
 - Munpia group input slot의 최소 shape는 `settlement` required / `authorCorrection` optional 이다.
 - 현재 MVP는 single-sheet settlement file만 허용한다.
 - multi-sheet auto-pick은 금지한다.
 - 다중 시트가 감지되고 explicit `sheetName`이 없으면 blocking issue와 함께 rows를 생성하지 않는다.
 - explicit `sheetName`이 있는 미래 계약이 생기면 해당 시트만 사용한다.
+- settlement slot adapter issue는 single-file row parsing 전에 group-level block으로 처리한다.
+- required settlement slot이 존재하지만 adapted settlement rows가 빈 배열인 현재 경계는 `rows = []`, `issues = []`의 empty success로 고정한다.
 
 ### 5.2 expected SettlementRow[]
 
@@ -376,31 +379,36 @@ AutoSettlement의 책임:
 
 대표 테스트 케이스:
 
-- `munpia_valid_web_app_split`: 웹/app 입력이 각각 별도 row로 생성되는 케이스
-- `munpia_web_only`: 웹 매출만 있는 작품은 `작품명`으로 생성되는 케이스
-- `munpia_app_only`: app 매출만 있는 작품은 `작품명(app)`으로 생성되는 케이스
-- `munpia_company_assignment`: 라온/에스알 입력 group에 따라 회사가 올바르게 지정되는 케이스
+- `munpia_group_valid_single_sheet`: 단일 settlement source row가 web/app `SettlementRow` 2개로 분리되는 케이스
+- `munpia_group_author_correction_work_code_happy_path`: `작품코드` 우선 author correction이 적용되는 케이스
+- `munpia_group_author_correction_title_fallback`: blank correction `작품코드` row가 `작품` fallback으로 author correction되는 케이스
+- `munpia_group_author_correction_adapter_issue_passthrough`: optional correction slot adapter issue가 남아도 valid settlement rows는 유지되는 케이스
+- `munpia_group_empty_settlement_rows`: required settlement slot이 존재하지만 adapted rows가 비어 있어 empty success를 반환하는 케이스
 
 ### 5.3 expected ParseIssue[]
 
 오류 fixture에서 기대하는 이슈:
 
-- 웹/app 구분 기준을 찾을 수 없으면 `mapping_failed`
-- 회사 분리에 실패하면 `company_split_failed`
 - 필수 컬럼이 없으면 `missing_column`
 - 필수 값이 비어 있으면 `missing_field`
 - 금액 필드가 숫자로 해석되지 않으면 `invalid_value`
-- 동일 회사/플랫폼/작품/app 구분 기준에서 중복 row가 발생하면 `duplicate_row`
 - author correction이 필요한 row에 correction이 없으면 해당 row만 `mapping_failed`로 skip하고, group 전체는 계속 처리한다.
-- multi-sheet settlement workbook에 explicit `sheetName`이 없으면 `parse_error` 또는 `mapping_failed`로 group-level block을 표현하고 rows는 생성하지 않는다.
+- settlement slot adapter에서 이미 `parse_error`가 발생하면 group-level block으로 rows를 생성하지 않는다.
+- optional `authorCorrection` slot adapter issue는 passthrough되며, valid settlement parsing이 가능하면 rows는 유지된다.
+- multi-sheet settlement workbook에 explicit `sheetName`이 없으면 `parse_error`로 group-level block을 표현하고 rows는 생성하지 않는다.
 - group-level blocked 상태는 새 `blocked` issue type이 아니라 기존 `missing_file`, `missing_column`, `parse_error` 같은 issue와 downstream validator 판단으로 표현한다.
 - correction row matching key 우선순위는 `작품코드` 후 `작품`이다.
 
 대표 테스트 케이스:
 
-- `munpia_missing_app_marker`: app 구분 기준 누락
-- `munpia_company_split_failed`: 회사 구분 값이 라온/에스알 중 하나로 확정되지 않는 케이스
-- `munpia_duplicate_web_row`: 웹 매출 row가 중복되는 케이스
+- `munpia_group_author_correction_missing_match_skips_affected_row`: correction miss가 필요한 source row만 skip하고 나머지 row는 계속 처리하는 케이스
+- `munpia_group_multisheet_without_sheet_name_blocks`: explicit `sheetName` 없는 multi-sheet settlement workbook block
+- `munpia_group_missing_settlement_slot`: required settlement slot missing block
+- `munpia_group_duplicate_settlement_slot`: duplicate settlement slot block
+- `munpia_group_duplicate_author_correction_slot`: duplicate optional correction slot block
+- `munpia_group_unknown_slot_blocks`: unknown slot block
+- `munpia_group_missing_required_column_blocks`: settlement required column missing block
+- `munpia_group_settlement_adapter_issue_blocks`: settlement adapter parse issue block
 
 ### 5.4 forbidden behavior
 

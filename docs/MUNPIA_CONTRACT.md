@@ -196,6 +196,7 @@ Correction policy:
 - Automatic author guessing is forbidden.
 - Fuzzy text matching is forbidden.
 - If a correction is required but no correction row matches, emit `mapping_failed`.
+- Optional `authorCorrection` adapter issues are preserved in final `ParseIssue[]` but do not block otherwise-valid settlement parsing by themselves.
 
 Recommended correction input fields:
 
@@ -248,13 +249,21 @@ row -> SettlementRow mapping utils
 sanitized unit tests
 ```
 
-Blocked until contract closure:
+Still blocked in this repo slice:
 
 ```text
-batch orchestrator wiring
 registry wiring into production flow
 UI connection
 real-use path connection
+```
+
+Current status after contract closure and authority sync:
+
+```text
+isolated Munpia group parser implementation: done
+sanitized fixture coverage for group parser boundary: done
+batch orchestrator wiring: allowed
+UI / real-use path connection: still out of scope here
 ```
 
 ## 9B. Parser Shape Decision
@@ -316,7 +325,9 @@ Expected cases:
 - Numeric column cannot be parsed: `invalid_value`.
 - Required author correction cannot be matched: `mapping_failed`.
 - Source XLSX cannot be read by the file adapter: `parse_error`.
-- Multi-sheet settlement workbook without explicit `sheetName` must produce a blocking issue such as `parse_error` or `mapping_failed` and no rows in MVP.
+- Settlement slot adapter issues must block before row parsing and be passed through as existing issues such as `parse_error`.
+- Multi-sheet settlement workbook without explicit `sheetName` must produce `parse_error` and no rows in MVP.
+- If the required settlement slot exists but adapted settlement rows are empty, current contract-safe behavior is `rows = []` and `issues = []`.
 - Group-level blocked states must be expressed by existing issues such as `missing_file`, `missing_column`, or `parse_error`, not by adding a new `blocked` issue type.
 
 ## 11. Implementation Checklist
@@ -336,20 +347,17 @@ Before parser implementation is accepted:
 
 ## 12. Remaining Open Items
 
-Open implementation decisions:
+Still-open items after Munpia contract closure:
 
-- Final Munpia production parser shape is unresolved, but optional author correction input makes a group parser shape safer than a single-file-only production contract.
 - Whether and where future UI/orchestrator input can provide explicit `sheetName` for multi-sheet settlement workbooks.
-
-These items must be resolved before wiring Munpia into the batch orchestrator.
+- Whether a future authority revision should treat empty adapted settlement rows as a blocking issue instead of the current empty-success boundary.
 
 ## 13. Out Of Scope Until Contract Closure
 
-- Batch orchestrator wiring
 - Registry wiring into real-use batch flow
 - UI upload or correction-entry behavior
 - Export path changes
 - Emailer changes
 - Real production path connection
 
-Until these open items are closed, Munpia implementation is allowed only in contract-safe isolated units.
+Munpia implementation may now proceed through contract-safe batch orchestrator wiring, but the real production path remains out of scope until the remaining authority decisions are closed.

@@ -228,7 +228,7 @@ Expected:
 Representative fixture id:
 
 ```text
-munpia_group_author_correction_by_work_code
+munpia_group_author_correction_work_code_happy_path
 ```
 
 ### 6.3 Missing Author Correction Is Non-Blocking
@@ -251,7 +251,7 @@ whole group -> not blocked
 Representative fixture id:
 
 ```text
-munpia_group_missing_author_correction_skips_affected_row
+munpia_group_author_correction_missing_match_skips_affected_row
 ```
 
 ### 6.4 Work Title Fallback Match
@@ -271,10 +271,30 @@ Expected:
 Representative fixture id:
 
 ```text
-munpia_group_author_correction_by_work_title_fallback
+munpia_group_author_correction_title_fallback
 ```
 
-### 6.5 Multi-Sheet Block
+### 6.5 Adapter-Originated Optional Correction Issue Passthrough
+
+Purpose:
+
+```text
+authorCorrection slot adapter issues must be preserved without blocking valid settlement parsing by themselves
+```
+
+Expected:
+
+- settlement rows still parse when the required settlement slot is otherwise valid
+- adapter-originated `authorCorrection` issues remain in final `ParseIssue[]`
+- no hidden parser-side recovery or guessing is added
+
+Representative fixture id:
+
+```text
+munpia_group_author_correction_adapter_issue_passthrough
+```
+
+### 6.6 Multi-Sheet Block
 
 Purpose:
 
@@ -296,7 +316,7 @@ Representative fixture id:
 munpia_group_multisheet_without_sheet_name_blocks
 ```
 
-### 6.6 Future Explicit sheetName Path
+### 6.7 Future Explicit sheetName Path
 
 Purpose:
 
@@ -324,7 +344,7 @@ Representative fixture id:
 munpia_group_multisheet_with_explicit_sheet_name
 ```
 
-### 6.7 Missing Settlement Slot Blocks
+### 6.8 Missing Settlement Slot Blocks
 
 Purpose:
 
@@ -343,7 +363,7 @@ Representative fixture id:
 munpia_group_missing_settlement_slot
 ```
 
-### 6.8 Duplicate Slot Blocks
+### 6.9 Duplicate Slot Blocks
 
 Purpose:
 
@@ -363,7 +383,7 @@ munpia_group_duplicate_settlement_slot
 munpia_group_duplicate_author_correction_slot
 ```
 
-### 6.9 Unknown Slot Blocks
+### 6.10 Unknown Slot Blocks
 
 Purpose:
 
@@ -382,7 +402,7 @@ Representative fixture id:
 munpia_group_unknown_slot_blocks
 ```
 
-### 6.10 Settlement Required Columns Missing
+### 6.11 Settlement Required Columns Missing
 
 Purpose:
 
@@ -399,6 +419,46 @@ Representative fixture id:
 
 ```text
 munpia_group_missing_required_column_blocks
+```
+
+### 6.12 Settlement Adapter Issue Blocks
+
+Purpose:
+
+```text
+adapter-originated settlement parse issues must block the whole group before row parsing
+```
+
+Expected:
+
+- passthrough existing adapter `parse_error`
+- no rows
+- no attempt to continue into the single-file row parser
+
+Representative fixture id:
+
+```text
+munpia_group_settlement_adapter_issue_blocks
+```
+
+### 6.13 Empty Settlement Rows
+
+Purpose:
+
+```text
+document the current boundary behavior when the required settlement slot exists but adapted rows are empty
+```
+
+Expected:
+
+- no rows
+- no issues
+- this remains a contract-safe empty success until the authority changes explicitly
+
+Representative fixture id:
+
+```text
+munpia_group_empty_settlement_rows
 ```
 
 ## 7. Expected SettlementRow Rules
@@ -451,15 +511,18 @@ fixtures/parser-contract/munpia/
 │  └─ expected/
 │     ├─ settlementRows.json
 │     └─ parseIssues.json
-├─ munpia_group_author_correction_by_work_code/
-├─ munpia_group_missing_author_correction_skips_affected_row/
-├─ munpia_group_author_correction_by_work_title_fallback/
+├─ munpia_group_author_correction_work_code_happy_path/
+├─ munpia_group_author_correction_missing_match_skips_affected_row/
+├─ munpia_group_author_correction_title_fallback/
+├─ munpia_group_author_correction_adapter_issue_passthrough/
 ├─ munpia_group_multisheet_without_sheet_name_blocks/
+├─ munpia_group_empty_settlement_rows/
 ├─ munpia_group_missing_settlement_slot/
 ├─ munpia_group_duplicate_settlement_slot/
 ├─ munpia_group_duplicate_author_correction_slot/
 ├─ munpia_group_unknown_slot_blocks/
-└─ munpia_group_missing_required_column_blocks/
+├─ munpia_group_missing_required_column_blocks/
+└─ munpia_group_settlement_adapter_issue_blocks/
 ```
 
 Each fixture group should keep:
@@ -510,29 +573,35 @@ The following matrix translates fixture families into concrete test intentions.
 | fixtureId | parser focus | expected rows | expected issues | status |
 | --- | --- | ---: | ---: | --- |
 | `munpia_group_valid_single_sheet` | happy path, single worksheet, explicit settlement slot | >0 | 0 | active |
-| `munpia_group_author_correction_by_work_code` | optional correction slot, `작품코드` priority | >0 | 0 | active |
-| `munpia_group_missing_author_correction_skips_affected_row` | row-level correction miss skips only affected row | partial | 1+ | active |
-| `munpia_group_author_correction_by_work_title_fallback` | `작품` fallback after missing/unmatched `작품코드` | >0 | 0 | active |
+| `munpia_group_author_correction_work_code_happy_path` | optional correction slot, `작품코드` priority | >0 | 0 | active |
+| `munpia_group_author_correction_missing_match_skips_affected_row` | row-level correction miss skips only affected row | partial | 1+ | active |
+| `munpia_group_author_correction_title_fallback` | `작품` fallback after missing/unmatched `작품코드` | >0 | 0 | active |
+| `munpia_group_author_correction_adapter_issue_passthrough` | optional correction-slot adapter issue is preserved while valid settlement rows still parse | >0 | 1+ | active |
 | `munpia_group_multisheet_without_sheet_name_blocks` | multi-sheet workbook without explicit `sheetName` | 0 | 1+ | active |
 | `munpia_group_multisheet_with_explicit_sheet_name` | future explicit sheet selection path | TBD | TBD | reserved |
+| `munpia_group_empty_settlement_rows` | required settlement slot exists but adapted settlement rows are empty | 0 | 0 | active |
 | `munpia_group_missing_settlement_slot` | required settlement slot missing | 0 | 1+ | active |
 | `munpia_group_duplicate_settlement_slot` | duplicate settlement slot | 0 | 1+ | active |
 | `munpia_group_duplicate_author_correction_slot` | duplicate optional correction slot | 0 | 1+ | active |
 | `munpia_group_unknown_slot_blocks` | unknown slot value with no filename inference | 0 | 1+ | active |
 | `munpia_group_missing_required_column_blocks` | required settlement column missing | 0 | 1+ | active |
+| `munpia_group_settlement_adapter_issue_blocks` | settlement-slot adapter issue blocks before row parsing | 0 | 1+ | active |
 
 Recommended Vitest test names:
 
 - `parses munpia group from a single-sheet settlement fixture`
 - `applies author correction by 작품코드 when correction slot is present`
 - `falls back to 작품 matching only after 작품코드 lookup is unavailable or misses`
+- `preserves optional correction-slot adapter issues without blocking valid settlement parsing`
 - `skips only the affected row when author correction is required but unresolved`
 - `blocks when settlement workbook contains multiple worksheets without explicit sheetName`
+- `returns an empty successful result when settlement rows are empty under the current authority`
 - `blocks when settlement slot is missing`
 - `blocks when settlement slot is duplicated`
 - `blocks when authorCorrection slot is duplicated`
 - `blocks when an unknown Munpia slot is supplied`
 - `blocks when required settlement columns are missing`
+- `blocks immediately when settlement slot already carries adapter parse issues`
 
 Minimal assertion direction per test:
 

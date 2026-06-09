@@ -168,10 +168,6 @@ Why not Simple Extract:
 
 Unresolved before implementation:
 
-- Exact source columns for web gross sales, iOS sales, Google sales, title, author, publisher.
-- Exact author correction map.
-- Whether the production parser contract should stay single-file or move to a group parser shape with optional correction input.
-- Whether multi-sheet workbooks require an explicit `sheetName` policy instead of first-sheet-only handling.
 - Whether company split is based on source file values or upload area.
 
 Current safe direction:
@@ -179,13 +175,23 @@ Current safe direction:
 - The minimum Munpia group input shape is `settlement` required / `authorCorrection` optional.
 - The `authorCorrection` member is an optional upload-slot-based file input, not an in-memory table contract.
 - The correction slot should allow adapter-parsed `TabularRow[]` input and preserve source trace.
+- Optional correction-slot adapter issues should passthrough into final `ParseIssue[]` without blocking an otherwise-valid settlement path by themselves.
 - For MVP, Munpia settlement input is single-sheet only.
 - If multiple worksheets are detected and no explicit `sheetName` is provided, the parser path should return a blocking issue and no rows.
+- Settlement-slot adapter issues should block before row parsing.
 - Multi-sheet auto-pick is prohibited. If a future contract provides `sheetName`, use only that named sheet.
 - Missing author correction should skip only the affected row with `mapping_failed`; it should not block the whole Munpia group.
+- If the required settlement slot exists but adapted rows are empty, the current contract-safe boundary is empty success (`rows = []`, `issues = []`).
 - Group-level blocked states should be expressed with existing issues such as `missing_file`, `missing_column`, and `parse_error`, then interpreted by downstream batch/export validation.
 
-Do not proceed to batch/orchestrator wiring, UI connection, or real-use path connection until these contract gaps are closed.
+Current implementation summary:
+
+- Munpia isolated single-file parser implemented.
+- Munpia isolated group parser implemented.
+- Sanitized Munpia fixture coverage exists for happy path, correction priority/fallback, partial-row skip, adapter-issue passthrough, multi-sheet block, duplicate/missing slot block, required-column block, and settlement-adapter block.
+- Batch orchestrator wiring is allowed once authority sync is complete.
+
+Munpia may proceed to contract-safe batch/orchestrator wiring, but UI connection and real-use path connection remain blocked until the remaining authority gaps are closed.
 
 ## 7. Misterblue
 
