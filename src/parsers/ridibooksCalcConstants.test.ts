@@ -54,8 +54,31 @@ describe("ridibooks calculation constants", () => {
       "저자",
       "출판사",
     ]);
-    expect(RIDIBOOKS_REQUIRED_COLUMNS.file1.amounts).toContain("정산액");
+    expect(RIDIBOOKS_REQUIRED_COLUMNS.base.amounts).toEqual([
+      "일반 판매액",
+      "일반 취소액",
+      "앱마켓 정산대상액",
+      "앱마켓 수수료",
+      "앱마켓 취소액",
+      "정산액",
+    ]);
+    expect(RIDIBOOKS_REQUIRED_COLUMNS.file1.amounts).toEqual([
+      "일반 판매액",
+      "일반 취소액",
+      "정산액",
+    ]);
     expect(RIDIBOOKS_REQUIRED_COLUMNS.event.identity).toEqual(["도서ID", "제목"]);
+    expect(RIDIBOOKS_REQUIRED_COLUMNS.event.amounts).toEqual([
+      "결제일",
+      "일반 판매액",
+      "일반 정산액",
+      "iOS 앱마켓 정산대상액",
+      "iOS 앱마켓 정산액",
+      "Android 앱마켓 정산대상액",
+      "Android 앱마켓 정산액",
+      "OneStore 앱마켓 정산대상액",
+      "OneStore 앱마켓 정산액",
+    ]);
     expect(RIDIBOOKS_REQUIRED_COLUMNS.mgCorrection.matching).toContain("도서 ID");
   });
 });
