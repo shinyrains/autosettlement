@@ -23,6 +23,7 @@ export * from "./munpiaGroupParser";
 export * from "./joaraGroupParser";
 export * from "./misterblueSingleFileParser";
 export * from "./panmurim";
+export * from "./bookcube";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";

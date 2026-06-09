@@ -1,5 +1,6 @@
 import type { Platform } from "../types/settlement";
 import { parseAladin } from "./aladin";
+import { parseBookcube } from "./bookcube";
 import { parseEpyrus } from "./epyrus";
 import { parseGuruCompany } from "./guruCompany";
 import { parseKyobo } from "./kyobo";
@@ -20,6 +21,7 @@ export const parserRegistry = {
   guru_company: parseGuruCompany,
   misterblue: parseMisterblueSingleFileRows,
   panmurim: parsePanmurim,
+  bookcube: parseBookcube,
 } satisfies Partial<Record<Platform, PlatformParser>>;
 
 export type SupportedParserPlatform = keyof typeof parserRegistry;

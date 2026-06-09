@@ -30,6 +30,7 @@ describe("parser registry", () => {
       "guru_company",
       "misterblue",
       "panmurim",
+      "bookcube",
     ]);
   });
 
@@ -37,6 +38,7 @@ describe("parser registry", () => {
     expect(getParser("novelpia")).toEqual(expect.any(Function));
     expect(getParser("misterblue")).toEqual(expect.any(Function));
     expect(getParser("panmurim")).toEqual(expect.any(Function));
+    expect(getParser("bookcube")).toEqual(expect.any(Function));
   });
 
   it("runs the selected parser with the requested platform in context", () => {

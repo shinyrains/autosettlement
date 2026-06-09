@@ -82,6 +82,15 @@ function readPanmurimSampleWorkbook(): Uint8Array {
   );
 }
 
+function readBookcubeSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+    ),
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -231,6 +240,46 @@ describe("file parse orchestrator", () => {
         settlementAmount: 2240,
         sourceFileName: "（주）라온이앤엠_2026년 5월.xlsx",
         sourceRowIndex: 5,
+      }),
+    );
+  });
+
+  it("runs the Bookcube XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "bookcube",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "bookcube",
+        saleMonth: "2026-05",
+        sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+        fileKind: "xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "bookcube",
+        saleMonth: "2026-05",
+        sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+      },
+      fileContent: readBookcubeSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(5);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        platform: "bookcube",
+        saleMonth: "2026-05",
+        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
+        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
+        author: "봄날의복길이",
+        publisher: "B cafe",
+        grossSales: 3000,
+        settlementAmount: 2100,
+        sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+        sourceRowIndex: 3,
       }),
     );
   });
