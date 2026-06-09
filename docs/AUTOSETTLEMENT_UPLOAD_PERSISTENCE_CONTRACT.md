@@ -13,6 +13,7 @@ In scope now:
 - persistence of upload metadata, normalized rows, parse issues, and selected review row
 - safe hydration on page reload
 - safe reset back to the seed mock batch
+- authority-approved first live browser upload mutation path (`docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`)
 
 Out of scope now:
 
