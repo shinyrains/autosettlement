@@ -9,6 +9,7 @@ export * from "./seriesGroupParser";
 export * from "./seriesGroupAggregation";
 export * from "./ridibooksCalcConstants";
 export * from "./ridibooksRowCalcUtils";
+export * from "./ridibooksMgApplyUtils";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";
