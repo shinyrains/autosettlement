@@ -12,6 +12,8 @@
 - `docs/AUTOSETTLEMENT_SITE_DESIGN.md`
 - `docs/MUNPIA_GROUP_PARSER_CONTRACT.md` (Munpia production group parser shape authority)
 - `docs/MUNPIA_FIXTURE_PLAN.md` (Munpia fixture family and expected-result planning)
+- `docs/EPYRUS_CONTRACT.md` (Epyrus sample-grounded authority)
+- `docs/EPYRUS_FIXTURE_PLAN.md` (Epyrus sample-grounded fixture planning)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.
@@ -58,6 +60,17 @@
 - 원본 컬럼이 올바른 `SettlementRow` 필드로 매핑되는지 확인한다.
 - 필수 컬럼 누락, 필수 값 누락, 숫자 변환 실패를 확인한다.
 - 원본에 이미 존재하는 금액 컬럼을 임의 산식으로 재계산하지 않는지 확인한다.
+
+Epyrus current authority anchor:
+
+- `docs/EPYRUS_CONTRACT.md`
+- `docs/EPYRUS_FIXTURE_PLAN.md`
+
+Epyrus current sample-grounded guardrails:
+
+- CP949/EUC-KR CSV decode must succeed before parser mapping begins.
+- `제목 / 저자 / 출판사 / 판매금액 / 정산액` only are current mapped contract columns.
+- `판매구분` is source context only and must not split output rows in the current repo slice.
 
 #### Formula Platform
 

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { FileAdapterContext } from "./types";
 import { parseCsvAdapter } from "./csvAdapter";
@@ -10,6 +12,15 @@ const baseContext: FileAdapterContext = {
   sourceFileName: "guru-sample.csv",
   fileKind: "csv",
 };
+
+function readEpyrusSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/epyrus/2026년04월정산내역_라온E＆M.csv",
+    ),
+  );
+}
 
 describe("csv file adapter", () => {
   it("converts a normal CSV into TabularFileRow objects", () => {
@@ -98,7 +109,7 @@ describe("csv file adapter", () => {
       0xef,
       0xbb,
       0xbf,
-      ...new TextEncoder().encode("상품명,작가\n검은 별의 시점,서도원"),
+      ...Array.from(new TextEncoder().encode("상품명,작가\n검은 별의 시점,서도원")),
     ]);
 
     const result = parseCsvAdapter(baseContext, bytes);
@@ -160,6 +171,33 @@ describe("csv file adapter", () => {
         sourceRowIndex: 2,
       }),
     ]);
+  });
+
+  it("decodes the audited Epyrus CP949 sample without mojibake", () => {
+    const result = parseCsvAdapter(
+      {
+        ...baseContext,
+        platform: "epyrus",
+        saleMonth: "2026-04",
+        sourceFileName: "2026년04월정산내역_라온E＆M.csv",
+      },
+      readEpyrusSampleCsv(),
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(151);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        정산자: "라온E＆M",
+        판매구분: "앱",
+        제목: "그의 비밀 2",
+        저자: "시커먼스",
+        출판사: "라온E＆M",
+        판매금액: "2,720",
+        정산액: "1,904",
+        sourceRowIndex: 2,
+      }),
+    );
   });
 
   it("returns a parse_error when byte input cannot be decoded safely", () => {

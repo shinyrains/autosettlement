@@ -27,6 +27,42 @@ Munpia keeps its production parser shape authority in:
 docs/MUNPIA_GROUP_PARSER_CONTRACT.md
 ```
 
+Epyrus keeps its current sample-grounded authority in:
+
+```text
+docs/EPYRUS_CONTRACT.md
+```
+
+## 2A. Epyrus
+
+Input rule:
+
+- single CSV file only
+- CSV decode must follow `docs/CSV_ENCODING_GUARD_CONTRACT.md`
+- current audited sample encoding is CP949/EUC-KR
+
+Current confirmed mapped columns:
+
+```text
+제목
+저자
+출판사
+판매금액
+정산액
+```
+
+Transform rule:
+
+- Epyrus is a Simple Extract Platform, not a Formula Platform.
+- One valid source row produces one `SettlementRow`.
+- `판매구분` does not create separate app/non-app output rows in the current repo slice.
+
+Forbidden behavior:
+
+- do not derive company from `정산자`
+- do not split rows by `판매구분`
+- do not recalculate settlement from `수수료`
+
 ## 2. Common App Title Rule
 
 All special transform platforms must preserve the common mailer content title rule.

@@ -64,6 +64,15 @@ function readMisterblueSampleWorkbook(): Uint8Array {
   );
 }
 
+function readEpyrusSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/epyrus/2026년04월정산내역_라온E＆M.csv",
+    ),
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -88,6 +97,46 @@ describe("file parse orchestrator", () => {
         sourceRowIndex: 2,
       }),
     ]);
+  });
+
+  it("runs the Epyrus CP949 sample through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "csv",
+      platform: "epyrus",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "epyrus",
+        saleMonth: "2026-04",
+        sourceFileName: "2026년04월정산내역_라온E＆M.csv",
+        fileKind: "csv",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "epyrus",
+        saleMonth: "2026-04",
+        sourceFileName: "2026년04월정산내역_라온E＆M.csv",
+      },
+      fileContent: readEpyrusSampleCsv(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(151);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        platform: "epyrus",
+        saleMonth: "2026-04",
+        workTitle: "그의 비밀 2",
+        mailerContentTitle: "그의 비밀 2",
+        author: "시커먼스",
+        publisher: "라온E＆M",
+        grossSales: 2720,
+        settlementAmount: 1904,
+        sourceFileName: "2026년04월정산내역_라온E＆M.csv",
+        sourceRowIndex: 2,
+      }),
+    );
   });
 
   it("runs the Misterblue XLSX adapter and parser through the file orchestrator", () => {
