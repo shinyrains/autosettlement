@@ -39,6 +39,12 @@ Joara keeps its current sample-grounded authority in:
 docs/JOARA_CONTRACT.md
 ```
 
+Panmurim keeps its current sample-grounded authority in:
+
+```text
+docs/PANMURIM_CONTRACT.md
+```
+
 ## 2A. Epyrus
 
 Input rule:
@@ -310,22 +316,51 @@ Unresolved before implementation:
 
 ## 9. Panmurim
 
+Current authority for the repo slice:
+
+```text
+docs/PANMURIM_CONTRACT.md
+```
+
+Input rule:
+
+- one workbook only in the current repo slice
+- `표지` is metadata authority only
+- `세부내역` is the only row-data sheet
+- row 3 group headers + row 4 base headers must be flattened before parser mapping
+
 Transform rule:
 
 ```text
-grossSales = 판매금액
-settlementAmount = 판매금액 * 0.7
+grossSales = 합계 총액 / 판매금액
+settlementAmount = grossSales * (표지 / 정산비율)
+```
+
+Current audited rate:
+
+```text
+70% -> 0.7
+```
+
+Current title/output rule:
+
+```text
+workTitle = 회차 제목
+mailerContentTitle = 회차 제목
 ```
 
 Why not Simple Extract:
 
-- Settlement amount is calculated from `판매금액`.
-- It is not only a direct settlement column extraction.
+- Requires explicit sheet selection.
+- Requires grouped header flattening to disambiguate duplicate `판매금액` columns.
+- Settlement amount is calculated from a cover-sheet authority rate.
 
-Unresolved before implementation:
+Authority status for current repo slice:
 
-- Exact source columns for title, author, publisher, and `판매금액`.
-- Rounding policy for `판매금액 * 0.7`.
+- `세부내역` exact-sheet rule closed from the inspected sample workbook.
+- `표지 / 정산비율` cover-sheet authority closed from the inspected sample workbook.
+- `합계 총액 / 판매금액` row money authority closed from the inspected sample workbook.
+- current row-title authority closed as `회차 제목`.
 
 ## 10. Series / Naver
 

@@ -16,6 +16,8 @@
 - `docs/EPYRUS_FIXTURE_PLAN.md` (Epyrus sample-grounded fixture planning)
 - `docs/JOARA_CONTRACT.md` (Joara grouped-file authority)
 - `docs/JOARA_FIXTURE_PLAN.md` (Joara grouped-file fixture planning)
+- `docs/PANMURIM_CONTRACT.md` (Panmurim sample-grounded authority)
+- `docs/PANMURIM_FIXTURE_PLAN.md` (Panmurim sample-grounded fixture planning)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.
@@ -104,6 +106,7 @@ MVP 기준 Formula Platform:
 - `munpia`
 - `misterblue`
 - `ridibooks`
+- `panmurim`
 
 ### 2.3 expected SettlementRow[]
 
