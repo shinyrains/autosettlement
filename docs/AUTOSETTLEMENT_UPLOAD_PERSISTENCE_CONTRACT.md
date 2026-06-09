@@ -126,10 +126,11 @@ Allowed now:
 - selected-row persistence through the review panel
 - reset action wiring
 - tests for round-trip persistence and hydration fallback
+- authority-approved live upload mutation for the currently contracted single-file cards declared in `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`
 
 Blocked now:
 
-- real upload action implementation
+- live upload action wiring beyond the currently contracted single-file cards
 - raw file cache / binary persistence
 - multi-batch dashboard persistence
 - server API sync layer
@@ -153,6 +154,7 @@ seed mock draft
 -> AppShell state hook
 -> presentational sections receive state via props
 -> selected row and upload metadata survive reload
+-> authority-approved live upload cards mutate the persisted draft through the browser file-input path
 ```
 
 ## 10. Remaining open items

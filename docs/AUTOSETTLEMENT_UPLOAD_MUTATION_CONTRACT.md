@@ -13,14 +13,19 @@ Current goal is intentionally narrow:
 
 ## 2. Current live-upload scope
 
-Only the following upload card is live-wired in the current slice:
-- company: `sr`
-- platform: `misterblue`
-- uploadId: `upload-sr-misterblue`
-- shape: single file
-- required count: `1`
-- accepted extension set: `.xlsx`, `.xls`, `.csv`
-- contracted real sample path: `tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx`
+The following upload cards are live-wired in the current slice:
+
+1. `sr / misterblue / upload-sr-misterblue`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx`
+
+2. `raon / panmurim / upload-raon-panmurim`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/panmurim/（주）라온이앤엠_2026년 5월.xlsx`
 
 All other upload cards remain non-live in this slice.
 They may render current status, but they do not mutate persisted draft state through a browser file selection yet.
@@ -46,8 +51,9 @@ It must reuse the existing orchestrator stack:
 - platform adapter registry
 - parser registry
 
-Current contracted platform lane under this live path:
+Current contracted platform lanes under this live path:
 - Misterblue XLSX adapter + parser
+- Panmurim XLSX adapter + parser
 
 ## 5. Draft mutation boundary
 
@@ -124,11 +130,12 @@ Not included in the current live-upload closure:
 - server persistence
 - upload progress transport semantics
 - cross-session recovery of raw file bytes
+- live upload action wiring for platforms beyond Misterblue + Panmurim single-file XLSX cards
 
 ## 11. Verification target
 
 This slice is only considered closed when all of the following succeed:
-- unit test for upload mutation helper
-- component/UI test for live upload card rendering
-- browser-like app test that selects the real Misterblue sample workbook and verifies persisted draft mutation
+- unit tests for upload mutation helper coverage
+- component/UI test for current live upload card rendering
+- browser-like app tests that select the real Misterblue and Panmurim sample workbooks and verify persisted draft mutation
 - full `npm run check`
