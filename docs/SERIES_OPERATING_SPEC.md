@@ -93,8 +93,7 @@ Still not verified:
 - Real operational row counts across all six source files.
 - Full category coverage across all non-zero source columns.
 - Export package generation from six distinct real Series files.
-- UI upload slot behavior.
-- Browser download behavior.
+- Real grouped-card browser implementation.
 
 Repository policy:
 
@@ -143,8 +142,12 @@ Expected blocking cases:
 - Empty HTML data table.
 - Empty flattened header key.
 - Missing required Series mapping column.
+
+Expected row-level / result-level issue cases after the 6-file completeness gate:
+
 - Missing identity field such as work title or author.
 - Invalid numeric value in a calculation column.
+- Adapter/parser issues may coexist with successful rows in the current contract-safe boundary.
 
 Issue type policy:
 
@@ -157,10 +160,12 @@ Issue type policy:
 Recommended next work order:
 
 1. `SERIES-REAL-6FILE-SMOKE-AUDIT-001`
-2. `SERIES-UI-UPLOAD-SLOTS-001`
-3. `EXPORT-UI-DOWNLOAD-BRIDGE-001`
-4. `SERIES-ERROR-PANEL-INTEGRATION-001`
+2. `SERIES-GROUPED-UPLOAD-MUTATION-CONTRACT-001`
+3. `SERIES-REAL-6FILE-SMOKE-AUDIT-001`
+4. `EXPORT-UI-DOWNLOAD-BRIDGE-001`
+5. `SERIES-ERROR-PANEL-INTEGRATION-001`
 
+`SERIES-GROUPED-UPLOAD-MUTATION-CONTRACT-001` closes grouped browser-draft mutation semantics before real UI wiring.
 `SERIES-REAL-6FILE-SMOKE-AUDIT-001` should remain report-only unless sanitized committed fixtures are explicitly approved.
 
 ## 9. Non-Goals

@@ -156,6 +156,8 @@ MVP 기준 Formula Platform:
 - 일반 결과와 앱 결과는 모두 `SettlementRow`로 정규화한다.
 - 일반/앱 구분은 업로드 슬롯 또는 파일 그룹, `mailerContentTitle`, 원본 추적 정보로 확인 가능해야 한다.
 - 입력 파일 개수 부족, 일반/앱 파일 그룹 구분 실패, 두 번째 table 누락, 기준 파일과 다른 컬럼 구조는 `ParseIssue`로 표현한다.
+- grouped browser mutation semantics for `seriesGeneral`/`seriesApp` follow `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`.
+- Series grouped UI slot keys map to parser/orchestrator slots as `seriesGeneral -> general`, `seriesApp -> app`.
 
 ## 4. 공통 타입 정의
 
@@ -246,7 +248,8 @@ type Batch = {
 현재 브라우저 runtime persistence 경계:
 
 - 현재 브라우저 draft persistence authority는 `docs/AUTOSETTLEMENT_UPLOAD_PERSISTENCE_CONTRACT.md`를 따른다.
-- 현재 live browser upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
+- 현재 single-file live browser upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
+- grouped/slot-based future mutation authority는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - 현재 slice에서는 raw uploaded file bytes를 `Batch` 안에 저장하지 않는다.
 - 현재 slice에서는 localStorage에 저장되는 것은 batch/upload/row/issue/selectedRow metadata snapshot뿐이다.
 
@@ -268,7 +271,7 @@ type BatchPlatformUploadSlot = {
   slotKey: "settlement" | "authorCorrection" | "seriesGeneral" | "seriesApp";
   label: string;
   required: boolean;
-  acceptedFileKinds: Array<"csv" | "xlsx">;
+  acceptedFileKinds: Array<"csv" | "xlsx" | "html_xls">;
   status: "empty" | "uploaded" | "parsed" | "warning" | "error";
   fileCount: number;
   sourceFileNames: string[];

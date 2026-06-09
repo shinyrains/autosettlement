@@ -110,7 +110,7 @@ HTML `.xls` adapter 기대 동작:
 - 첫 번째 데이터 table row를 header로 사용한다.
 - 이후 row를 header 기반 `TabularRow`로 변환한다.
 - 6개 파일 모두 동일한 71개 컬럼 구조를 기대한다.
-- 마지막 `합계` row는 데이터 row에서 제외한다.
+- 마지막 `합계` row는 adapter가 아니라 parser가 제외 책임을 가진다.
 - 각 row에는 `sourceFileName`, `sourceRowIndex` 추적 정보가 유지되어야 한다.
 
 adapter 단계에서 HTML 구조를 읽을 수 없거나 두 번째 table이 없으면 `parse_error`를 반환한다. 이 issue는 group parser 결과의 `ParseIssue[]`에 합쳐져야 한다.
@@ -164,7 +164,7 @@ adapter 단계에서 HTML 구조를 읽을 수 없거나 두 번째 table이 없
 - 일반 3개 파일에서 계산된 값은 같은 항목끼리 합산해 일반 결과를 만든다.
 - app 3개 파일에서 계산된 값은 같은 항목끼리 합산해 app 결과를 만든다.
 - 일반 결과와 app 결과는 서로 다른 `SettlementRow`로 유지한다.
-- 같은 항목 판정 key는 구현 전 별도 확정이 필요하지만, 최소한 `workTitle`, `author`, slot 구분을 포함해야 한다.
+- 같은 항목 판정 key는 현재 구현 기준으로 `company + platform + saleMonth + workTitle + author + publisher + mailerContentTitle`다.
 
 `calculatedItems.json`은 내부 계산 검증용 expected artifact다. 최종 output contract는 아니며, `sourceRefs`가 필요한 상세 합산 검증에만 사용한다.
 
@@ -183,7 +183,7 @@ adapter 단계에서 HTML 구조를 읽을 수 없거나 두 번째 table이 없
 | 금액 변환 실패 | `invalid_value` | 계산 대상 금액이 숫자로 해석되지 않는 경우 |
 | 합산 key 중복/충돌 | `duplicate_row` | 동일 key 병합 과정에서 중복 또는 충돌이 확인된 경우 |
 
-오류 fixture도 최종 expected는 `SettlementRow[] + ParseIssue[]`로 작성한다. 일부 파일만 실패하는 케이스에서는 성공 가능한 결과 row와 실패 issue가 함께 반환될 수 있는지를 별도 케이스로 검증한다.
+오류 fixture도 최종 expected는 `SettlementRow[] + ParseIssue[]`로 작성한다. 현재 contract-safe 경계에서는 6-file completeness gate가 만족된 뒤 일부 파일/row 문제는 성공 가능한 결과 row와 실패 issue가 함께 반환될 수 있는지를 별도 케이스로 검증한다.
 
 ## 9. source 추적 원칙
 
@@ -196,6 +196,7 @@ source 추적 원칙:
 - 최종 `SettlementRow`에는 대표 `sourceFileName`과 대표 `sourceRowIndex`만 유지한다.
 - 대표 source는 fixture 파일 순서와 `sourceRowIndex`를 기준으로 가장 앞선 source를 선택한다.
 - 대표 source 선택 규칙은 deterministic해야 한다.
+- 현재 구현 기준 대표 source는 aggregated `sourceRefs` 중 첫 번째 source를 사용한다.
 - UI/export/emailer 계약에는 `sourceRefs`를 노출하지 않는다.
 
 이 원칙은 합산 row가 여러 원본 파일과 여러 원본 row에서 만들어지더라도 MVP 출력 계약을 단순하게 유지하기 위한 것이다.

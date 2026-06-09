@@ -129,9 +129,8 @@ Raw `File`, `Blob`, `ArrayBuffer`, and `Uint8Array` values are runtime-only.
 ## 10. Out of scope
 
 Not included in the current live-upload closure:
-- Munpia slot upload mutation
-- Series 6-file grouped mutation
-- multi-file upload cards
+- real browser implementation of grouped-card mutation (see `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`)
+- multi-file upload cards beyond the grouped authority frozen there
 - drag-and-drop UX
 - background parsing jobs
 - server persistence

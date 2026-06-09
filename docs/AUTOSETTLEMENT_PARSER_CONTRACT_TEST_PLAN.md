@@ -249,7 +249,7 @@ AutoSettlement의 책임:
 - 각 파일에는 HTML table이 2개 있다.
 - 실제 정산 데이터는 두 번째 table을 사용한다.
 - 샘플 기준 6개 파일은 동일한 71개 컬럼 구조를 가진다.
-- 각 파일 마지막의 `합계` 행은 데이터 row에서 제외한다.
+- 각 파일 마지막의 `합계` 행은 parser 단계에서 데이터 row에서 제외한다.
 - 일반 매출용 3개와 앱 매출용 3개는 파일 내부 컬럼으로 구분되지 않는다.
 - 계산 방식과 추출 컬럼은 `시리즈 계산방법.xlsx` 기준을 따른다.
 - 시리즈는 Simple Extract Platform이 아니라 Formula Platform이다.
@@ -319,6 +319,13 @@ AutoSettlement의 책임:
 - `series_unexpected_columns`: 기준 71개 컬럼과 다른 파일
 - `series_missing_slot_group`: 일반/app 슬롯 정보 누락
 - `series_invalid_amount`: 금액 컬럼에 숫자 변환 불가 값 포함
+
+Representative test families relevant to grouped upload semantics:
+- `series_valid_6_html_xls`
+- `series_missing_app_file`
+- `series_missing_slot_group`
+- `series_invalid_amount`
+- future grouped mutation helper tests must prove staged-slot updates do not destructively replace committed rows/issues before the 6-file completeness gate
 
 ### 3.4 forbidden behavior
 

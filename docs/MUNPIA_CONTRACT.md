@@ -292,8 +292,9 @@ UI rules for that future connection:
 Still-blocking integration gaps before real UI wiring:
 
 - Current authority layer still does not define any user-provided `sheetName` input path for future multi-sheet support.
-- Real persistence/update semantics for per-slot file replacement/removal are still not frozen beyond the current mock/UI slice.
-- Base browser-draft persistence boundary is now frozen in `docs/AUTOSETTLEMENT_UPLOAD_PERSISTENCE_CONTRACT.md`, but slot-specific replacement/removal semantics are still unresolved for Munpia.
+- Real browser grouped upload implementation is still out of scope until a later lane.
+- Base browser-draft persistence boundary is now frozen in `docs/AUTOSETTLEMENT_UPLOAD_PERSISTENCE_CONTRACT.md`.
+- Slot-specific replacement/removal semantics are now frozen in `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`.
 
 Current authority-safe UI state shape for the mock/product boundary:
 
@@ -348,6 +349,8 @@ one worksheet -> supported
 multiple worksheets + no sheetName -> blocking issue, no rows
 multiple worksheets + explicit sheetName -> use only the named sheet
 ```
+
+즉, 문피아 live upload mutation의 slot replacement/removal semantics는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md` authority를 따른다.
 
 ## 10. ParseIssue Cases
 

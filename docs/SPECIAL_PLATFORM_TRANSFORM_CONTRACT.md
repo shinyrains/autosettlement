@@ -269,7 +269,7 @@ Current implementation summary:
 - Sanitized Munpia fixture coverage exists for happy path, correction priority/fallback, partial-row skip, adapter-issue passthrough, multi-sheet block, duplicate/missing slot block, required-column block, and settlement-adapter block.
 - Batch orchestrator wiring is allowed once authority sync is complete.
 
-Munpia may proceed to contract-safe batch/orchestrator wiring, but UI connection and real-use path connection remain blocked until the remaining authority gaps are closed.
+Munpia may proceed to contract-safe batch/orchestrator wiring, but real grouped browser upload wiring remains blocked until the grouped mutation authority in `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md` is implemented and the remaining authority gaps are closed.
 
 ## 7. Misterblue
 
@@ -427,6 +427,7 @@ Current implementation summary:
 - HTML `.xls` adapter supports multi-row header flattening.
 - Real sample path was audited.
 - Operating spec exists.
+- Grouped upload mutation authority is now frozen in `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`.
 
 Why not Simple Extract:
 
