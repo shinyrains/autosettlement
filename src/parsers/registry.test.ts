@@ -29,12 +29,14 @@ describe("parser registry", () => {
       "aladin",
       "guru_company",
       "misterblue",
+      "panmurim",
     ]);
   });
 
   it("returns a parser for supported platforms", () => {
     expect(getParser("novelpia")).toEqual(expect.any(Function));
     expect(getParser("misterblue")).toEqual(expect.any(Function));
+    expect(getParser("panmurim")).toEqual(expect.any(Function));
   });
 
   it("runs the selected parser with the requested platform in context", () => {

@@ -1,4 +1,4 @@
-import { parseCsvAdapter, parseHtmlXlsAdapter, parseMisterblueXlsxAdapter, parseXlsxAdapter } from "../fileAdapters";
+import { parseCsvAdapter, parseHtmlXlsAdapter, parseMisterblueXlsxAdapter, parsePanmurimXlsxAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapter, FileAdapterContext, FileKind } from "../fileAdapters/types";
 import type { ParserContext, ParserResult, TabularRow } from "../parsers/parserContract";
 import { parsePlatformRows } from "../parsers/registry";
@@ -98,6 +98,10 @@ function resolveAdapter(
 ): FileAdapter | undefined {
   if (platform === "misterblue" && fileKind === "xlsx") {
     return parseMisterblueXlsxAdapter;
+  }
+
+  if (platform === "panmurim" && fileKind === "xlsx") {
+    return parsePanmurimXlsxAdapter;
   }
 
   return adapters[fileKind];

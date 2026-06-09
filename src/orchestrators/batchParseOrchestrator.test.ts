@@ -305,6 +305,15 @@ function readMisterblueSampleWorkbook(): Uint8Array {
   );
 }
 
+function readPanmurimSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/panmurim/（주）라온이앤엠_2026년 5월.xlsx",
+    ),
+  );
+}
+
 function readEpyrusSampleCsv(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -1185,6 +1194,39 @@ describe("batch parse orchestrator", () => {
           sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
         }),
       ]),
+    );
+  });
+
+  it("parses a Panmurim workbook through the batch orchestrator single-file path", () => {
+    const result = runBatchParseOrchestrator({
+      batchId: "batch-panmurim-1",
+      files: [
+        createFile({
+          company: "raon",
+          platform: "panmurim",
+          fileName: "（주）라온이앤엠_2026년 5월.xlsx",
+          fileKind: "xlsx",
+          saleMonth: "2026-05",
+          content: readPanmurimSampleWorkbook(),
+        }),
+      ],
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(354);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        platform: "panmurim",
+        saleMonth: "2026-05",
+        workTitle: "그의 비밀 2권",
+        mailerContentTitle: "그의 비밀 2권",
+        author: "시커먼스",
+        publisher: "라온E&M",
+        grossSales: 3200,
+        settlementAmount: 2240,
+        sourceFileName: "（주）라온이앤엠_2026년 5월.xlsx",
+        sourceRowIndex: 5,
+      }),
     );
   });
 

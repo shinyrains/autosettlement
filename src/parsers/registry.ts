@@ -6,6 +6,7 @@ import { parseKyobo } from "./kyobo";
 import { parseMootoon } from "./mootoon";
 import { parseMisterblueSingleFileRows } from "./misterblueSingleFileParser";
 import { parseNovelpia } from "./novelpia";
+import { parsePanmurim } from "./panmurim";
 import type { ParserContext, ParserResult, PlatformParser, TabularRow } from "./parserContract";
 import { parseYes24 } from "./yes24";
 
@@ -18,6 +19,7 @@ export const parserRegistry = {
   aladin: parseAladin,
   guru_company: parseGuruCompany,
   misterblue: parseMisterblueSingleFileRows,
+  panmurim: parsePanmurim,
 } satisfies Partial<Record<Platform, PlatformParser>>;
 
 export type SupportedParserPlatform = keyof typeof parserRegistry;
