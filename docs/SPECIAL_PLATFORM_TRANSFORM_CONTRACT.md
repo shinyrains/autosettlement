@@ -21,6 +21,12 @@ docs/SERIES_PARSER_FIXTURE_PLAN.md
 docs/SERIES_OPERATING_SPEC.md
 ```
 
+Munpia keeps its production parser shape authority in:
+
+```text
+docs/MUNPIA_GROUP_PARSER_CONTRACT.md
+```
+
 ## 2. Common App Title Rule
 
 All special transform platforms must preserve the common mailer content title rule.
@@ -164,7 +170,22 @@ Unresolved before implementation:
 
 - Exact source columns for web gross sales, iOS sales, Google sales, title, author, publisher.
 - Exact author correction map.
+- Whether the production parser contract should stay single-file or move to a group parser shape with optional correction input.
+- Whether multi-sheet workbooks require an explicit `sheetName` policy instead of first-sheet-only handling.
 - Whether company split is based on source file values or upload area.
+
+Current safe direction:
+
+- The minimum Munpia group input shape is `settlement` required / `authorCorrection` optional.
+- The `authorCorrection` member is an optional upload-slot-based file input, not an in-memory table contract.
+- The correction slot should allow adapter-parsed `TabularRow[]` input and preserve source trace.
+- For MVP, Munpia settlement input is single-sheet only.
+- If multiple worksheets are detected and no explicit `sheetName` is provided, the parser path should return a blocking issue and no rows.
+- Multi-sheet auto-pick is prohibited. If a future contract provides `sheetName`, use only that named sheet.
+- Missing author correction should skip only the affected row with `mapping_failed`; it should not block the whole Munpia group.
+- Group-level blocked states should be expressed with existing issues such as `missing_file`, `missing_column`, and `parse_error`, then interpreted by downstream batch/export validation.
+
+Do not proceed to batch/orchestrator wiring, UI connection, or real-use path connection until these contract gaps are closed.
 
 ## 7. Misterblue
 

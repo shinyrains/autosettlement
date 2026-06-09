@@ -10,6 +10,7 @@
 
 - `docs/AUTOSETTLEMENT_DATA_MODEL.md`
 - `docs/AUTOSETTLEMENT_SITE_DESIGN.md`
+- `docs/MUNPIA_GROUP_PARSER_CONTRACT.md` (Munpia production group parser shape authority)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.
@@ -338,7 +339,24 @@ AutoSettlement의 책임:
 - app 매출 파일 또는 app 매출 슬롯
 - 웹/app 구분은 파일 내부 컬럼, 파일 그룹, 업로드 슬롯 중 실제 샘플에서 확인된 기준으로 확정한다.
 
-아직 문피아 샘플 구조와 계산 기준은 확정되지 않았으므로, 테스트 계획은 웹/app 분리 결과가 공통 계약으로 표현되는지를 먼저 고정한다.
+문피아 계산식은 거의 확정되었지만, 최종 입력 계약은 아직 미확정이다. 따라서 테스트 계획은 웹/app 분리 결과와 계약 경계를 먼저 고정한다.
+
+현재 미확정 입력 계약:
+
+- Munpia production parser를 single-file로 고정할지, optional correction input을 포함한 group parser로 볼지
+- future multi-sheet workbook에서 explicit `sheetName` 입력을 어디서 받을지
+
+현재 안전한 방향:
+
+- author correction은 parser 내부 자동 추정이 아니라 `authorCorrection` 업로드 슬롯 기반 file input으로 와야 한다.
+- correction slot은 adapter 이후 `TabularRow[]`로 group parser에 전달되어야 한다.
+- correction slot의 최소 컬럼은 `작품코드`, `작품`, `작가명`이다.
+- author correction이 개입되므로, production input contract는 single-file-only보다 group parser shape가 더 안전하다.
+- Munpia group input slot의 최소 shape는 `settlement` required / `authorCorrection` optional 이다.
+- 현재 MVP는 single-sheet settlement file만 허용한다.
+- multi-sheet auto-pick은 금지한다.
+- 다중 시트가 감지되고 explicit `sheetName`이 없으면 blocking issue와 함께 rows를 생성하지 않는다.
+- explicit `sheetName`이 있는 미래 계약이 생기면 해당 시트만 사용한다.
 
 ### 5.2 expected SettlementRow[]
 
@@ -367,6 +385,10 @@ AutoSettlement의 책임:
 - 필수 값이 비어 있으면 `missing_field`
 - 금액 필드가 숫자로 해석되지 않으면 `invalid_value`
 - 동일 회사/플랫폼/작품/app 구분 기준에서 중복 row가 발생하면 `duplicate_row`
+- author correction이 필요한 row에 correction이 없으면 해당 row만 `mapping_failed`로 skip하고, group 전체는 계속 처리한다.
+- multi-sheet settlement workbook에 explicit `sheetName`이 없으면 `parse_error` 또는 `mapping_failed`로 group-level block을 표현하고 rows는 생성하지 않는다.
+- group-level blocked 상태는 새 `blocked` issue type이 아니라 기존 `missing_file`, `missing_column`, `parse_error` 같은 issue와 downstream validator 판단으로 표현한다.
+- correction row matching key 우선순위는 `작품코드` 후 `작품`이다.
 
 대표 테스트 케이스:
 
@@ -380,6 +402,13 @@ AutoSettlement의 책임:
 - app 매출 결과에서 `(app)` suffix를 누락하지 않는다.
 - 회사 구분이 불명확한 row를 임의 회사로 배정하지 않는다.
 - 문피아 원본 컬럼 구조를 UI가 직접 알도록 만들지 않는다.
+- author correction을 parser 내부에서 자동 추정하지 않는다.
+- correction row를 explicit `authorCorrection` slot 없이 free-text 휴리스틱으로 만들지 않는다.
+- direct in-memory correction table input을 MVP 계약으로 가정하지 않는다.
+- 다중 시트 workbook에서 시트를 휴리스틱으로 자동 선택하지 않는다.
+- explicit `sheetName` 없이 다중 시트 settlement workbook을 first sheet로 조용히 처리하지 않는다.
+- missing author correction을 이유로 whole-group block을 강제하지 않는다.
+- contract closure 전 batch/orchestrator wiring, UI 연결, 실사용 경로 연결을 진행하지 않는다.
 
 ## 6. 미스터블루 계약 테스트
 
@@ -559,6 +588,9 @@ fixture 작성 원칙:
 - 리디북스 이벤트/app 동시 발생 시 `mailerContentTitle` suffix 조합 우선순위
 - 문피아 웹/app 구분이 파일 내부 컬럼 기준인지 업로드 슬롯 기준인지
 - 문피아 회사 분리 기준이 원본 파일 안에 존재하는지, 업로드 영역 기준으로만 판단하는지
+- 문피아 author correction 입력 위치/타입
+- 문피아 production parser shape를 single-file로 고정할지, optional correction input을 포함한 group parser로 볼지
+- 문피아 다중 시트 workbook에서 explicit `sheetName` 정책이 필요한지
 - 미스터블루 일반/app 정산금 추출 컬럼명과 정산금 산식
 - 미스터블루 `grossSales`에 어떤 원본 값을 매핑할지
 - 모든 플랫폼에서 중복 row 판정 key를 무엇으로 둘지

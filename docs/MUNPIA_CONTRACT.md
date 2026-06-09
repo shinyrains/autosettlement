@@ -14,6 +14,12 @@ SettlementRow[] + ParseIssue[]
 
 AutoSettlement must calculate the result rows from the agreed formula. It must not rely on the original settlement column as the final authority.
 
+For the Munpia production group parser input shape and blocking policy, see:
+
+```text
+docs/MUNPIA_GROUP_PARSER_CONTRACT.md
+```
+
 ## 2. Sample File
 
 Audit sample:
@@ -192,6 +198,14 @@ Recommended correction input fields:
 작가명
 ```
 
+Correction input form:
+
+```text
+authorCorrection = optional upload slot file input
+adapter result     = TabularRow[]
+matching priority  = 작품코드 -> 작품
+```
+
 Known company/account author labels:
 
 ```text
@@ -201,6 +215,80 @@ aretebooks
 ```
 
 This list may be expanded only by contract update or audited sample evidence.
+
+## 9A. Author Correction Input Boundary
+
+The author correction source is an external correction input, not an inferred parser-side recovery step.
+
+Contract boundary:
+
+- Munpia parser must not guess the real author from other free-text source fields.
+- Munpia parser must not create its own correction table internally.
+- Author correction is defined as an optional upload-slot-based file input.
+- The slot name is `authorCorrection`.
+- Direct in-memory correction table input is out of MVP scope.
+- Adapter output for the `authorCorrection` slot must be passed to the group parser as `TabularRow[]`.
+- The correction file must remain explicit in the parser contract and must preserve source trace such as `sourceFileName` and `sourceRowIndex`.
+- Allowed file-kind candidates for the correction slot are `csv` and `xlsx`.
+
+Allowed pre-wiring work:
+
+```text
+contract document patching
+constants
+row calculation utils
+row -> SettlementRow mapping utils
+sanitized unit tests
+```
+
+Blocked until contract closure:
+
+```text
+batch orchestrator wiring
+registry wiring into production flow
+UI connection
+real-use path connection
+```
+
+## 9B. Parser Shape Decision
+
+Current safety decision:
+
+- Munpia may use a single source settlement file.
+- If author correction is required, the safer target contract is a group parser shape rather than a permanently single-file-only contract.
+- The preferred future input shape is:
+
+```text
+settlement: required
+authorCorrection: optional
+```
+
+- This does not authorize immediate group parser wiring.
+- It only records that future parser shape decisions must account for optional correction input.
+- A single-file parser may continue to exist as an internal unit, but it is not enough to define the final production input contract by itself.
+- Missing author correction does not block the whole Munpia group.
+- If a row requires author correction and no matching correction row exists, that affected source row is skipped with `mapping_failed`, and both its web/app outputs are not created.
+
+## 9C. Multi-Sheet Policy
+
+Current MVP scope:
+
+- Munpia settlement files are accepted only when a single worksheet is present, unless an explicit `sheetName` input is provided by a future contract.
+
+If a future Munpia workbook contains multiple relevant sheets:
+
+- Do not auto-pick a sheet by heuristic.
+- Do not merge multiple sheets silently.
+- If multiple worksheets are detected and no explicit `sheetName` is provided, the parser/group path must return a blocking issue and no rows.
+- If an explicit `sheetName` is provided by a future contract, use only that named worksheet.
+
+Temporary rule before contract update:
+
+```text
+one worksheet -> supported
+multiple worksheets + no sheetName -> blocking issue, no rows
+multiple worksheets + explicit sheetName -> use only the named sheet
+```
 
 ## 10. ParseIssue Cases
 
@@ -221,6 +309,8 @@ Expected cases:
 - Numeric column cannot be parsed: `invalid_value`.
 - Required author correction cannot be matched: `mapping_failed`.
 - Source XLSX cannot be read by the file adapter: `parse_error`.
+- Multi-sheet settlement workbook without explicit `sheetName` must produce a blocking issue such as `parse_error` or `mapping_failed` and no rows in MVP.
+- Group-level blocked states must be expressed by existing issues such as `missing_file`, `missing_column`, or `parse_error`, not by adding a new `blocked` issue type.
 
 ## 11. Implementation Checklist
 
@@ -241,8 +331,18 @@ Before parser implementation is accepted:
 
 Open implementation decisions:
 
-- Final author correction input location and type.
-- Whether missing author correction should block the whole Munpia group or only skip affected rows.
-- Whether future files from other CP sheets require selecting a sheet by name instead of first worksheet.
+- Final Munpia production parser shape is unresolved, but optional author correction input makes a group parser shape safer than a single-file-only production contract.
+- Whether and where future UI/orchestrator input can provide explicit `sheetName` for multi-sheet settlement workbooks.
 
 These items must be resolved before wiring Munpia into the batch orchestrator.
+
+## 13. Out Of Scope Until Contract Closure
+
+- Batch orchestrator wiring
+- Registry wiring into real-use batch flow
+- UI upload or correction-entry behavior
+- Export path changes
+- Emailer changes
+- Real production path connection
+
+Until these open items are closed, Munpia implementation is allowed only in contract-safe isolated units.
