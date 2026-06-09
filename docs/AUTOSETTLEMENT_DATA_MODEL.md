@@ -243,6 +243,12 @@ type Batch = {
 - `uploads`: 회사/플랫폼별 업로드 상태 목록
 - `createdAt`, `updatedAt`: 관리용 시각 정보
 
+현재 브라우저 runtime persistence 경계:
+
+- 현재 브라우저 draft persistence authority는 `docs/AUTOSETTLEMENT_UPLOAD_PERSISTENCE_CONTRACT.md`를 따른다.
+- 현재 slice에서는 raw uploaded file bytes를 `Batch` 안에 저장하지 않는다.
+- 현재 slice에서는 localStorage에 저장되는 것은 batch/upload/row/issue/selectedRow metadata snapshot뿐이다.
+
 ### 4.4 BatchPlatformUpload
 
 하나의 batch 안에서 특정 회사 + 특정 플랫폼 업로드 상태를 표현하는 모델이다.

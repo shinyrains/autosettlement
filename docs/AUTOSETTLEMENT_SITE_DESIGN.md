@@ -129,6 +129,13 @@ MVP 필요성:
 - 플랫폼 카드 UI
 - 파일 상태 요약
 - 업로드 진행률 요약
+- 브라우저 재진입 시 복원되는 active batch draft state
+
+현재 브라우저 persistence 규칙:
+
+- 현재 MVP shell은 active batch draft를 브라우저 localStorage에서 복원할 수 있어야 한다.
+- 복원 대상은 upload metadata / normalized rows / parse issues / selected review row다.
+- raw uploaded file binary는 현재 MVP shell persistence 범위에 포함되지 않는다.
 
 MVP 필요성:
 핵심
