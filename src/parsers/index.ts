@@ -11,6 +11,7 @@ export * from "./ridibooksCalcConstants";
 export * from "./ridibooksRowCalcUtils";
 export * from "./ridibooksMgApplyUtils";
 export * from "./ridibooksEventCalcUtils";
+export * from "./ridibooksEventOverrideUtils";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";
