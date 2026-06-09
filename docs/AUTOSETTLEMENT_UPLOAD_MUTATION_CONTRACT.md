@@ -27,6 +27,12 @@ The following upload cards are live-wired in the current slice:
    - accepted extension set: `.xlsx`
    - contracted real sample path: `tmp/platform-samples/panmurim/（주）라온이앤엠_2026년 5월.xlsx`
 
+3. `raon / bookcube / upload-raon-bookcube`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx`
+
 All other upload cards remain non-live in this slice.
 They may render current status, but they do not mutate persisted draft state through a browser file selection yet.
 
@@ -54,6 +60,7 @@ It must reuse the existing orchestrator stack:
 Current contracted platform lanes under this live path:
 - Misterblue XLSX adapter + parser
 - Panmurim XLSX adapter + parser
+- Bookcube XLSX adapter + parser
 
 ## 5. Draft mutation boundary
 
@@ -130,12 +137,12 @@ Not included in the current live-upload closure:
 - server persistence
 - upload progress transport semantics
 - cross-session recovery of raw file bytes
-- live upload action wiring for platforms beyond Misterblue + Panmurim single-file XLSX cards
+- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube single-file XLSX cards
 
 ## 11. Verification target
 
 This slice is only considered closed when all of the following succeed:
 - unit tests for upload mutation helper coverage
 - component/UI test for current live upload card rendering
-- browser-like app tests that select the real Misterblue and Panmurim sample workbooks and verify persisted draft mutation
+- browser-like app tests that select the real Misterblue, Panmurim, and Bookcube sample workbooks and verify persisted draft mutation
 - full `npm run check`

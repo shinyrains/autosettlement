@@ -137,7 +137,7 @@ MVP 필요성:
 - 복원 대상은 upload metadata / normalized rows / parse issues / selected review row다.
 - raw uploaded file binary는 현재 MVP shell persistence 범위에 포함되지 않는다.
 - 첫 live upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
-- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`와 `raon / panmurim / upload-raon-panmurim` 단일 XLSX 1-file 경로다.
+- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`, `raon / panmurim / upload-raon-panmurim`, `raon / bookcube / upload-raon-bookcube` 단일 XLSX 1-file 경로다.
 
 MVP 필요성:
 핵심
