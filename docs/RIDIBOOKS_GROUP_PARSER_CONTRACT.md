@@ -235,14 +235,15 @@ Matching rules:
 
 Individual `file1` row matching policy:
 
-- A base row without a matching `file1` row may still be calculated using zero file1 adjustment.
-- This case should produce a `mapping_failed` issue with severity `warning`.
+- A base row without a matching `file1` row is normal and should be calculated using zero file1 adjustment.
+- A base row without a matching `file1` row must not produce a ParseIssue.
 - A `file1` row that does not match any base row should produce a `mapping_failed` issue with severity `warning`.
-- These row-level mismatches do not block the whole group.
+- Orphan `file1` rows do not block the whole group.
 
 Reason:
 
 - Current sample has only 15 `file1` rows for 4612 base rows.
+- Treating every missing `file1` match as a warning creates thousands of noisy non-actionable issues.
 - Existing row calculation utility already supports missing `file1` row as zero adjustment.
 - Blocking all unmatched base rows would incorrectly stop normal processing.
 
@@ -405,9 +406,8 @@ Before `RIDIBOOKS-GROUP-PARSER-001` implementation:
 - Add tests for event file without event period.
 - Add tests for missing required column before calculation.
 - Add tests for missing identity field before calculation.
-- Add tests for unmatched base/file1 row warning behavior.
+- Add tests for silent base zero-adjustment and orphan file1 warning behavior.
 - Add tests for event row base join failure.
 - Add tests for MG correction unmatched row.
 - Add tests for event override by book ID.
 - Add tests for final `SettlementRow` suffixes.
-

@@ -287,8 +287,11 @@ Expected issue:
 
 ```text
 issueType = mapping_failed
-severity = error
+file_1 orphan severity = warning
+event/MG correction orphan severity = error
 ```
+
+Base rows without matching `file_1` rows are not matching failures. They are expected zero-adjustment rows and should not create `ParseIssue` entries.
 
 ### 6.10 Missing Required File
 

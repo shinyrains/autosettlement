@@ -363,15 +363,6 @@ function calculateBaseRows({
     const file1Row = file1ByBookId.get(baseRow.bookId);
     if (file1Row) {
       usedFile1BookIds.add(baseRow.bookId);
-    } else {
-      issues.push(createIssue(
-        context,
-        "mapping_failed",
-        "warning",
-        `Ridibooks file1 row was not found for ${baseRow.bookId}; zero adjustment was used.`,
-        getSourceFileName(baseRow.row),
-        getSourceRowIndex(baseRow.row),
-      ));
     }
 
     const calculation = calculateRidibooksBaseFilePair(baseRow.row, file1Row?.row);

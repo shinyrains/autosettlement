@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { ParseIssue } from "../types/settlement";
 import type { TabularRow } from "./parserContract";
 import { RIDIBOOKS_REQUIRED_COLUMNS } from "./ridibooksCalcConstants";
 import {
@@ -258,7 +257,7 @@ describe("ridibooks group parser", () => {
     ]);
   });
 
-  it("keeps calculating when individual file1 rows are unmatched", () => {
+  it("keeps zero-adjustment base rows silent while warning on orphan file1 rows", () => {
     const [bookId] = RIDIBOOKS_REQUIRED_COLUMNS.file1.identity;
 
     const result = parseRidibooksFileGroup(
@@ -272,19 +271,12 @@ describe("ridibooks group parser", () => {
         settlementAmount: 630,
       }),
     );
-    expect(result.issues).toEqual(
-      expect.arrayContaining<Partial<ParseIssue>>([
-        expect.objectContaining({
-          issueType: "mapping_failed",
-          severity: "warning",
-          sourceFileName: "calculate_1.csv",
-        }),
-        expect.objectContaining({
-          issueType: "mapping_failed",
-          severity: "warning",
-          sourceFileName: "calculate_1 (1).csv",
-        }),
-      ]),
-    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "mapping_failed",
+        severity: "warning",
+        sourceFileName: "calculate_1 (1).csv",
+      }),
+    ]);
   });
 });
