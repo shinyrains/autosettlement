@@ -18,6 +18,8 @@
 - `docs/JOARA_FIXTURE_PLAN.md` (Joara grouped-file fixture planning)
 - `docs/PANMURIM_CONTRACT.md` (Panmurim sample-grounded authority)
 - `docs/PANMURIM_FIXTURE_PLAN.md` (Panmurim sample-grounded fixture planning)
+- `docs/BOOKCUBE_CONTRACT.md` (Bookcube special-header XLSX authority)
+- `docs/BOOKCUBE_FIXTURE_PLAN.md` (Bookcube sample-grounded fixture planning)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.
@@ -88,6 +90,18 @@ Joara current sample-grounded guardrails:
 - gross sales authority is `정산 상세리스트 / 판매금액(원)`.
 - settlement authority is `작품별 정산리스트 / 정산금액`.
 - `정산 상세리스트 / 정산금액(원)` is audit context only in the current repo slice.
+
+Bookcube current authority anchor:
+
+- `docs/BOOKCUBE_CONTRACT.md`
+- `docs/BOOKCUBE_FIXTURE_PLAN.md`
+
+Bookcube current sample-grounded guardrails:
+
+- Bookcube audited workbook is one sheet with row 1 summary + row 2 header + row 3+ data.
+- generic `xlsxAdapter` is not safe for the current Bookcube path because it would treat row 1 as the header.
+- current money authority is `판매액 -> grossSales`, `정산액 -> settlementAmount`.
+- `정산대상금액` is audit context only in the current repo slice.
 
 #### Formula Platform
 

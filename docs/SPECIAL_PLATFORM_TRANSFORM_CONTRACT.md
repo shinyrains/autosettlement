@@ -130,29 +130,44 @@ Authority status for current repo slice:
 
 ## 4. Bookcube
 
-Input file rule:
+Current authority for the repo slice:
 
 ```text
-Raon: 1 file
-SR: 2 files
+docs/BOOKCUBE_CONTRACT.md
 ```
 
-Transform rule:
+Current input rule:
 
-- Raon uses one file.
-- SR uses two files.
-- SR files use the same extraction rules.
-- Results are normalized to `SettlementRow`.
+- current audited path is Raon one-workbook only
+- one worksheet only in the current sample path
+- row 1 is summary only
+- row 2 is the authoritative header
+- row 3+ are data rows
 
-Why not Simple Extract:
+Current transform rule:
 
-- Company-specific file count differs.
-- SR requires multi-file processing even if each file uses the same columns.
+- Bookcube requires a dedicated XLSX adapter in the current repo slice.
+- One valid source row produces one `SettlementRow`.
+- `grossSales = 판매액`
+- `settlementAmount = 정산액`
 
-Unresolved before implementation:
+Why not generic Simple Extract wiring:
 
-- Whether SR two files should be concatenated, summed by key, or treated as separate source groups.
-- Exact duplicate handling key.
+- generic `xlsxAdapter` incorrectly treats row 1 summary as the header
+- Bookcube therefore needs a platform-specific workbook-to-row adapter boundary before parser mapping
+
+Current authority status for the repo slice:
+
+- Raon one-workbook path closed
+- `판매액` closed as current `grossSales` authority
+- `정산액` closed as current `settlementAmount` authority
+- `정산대상금액` remains audit-only context in the current repo slice
+
+Still unresolved before wider implementation:
+
+- final SR two-file production contract
+- whether SR files are concatenated, summed by key, or treated as separate source groups
+- exact duplicate handling key across multiple Bookcube files
 
 ## 5. Kakao Page
 
@@ -436,10 +451,15 @@ Additional special transform candidates:
 
 ```text
 joara
-bookcube
 kakao_page
 onestore
 panmurim
+```
+
+Current special-header single-file candidate already authority-closed in this repo slice:
+
+```text
+bookcube
 ```
 
 These candidates may not all require full Formula Platform treatment, but they are not safe to implement as plain one-row Simple Extract until their contracts are confirmed.
