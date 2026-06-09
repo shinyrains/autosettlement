@@ -33,6 +33,12 @@ Epyrus keeps its current sample-grounded authority in:
 docs/EPYRUS_CONTRACT.md
 ```
 
+Joara keeps its current sample-grounded authority in:
+
+```text
+docs/JOARA_CONTRACT.md
+```
+
 ## 2A. Epyrus
 
 Input rule:
@@ -83,6 +89,12 @@ event app row    -> 작품명(이벤트)(app)
 
 ## 3. Joara
 
+Current authority for the repo slice:
+
+```text
+docs/JOARA_CONTRACT.md
+```
+
 Input files:
 
 ```text
@@ -92,20 +104,23 @@ Input files:
 
 Transform rule:
 
-- Combine rows by `작품명 + 작가명`.
-- Sum gross sales by the same key.
-- Sum settlement amounts by the same key.
+- Combine rows by `작품명 + 작품코드 + 작가명`.
+- Sum gross sales from `정산 상세리스트 / 판매금액(원)` by the same key.
+- Sum settlement amounts from `작품별 정산리스트 / 정산금액` by the same key.
 - Produce final rows as common `SettlementRow`.
 
 Why not Simple Extract:
 
 - Requires multiple-file reconciliation.
-- Requires aggregation by work and author.
+- Requires aggregation by grouped work identity.
+- Gross-sales authority and settlement authority come from different files.
 
-Unresolved before implementation:
+Authority status for current repo slice:
 
-- Exact source column names for gross sales and settlement amount.
-- Whether 단행본 rows need a separate title suffix or only merge into the same key.
+- grouped key closed as `작품명 + 작품코드 + 작가명`
+- gross-sales source closed as `정산 상세리스트 / 판매금액(원)`
+- settlement source closed as `작품별 정산리스트 / 정산금액`
+- 단행본 title suffix policy remains intentionally unresolved and out of scope
 
 ## 4. Bookcube
 

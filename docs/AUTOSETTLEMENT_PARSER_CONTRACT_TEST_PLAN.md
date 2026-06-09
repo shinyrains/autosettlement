@@ -14,6 +14,8 @@
 - `docs/MUNPIA_FIXTURE_PLAN.md` (Munpia fixture family and expected-result planning)
 - `docs/EPYRUS_CONTRACT.md` (Epyrus sample-grounded authority)
 - `docs/EPYRUS_FIXTURE_PLAN.md` (Epyrus sample-grounded fixture planning)
+- `docs/JOARA_CONTRACT.md` (Joara grouped-file authority)
+- `docs/JOARA_FIXTURE_PLAN.md` (Joara grouped-file fixture planning)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.
@@ -71,6 +73,19 @@ Epyrus current sample-grounded guardrails:
 - CP949/EUC-KR CSV decode must succeed before parser mapping begins.
 - `제목 / 저자 / 출판사 / 판매금액 / 정산액` only are current mapped contract columns.
 - `판매구분` is source context only and must not split output rows in the current repo slice.
+
+Joara current authority anchor:
+
+- `docs/JOARA_CONTRACT.md`
+- `docs/JOARA_FIXTURE_PLAN.md`
+
+Joara current sample-grounded guardrails:
+
+- Joara is not a one-file simple extract platform even though each source file is CSV.
+- grouped key is `작품명 + 작품코드 + 작가명`.
+- gross sales authority is `정산 상세리스트 / 판매금액(원)`.
+- settlement authority is `작품별 정산리스트 / 정산금액`.
+- `정산 상세리스트 / 정산금액(원)` is audit context only in the current repo slice.
 
 #### Formula Platform
 
