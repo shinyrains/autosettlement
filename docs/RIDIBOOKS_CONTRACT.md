@@ -1,16 +1,23 @@
-# Ridibooks Contract
+# RIDIBOOKS_CONTRACT
 
 ## 1. Purpose
 
 This document fixes the Ridibooks parser contract before implementation.
 
-Ridibooks is not a Simple Extract platform. It is a Formula / Group Parser platform because the final `SettlementRow[]` depends on multiple CSV files, adjustment rows, optional event-period rows, MG handling, and normal/app output separation.
+Ridibooks is a Formula / Group Parser platform. It must not be implemented as a single-file Simple Extract parser because the final result depends on:
 
-This document is a contract document only. It does not implement parser logic, tests, UI behavior, Excel export, or mailer behavior.
+- base CSV
+- `file_1` adjustment CSV
+- optional event transaction CSV
+- optional MG correction input
+- normal/app row separation
+- event/non-event title suffix rules
+
+This document is contract-only. It does not implement parser logic, tests, UI behavior, workbook export, or mailer behavior.
 
 ## 2. Input Files
 
-Ridibooks normally uses two files.
+Ridibooks normally uses two required CSV files.
 
 ```text
 1. base file
@@ -24,15 +31,44 @@ base file: calculate_1.csv
 file_1: calculate_1 (1).csv
 ```
 
-If event settlement data exists, a third file can be used.
+If event settlement data exists, an optional third CSV is used.
 
 ```text
 event file: calculate_date_tran_1.csv
 ```
 
-## 3. File Roles
+If MG handling is required, an optional correction file/input is used.
 
-### 3.1 Base File
+```text
+MG correction file/input: optional
+```
+
+## 3. Confirmed CSV Format
+
+The three Ridibooks sample CSV files have the following confirmed format:
+
+```text
+encoding: UTF-8 BOM
+delimiter: comma
+```
+
+Confirmed sample structures:
+
+```text
+calculate_1.csv              -> 59 columns, 4612 data rows
+calculate_1 (1).csv          -> 59 columns, 15 data rows
+calculate_date_tran_1.csv    -> 27 columns, 762 data rows
+```
+
+CSV cell values can contain Excel text wrappers such as:
+
+```text
+=T("작품명")
+```
+
+The parser must normalize these wrappers to the inner text value before creating `SettlementRow`.
+
+## 4. Base File
 
 The base file contains the main settlement rows.
 
@@ -42,14 +78,44 @@ Sample:
 calculate_1.csv
 ```
 
-Confirmed sample characteristics:
+Required identity columns:
 
-- UTF-8 BOM CSV
-- comma delimiter
-- 59 columns
-- row-level source trace is possible
+```text
+도서 ID
+제목
+저자
+출판사
+시리즈명
+```
 
-### 3.2 File_1
+Required amount columns:
+
+```text
+일반 판매액
+일반 취소액
+앱마켓 정산대상액
+앱마켓 수수료
+앱마켓 취소액
+정산액
+```
+
+The base file also contains detailed app-market columns:
+
+```text
+iOS 정산대상액
+iOS 수수료
+iOS 취소액
+Android 정산대상액
+Android 수수료
+Android 취소액
+OneStore 정산대상액
+OneStore 수수료
+OneStore 취소액
+```
+
+For the current samples, aggregate app-market columns match the sum of the detailed iOS/Android/OneStore columns with zero mismatches.
+
+## 5. File_1
 
 `file_1` contains adjustment rows that must be compared with the base file.
 
@@ -59,34 +125,37 @@ Sample:
 calculate_1 (1).csv
 ```
 
-Confirmed sample characteristics:
+Confirmed characteristics:
 
-- UTF-8 BOM CSV
-- comma delimiter
-- same 59-column header as the base file
-- sample `판매처` value: `원스토어수수료차액`
-- rows can be matched to the base file by book identity
+- Same 59-column header as the base file
+- Sample `판매처` value: `원스토어수수료차액`
+- All 15 sample rows match the base file by `도서 ID`
 
-### 3.3 Event File
+`file_1.정산액` is an adjustment value and must not be ignored.
 
-The event file contains transaction rows for event-period settlement.
+## 6. Base <-> File_1 Matching
 
-Sample:
+The matching key between the base file and `file_1` is confirmed as:
 
 ```text
-calculate_date_tran_1.csv
+base.도서 ID = file_1.도서 ID
 ```
 
-Confirmed sample characteristics:
+Sample audit result:
 
-- UTF-8 BOM CSV
-- comma delimiter
-- 27 columns
-- event-period classification requires explicit event start/end dates
+```text
+base 도서 ID unique: 4612
+base duplicate 도서 ID: 0
+file_1 도서 ID unique: 15
+file_1 duplicate 도서 ID: 0
+file_1 rows matched in base: 15 / 15
+```
 
-## 4. Base Column Mapping
+Other candidate keys also matched in the current sample, but `도서 ID` is the safest implementation key because it is stable, unique, and directly shared.
 
-The base identity fields are:
+## 7. Normal Row Mapping
+
+Base identity mapping:
 
 ```text
 제목   -> workTitle
@@ -94,15 +163,13 @@ The base identity fields are:
 출판사 -> publisher
 ```
 
-The parser must normalize Excel text wrapper values such as:
+Normal row title:
 
 ```text
-=T("작품명")
+mailerContentTitle = 작품명
 ```
 
-to the inner text value before creating `SettlementRow`.
-
-## 5. Normal Sales Calculation
+## 8. Normal Sales Calculation
 
 Normal sales are calculated by comparing the base file and `file_1`.
 
@@ -124,9 +191,9 @@ grossSales =
 (base.일반 취소액 - file_1.일반 취소액)
 ```
 
-If the CSV value already contains a negative sign, keep the sign and still apply the subtraction rule above. Do not silently convert negative values to positive values.
+If the CSV value already contains a negative sign, keep the sign and still apply the subtraction rule. Do not convert signed values to absolute values.
 
-## 6. Normal Settlement Amount
+## 9. Normal Settlement Amount
 
 Default normal settlement formula:
 
@@ -134,28 +201,69 @@ Default normal settlement formula:
 settlementAmount = grossSales * 0.7 + file_1.정산액
 ```
 
-`file_1.정산액` is an adjustment value and must not be ignored.
+MG rows override this default formula as described below.
 
-## 7. MG Handling
+## 10. MG Correction Input
 
-Ridibooks uses a different settlement formula for works/authors that are MG (minimum guarantee) targets.
+MG must not be inferred from the Ridibooks source files.
+
+The current samples contain no reliable MG indicator column or value. Therefore:
 
 ```text
-MG settlementAmount = grossSales * 0.6
+file-internal automatic MG detection: forbidden
+filename-based automatic MG detection: not recommended
+separate MG correction upload/input slot: recommended
 ```
 
-Therefore the Ridibooks correction/input step must support an `MG` input column or equivalent explicit user-provided correction value.
+Recommended MG correction input:
+
+```text
+optional MG correction CSV/XLSX upload slot
+```
+
+Recommended columns:
+
+```text
+도서 ID
+MG 여부
+```
+
+Acceptable fallback columns:
+
+```text
+작품명
+MG 여부
+```
+
+Matching priority:
+
+```text
+1. 도서 ID
+2. 작품명 / 제목 as fallback only
+```
+
+If no MG correction file/input is provided:
+
+```text
+all rows use the default non-MG calculation
+```
+
+If an MG correction file/input is provided but a correction row cannot be matched:
+
+```text
+emit ParseIssue(mapping_failed)
+```
+
+MG settlement formula:
 
 ```text
 MG input present -> settlementAmount = grossSales * 0.6
 MG input absent  -> settlementAmount = grossSales * 0.7 + file_1.정산액
 ```
 
-MG must not be inferred from the current sample files unless a future authority document defines a reliable source column or file.
+## 11. App Sales Calculation
 
-## 8. App Sales Calculation
-
-App sales must create a separate row with `(app)` in `mailerContentTitle`.
+App sales create a separate row.
 
 ```text
 mailerContentTitle = 작품명(app)
@@ -174,37 +282,34 @@ appSettlementAmount =
 (앱마켓 정산대상액 - 앱마켓 수수료 - 앱마켓 취소액) * 0.7
 ```
 
-If a CSV value already contains a negative sign, keep the sign and still apply the subtraction rule above.
-
-The base file also contains app-market detail columns for iOS, Android, and OneStore. The initial contract uses the aggregate app-market columns unless a future audit proves that the detailed columns are required for reconciliation.
-
-## 9. Event File Priority
-
-If an event file is uploaded, event rows take priority for matching works.
+For base app rows, the aggregate app-market columns are the calculation authority:
 
 ```text
-event file contains matching work
--> remove the existing base + file_1 calculated result for that matching scope
--> replace it with event-file calculated result
+앱마켓 정산대상액
+앱마켓 수수료
+앱마켓 취소액
 ```
 
-The exact replacement key must be fixed before implementation. Candidate keys:
+Detailed iOS/Android/OneStore columns may be used as a consistency check because the current samples show zero mismatch between aggregate and detailed sums.
 
-- book ID
-- title
-- series title
-- title + series title
-- title + author + publisher, if those fields can be joined from the base file
+## 12. Event File
 
-Do not implement an arbitrary replacement key without a contract update.
+The event file contains transaction rows for event-period settlement.
 
-## 10. Event File Columns
-
-The event file extraction columns are:
+Sample:
 
 ```text
+calculate_date_tran_1.csv
+```
+
+Required event columns:
+
+```text
+도서ID
 제목
+시리즈명
 결제일
+취소일
 구매타입
 일반 판매액
 일반 정산액
@@ -214,35 +319,97 @@ Android 앱마켓 정산대상액
 Android 앱마켓 정산액
 OneStore 앱마켓 정산대상액
 OneStore 앱마켓 정산액
+구매상태
 ```
 
-The sample event file also includes:
+The event file does not include `저자` or `출판사` in the current sample.
+
+## 13. Event File Matching and Join
+
+The event file matches the base file by:
 
 ```text
-도서ID
-시리즈명
-취소일
-주문번호
-구매상태
-CP 관리 ID
+event.도서ID = base.도서 ID
 ```
 
-These fields can be used for matching, filtering, and source trace if required by the final implementation plan.
+Sample audit result:
 
-## 11. Event Period Input
+```text
+event unique 도서ID: 124
+event 도서ID matched in base: 124 / 124
+base duplicate 도서 ID: 0
+event rows missing base join: 0 / 762
+joined author missing: 0
+joined publisher missing: 0
+```
 
-When an event file is uploaded, the user must be able to provide:
+Event row author/publisher values must be joined from the base row by `도서 ID`.
+
+## 14. Event Replacement Unit
+
+The implementation replacement unit is:
+
+```text
+도서ID unit
+```
+
+Event rows replace base + `file_1` calculated results for matching `도서ID`.
+
+Do not replace an entire work/series unless a future contract explicitly changes this rule.
+
+Reason:
+
+- Event `도서ID` matches base rows exactly.
+- `시리즈명` can cover many rows and can produce ambiguous replacement scope.
+- Current sample has one event series but many event book IDs.
+
+## 15. Event Period Input
+
+When an event file is uploaded, the user must provide:
 
 ```text
 eventStartDate
 eventEndDate
 ```
 
+These fields are required because event suffixes directly affect `mailerContentTitle` and therefore the generated settlement/mailer output.
+
+If an event file exists but the event period is missing:
+
+```text
+parser stage: blocked issue target
+export stage: blocked issue target
+```
+
+The system must not silently treat event rows as normal rows when the event period is missing.
+
+Recommended issue representation:
+
+```text
+ParseIssue.issueType = "missing_field" or "mapping_failed"
+severity = "error"
+```
+
+## 16. Event Period Classification
+
 Rows whose `결제일` is inside the event period are event rows.
 
-Rows outside the event period are still settled by the same event-file calculation method, but do not receive the event suffix.
+```text
+eventStartDate <= 결제일 <= eventEndDate
+```
 
-## 12. Event-Period Normal Sales
+Rows outside the event period are settled with the same event-file calculation method, but do not receive the event suffix.
+
+Current sample date range:
+
+```text
+결제일: 2026-04-01 ~ 2026-04-30
+취소일 non-dash count: 0
+구매상태: 구매
+구매타입: 일반구매, 대여
+```
+
+## 17. Event-Period Normal Sales
 
 For event-period normal sales:
 
@@ -255,7 +422,7 @@ grossSales = sum(일반 판매액)
 settlementAmount = sum(일반 정산액)
 ```
 
-## 13. Event-Period App Sales
+## 18. Event-Period App Sales
 
 For event-period app sales:
 
@@ -277,18 +444,18 @@ sum(iOS 앱마켓 정산액)
 + sum(OneStore 앱마켓 정산액)
 ```
 
-## 14. Non-Event Rows In Event File
+## 19. Non-Event Rows From Event File
 
-Rows outside the event period are settled with the same event-file column rules, but without the event suffix.
+Rows outside the event period use the same event-file calculation columns but no event suffix.
 
 ```text
 normal sales -> 작품명
 app sales    -> 작품명(app)
 ```
 
-## 15. Final Output Rows
+## 20. Final Output Rows
 
-Ridibooks can create up to four output row types per work.
+Ridibooks can create up to four output row types per work/book.
 
 ```text
 작품명
@@ -311,7 +478,7 @@ sourceRowIndex = representative source row index
 issues = related issue ids
 ```
 
-## 16. Parser Result Contract
+## 21. Parser Result Contract
 
 Ridibooks parser output must be:
 
@@ -322,29 +489,34 @@ ParseIssue[]
 
 The parser must not return UI-specific structures, workbook rows, mailer-rendered email output, or platform-specific source row objects.
 
-## 17. Expected ParseIssue Cases
+## 22. Expected ParseIssue Cases
 
 The parser must be able to represent at least these cases:
 
 - missing base file -> `missing_file`
 - missing `file_1` -> `missing_file`
-- malformed CSV or unreadable table -> `parse_error`
+- malformed CSV -> `parse_error`
 - missing required column -> `missing_column`
 - missing title/author/publisher where required -> `missing_field`
 - amount parse failure -> `invalid_value`
 - base and `file_1` matching failure -> `mapping_failed`
 - event file matching failure -> `mapping_failed`
-- duplicate output key after replacement -> `duplicate_row`
-- missing event period when event file exists -> `missing_field` or `mapping_failed`
+- event file exists but event period is missing -> `missing_field` or `mapping_failed`
+- MG correction row cannot be matched -> `mapping_failed`
 - MG value is present but invalid -> `invalid_value`
+- duplicate output key after replacement -> `duplicate_row`
 
 No new `ParseIssueType` should be added unless a future contract review proves the existing issue types cannot represent the case.
 
-## 18. Forbidden Behavior
+## 23. Forbidden Behavior
 
 - Do not treat Ridibooks as a single-file Simple Extract parser.
 - Do not ignore `file_1.정산액`.
-- Do not infer MG from filenames or current sample row values.
+- Do not infer MG from filenames.
+- Do not infer MG from current sample row values.
+- Do not process an event file without event period input.
+- Do not silently classify event rows as normal rows when event dates are missing.
+- Do not replace an entire work/series when only `도서ID` replacement is contracted.
 - Do not add arbitrary formulas that are not specified in this contract.
 - Do not silently convert signed negative values to absolute values.
 - Do not merge normal/app/event rows into one row.
@@ -352,33 +524,42 @@ No new `ParseIssueType` should be added unless a future contract review proves t
 - Do not implement email display correction, address-book correction, deduction merge, or sending behavior.
 - Do not expose platform-specific source CSV columns in `SettlementRow`.
 
-## 19. Implementation Checklist
+## 24. Implementation Checklist
 
 Before parser implementation:
 
-- Confirm the matching key between base file and `file_1`.
-- Confirm the event replacement key.
-- Confirm whether event file rows should replace by book ID, title, series title, or another key.
-- Confirm how author/publisher are joined for event rows because the event file sample does not include `저자` or `출판사`.
-- Confirm the UI/input source for MG flags.
-- Confirm whether aggregate app-market columns are sufficient for base app rows.
-- Prepare sanitized fixture data for:
+- Add file group contract for required base + `file_1`.
+- Add optional event file group contract.
+- Add optional MG correction input contract.
+- Add event period input contract.
+- Prepare sanitized fixtures for:
   - normal rows
   - app rows
   - MG rows
   - event normal rows
   - event app rows
-  - event-period outside rows
+  - non-event rows from event file
+  - missing event period
   - missing file errors
-  - matching failures
+  - base/file_1 matching failure
+  - event/base matching failure
+  - MG correction matching failure
+- Ensure parser and export validation can block output when an event file exists without event dates.
 
-## 20. Current Unresolved Items
+## 25. Current Unresolved Items
 
 The following items remain unresolved and must not be guessed during implementation:
 
-- base <-> `file_1` matching key
-- event replacement key
-- source of MG input
-- event row author/publisher join source
-- whether event rows replace all base rows for a work or only matching book IDs
-- whether aggregate app-market columns or iOS/Android/OneStore detail columns are authoritative for base app rows
+- Exact UI shape for event period input
+- Exact upload slot shape for MG correction file/input
+- Whether MG correction supports only `도서 ID` or also `작품명`
+- Whether unmatched non-SR/legacy publisher naming requires additional normalization
+
+The following items are now resolved by sample audit:
+
+- CSV encoding and delimiter
+- base <-> `file_1` matching key: `도서 ID`
+- event <-> base matching key: `도서ID` -> `도서 ID`
+- event row author/publisher join: base row by `도서 ID`
+- event replacement unit: `도서ID`
+- base app calculation authority: aggregate app-market columns, with detail columns available for consistency checks
