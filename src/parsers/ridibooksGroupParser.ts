@@ -94,17 +94,20 @@ export function parseRidibooksFileGroup(
   const file1Rows = collectFile1Rows(context, groupedFiles.file1!, issues);
   const file1ByBookId = indexFile1Rows(file1Rows);
   const usedFile1BookIds = new Set<string>();
+  const usedMgCorrectionRows = new Set<TabularRow>();
   const baseCalculations = calculateBaseRows({
     context,
     baseRows,
     file1ByBookId,
     mgFile: groupedFiles.mgCorrection,
     usedFile1BookIds,
+    usedMgCorrectionRows,
     issues,
   });
 
   if (baseRows.length > 0) {
     collectUnmatchedFile1Issues(context, file1Rows, usedFile1BookIds, issues);
+    collectUnmatchedMgCorrectionIssues(context, groupedFiles.mgCorrection, usedMgCorrectionRows, issues);
   }
 
   const eventCalculations = groupedFiles.event
@@ -345,6 +348,7 @@ function calculateBaseRows({
   file1ByBookId,
   mgFile,
   usedFile1BookIds,
+  usedMgCorrectionRows,
   issues,
 }: {
   context: RidibooksGroupParserContext;
@@ -352,6 +356,7 @@ function calculateBaseRows({
   file1ByBookId: Map<string, ValidFile1Row>;
   mgFile: RidibooksGroupFileInput | undefined;
   usedFile1BookIds: Set<string>;
+  usedMgCorrectionRows: Set<TabularRow>;
   issues: ParseIssue[];
 }): RidibooksBookCalculationWithIdentity[] {
   return baseRows.map((baseRow) => {
@@ -370,6 +375,8 @@ function calculateBaseRows({
     }
 
     const calculation = calculateRidibooksBaseFilePair(baseRow.row, file1Row?.row);
+    const correctionRows = getMatchingMgCorrectionRows(mgFile, baseRow);
+    correctionRows.forEach((row) => usedMgCorrectionRows.add(row));
     const mgResult = applyRidibooksMgCorrection({
       context: createParserContext(context, mgFile?.sourceFileName ?? context.sourceFileNames[0] ?? "ridibooks"),
       bookId: baseRow.bookId,
@@ -377,7 +384,7 @@ function calculateBaseRows({
       calculation,
       correctionRows: mgFile?.issues.some((issue) => issue.issueType === "parse_error")
         ? []
-        : mgFile?.rows ?? [],
+        : correctionRows,
     });
     issues.push(...mgResult.issues);
 
@@ -387,6 +394,23 @@ function calculateBaseRows({
       identity: baseRow.identity,
       calculation: mgResult.calculation,
     };
+  });
+}
+
+function getMatchingMgCorrectionRows(
+  mgFile: RidibooksGroupFileInput | undefined,
+  baseRow: ValidBaseRow,
+): TabularRow[] {
+  if (!mgFile) {
+    return [];
+  }
+
+  const [bookIdColumn, titleColumn] = RIDIBOOKS_REQUIRED_COLUMNS.mgCorrection.matching;
+  return mgFile.rows.filter((row) => {
+    const correctionBookId = readText(row[bookIdColumn]);
+    const correctionTitle = readText(row[titleColumn]);
+    return correctionBookId === baseRow.bookId
+      || (correctionBookId === "" && correctionTitle === baseRow.identity.workTitle);
   });
 }
 
@@ -408,6 +432,32 @@ function collectUnmatchedFile1Issues(
       `Ridibooks file1 row did not match any base row: ${file1Row.bookId}.`,
       getSourceFileName(file1Row.row),
       getSourceRowIndex(file1Row.row),
+    ));
+  }
+}
+
+function collectUnmatchedMgCorrectionIssues(
+  context: RidibooksGroupParserContext,
+  mgFile: RidibooksGroupFileInput | undefined,
+  usedMgCorrectionRows: Set<TabularRow>,
+  issues: ParseIssue[],
+): void {
+  if (!mgFile) {
+    return;
+  }
+
+  for (const row of mgFile.rows) {
+    if (usedMgCorrectionRows.has(row)) {
+      continue;
+    }
+
+    issues.push(createIssue(
+      context,
+      "mapping_failed",
+      "error",
+      "Ridibooks MG correction row could not be matched to a base row.",
+      getSourceFileName(row, mgFile),
+      getSourceRowIndex(row),
     ));
   }
 }
