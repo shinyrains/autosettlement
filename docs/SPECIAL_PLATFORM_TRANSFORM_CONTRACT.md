@@ -45,6 +45,12 @@ Panmurim keeps its current sample-grounded authority in:
 docs/PANMURIM_CONTRACT.md
 ```
 
+Onestore keeps its current sample-grounded authority in:
+
+```text
+docs/ONESTORE_CONTRACT.md
+```
+
 ## 2A. Epyrus
 
 Input rule:
@@ -302,32 +308,46 @@ Authority status for current repo slice:
 
 ## 8. Onestore
 
-Input rule:
-
-- One file can contain both Raon and SR rows.
-
-Company split rule:
+Current authority for the repo slice:
 
 ```text
-publisher is arete / b cafe / b-cafe / bcafe / b_cafe -> SR
-otherwise -> Raon or unresolved according to final contract
+docs/ONESTORE_CONTRACT.md
 ```
 
-Transform rule:
+Current input rule:
 
-- Split rows by publisher into company-specific results.
-- Normalize each row to `SettlementRow`.
+- current audited path is one workbook only
+- use the first worksheet only in the current sample path
+- row 1 + row 2 must be flattened as a merged-header contract
+- row 3+ are data rows
 
-Why not Simple Extract:
+Current transform rule:
 
-- One file contains multiple companies.
-- Company assignment is part of parser behavior.
+- Onestore requires a dedicated XLSX adapter in the current repo slice.
+- One valid source row produces one `SettlementRow`.
+- company split happens inside the parser from `출판사` normalization.
+- `grossSales = 합계`
+- `settlementAmount = 정산지급액`
 
-Unresolved before implementation:
+Why not generic Simple Extract wiring:
 
-- Full publisher normalization table.
-- Whether unmatched publisher values should be assigned to Raon or reported as `company_split_failed`.
-- Exact gross sales and settlement columns.
+- generic `xlsxAdapter` does not contract the two-row merged-header shape explicitly enough for the current path
+- company split is part of the parser boundary
+
+Current authority status for the repo slice:
+
+- current publisher normalization closed as:
+  - `Arete -> sr`
+  - `라온E&M | 라온이앤엠 | 라온 E&M -> raon`
+- `합계` closed as current `grossSales` authority
+- `정산지급액` closed as current `settlementAmount` authority
+- support fee columns remain audit-only context in the current repo slice
+
+Still unresolved before wider implementation:
+
+- future publisher alias table expansion beyond the current audited set
+- whether `채널상품명` should later override or supplement `상품명`
+- any alternate workbook layout beyond the current audited sample
 
 ## 9. Panmurim
 
