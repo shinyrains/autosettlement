@@ -31,6 +31,15 @@ function readPanmurimSampleWorkbook(): Uint8Array {
   );
 }
 
+function readBookcubeSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+    ),
+  );
+}
+
 describe("AutoSettlement UI shell", () => {
   it("renders the batch-centered MVP workflow with series, munpia slots, and export status", () => {
     render(<App />);
@@ -131,5 +140,38 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("（주）라온이앤엠_2026년 5월.xlsx")).toBeInTheDocument();
+  });
+
+  it("parses a real bookcube workbook through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-raon-bookcube") as HTMLInputElement;
+    const bytes = readBookcubeSampleWorkbook().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-bookcube");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 5,
+        sourceFileNames: ["북큐브 상세매출 2026-5~2026-5 (1).xlsx"],
+      }));
+    });
+
+    expect(screen.getByText("북큐브 상세매출 2026-5~2026-5 (1).xlsx")).toBeInTheDocument();
   });
 });

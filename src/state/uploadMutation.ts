@@ -39,6 +39,13 @@ const LIVE_UPLOAD_SPECS: LiveUploadSpec[] = [
     acceptedKinds: ["xlsx"],
     uiLabel: "판무림 단일 XLSX 1-file",
   },
+  {
+    uploadId: "upload-raon-bookcube",
+    company: "raon",
+    platform: "bookcube",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "북큐브 단일 XLSX 1-file",
+  },
 ];
 
 export function isLiveUploadEnabled(upload: PlatformUploadCard): boolean {

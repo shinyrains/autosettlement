@@ -22,13 +22,22 @@ function readPanmurimSampleWorkbook(): Uint8Array {
   );
 }
 
+function readBookcubeSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+    ),
+  );
+}
+
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue and panmurim cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, and bookcube cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(2);
+    expect(enabledUploads).toHaveLength(3);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -39,6 +48,11 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "panmurim",
         uploadId: "upload-raon-panmurim",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "bookcube",
+        uploadId: "upload-raon-bookcube",
       }),
     ]));
   });
@@ -138,9 +152,54 @@ describe("uploadMutation", () => {
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 
+  it("replaces the target upload slice with parsed bookcube rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-bookcube");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      upload!,
+      [{
+        name: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+        arrayBuffer: async () => {
+          const bytes = readBookcubeSampleWorkbook().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-10T00:15:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-bookcube");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 5,
+      issueCount: 0,
+      sourceFileNames: ["북큐브 상세매출 2026-5~2026-5 (1).xlsx"],
+      lastUploadedAt: "2026-06-10T00:15:00+09:00",
+    }));
+
+    const bookcubeRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "bookcube");
+    expect(bookcubeRows).toHaveLength(5);
+    expect(bookcubeRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
+        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
+        grossSales: 3000,
+        settlementAmount: 2100,
+        publisher: "B cafe",
+        sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "bookcube")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
   it("returns a parse_error issue for unsupported extensions on xlsx-only live cards", async () => {
     const state = createSeedAppState();
-    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-panmurim");
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-bookcube");
     expect(upload).toBeDefined();
 
     const nextState = await applyLiveUploadMutation(
@@ -150,10 +209,10 @@ describe("uploadMutation", () => {
         name: "bad.csv",
         arrayBuffer: async () => new ArrayBuffer(0),
       }],
-      { now: () => "2026-06-10T00:01:01+09:00" },
+      { now: () => "2026-06-10T00:15:01+09:00" },
     );
 
-    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-panmurim");
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-bookcube");
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "error",
       issueCount: 1,
@@ -162,7 +221,7 @@ describe("uploadMutation", () => {
     expect(nextState.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "raon",
-        platform: "panmurim",
+        platform: "bookcube",
         issueType: "parse_error",
         sourceFileName: "bad.csv",
         message: expect.stringContaining(".xlsx만 허용"),
