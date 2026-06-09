@@ -64,7 +64,7 @@ describe("parser registry", () => {
     expect(result.rows[0].platform).toBe("novelpia");
   });
 
-  it.each<Platform>(["series", "munpia", "ridibooks"])(
+  it.each<Platform>(["series", "munpia", "ridibooks", "joara"])(
     "returns mapping_failed for unsupported Formula Platform %s",
     (platform) => {
       const result = parsePlatformRows(platform, baseContext, []);

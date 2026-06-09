@@ -20,6 +20,7 @@ export * from "./munpiaAuthorCorrectionUtils";
 export * from "./munpiaRowToSettlement";
 export * from "./munpiaSingleFileParser";
 export * from "./munpiaGroupParser";
+export * from "./joaraGroupParser";
 export * from "./misterblueSingleFileParser";
 export * from "./registry";
 export * from "./simpleExtractMappings";

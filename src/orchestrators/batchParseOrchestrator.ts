@@ -1,7 +1,8 @@
 import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapter, FileAdapterResult, FileKind } from "../fileAdapters/types";
-import { parseMunpiaFileGroup, parseRidibooksFileGroup, parseSeriesFileGroup } from "../parsers";
+import { parseJoaraFileGroup, parseMunpiaFileGroup, parseRidibooksFileGroup, parseSeriesFileGroup } from "../parsers";
 import type { PlatformFileGroupInput, PlatformFileGroupParserContext } from "../parsers";
+import type { JoaraGroupFileInput } from "../parsers/joaraGroupParser";
 import type { MunpiaGroupFileInput } from "../parsers/munpiaGroupParser";
 import type { RidibooksFileSlot } from "../parsers/ridibooksCalcConstants";
 import type { RidibooksGroupFileInput, RidibooksGroupParserContext } from "../parsers/ridibooksGroupParser";
@@ -64,10 +65,16 @@ type MunpiaFileGroup = {
   files: MunpiaGroupFileInput[];
 };
 
+type JoaraFileGroup = {
+  context: PlatformFileGroupParserContext;
+  files: JoaraGroupFileInput[];
+};
+
 type GroupFlushEntry =
   | { platform: "series"; key: string }
   | { platform: "ridibooks"; key: string }
-  | { platform: "munpia"; key: string };
+  | { platform: "munpia"; key: string }
+  | { platform: "joara"; key: string };
 
 const defaultAdapters: Record<FileKind, FileAdapter> = {
   csv: parseCsvAdapter,
@@ -87,6 +94,7 @@ export function runBatchParseOrchestrator(
   const seriesGroups = new Map<string, SeriesFileGroup>();
   const ridibooksGroups = new Map<string, RidibooksFileGroup>();
   const munpiaGroups = new Map<string, MunpiaFileGroup>();
+  const joaraGroups = new Map<string, JoaraFileGroup>();
   const groupFlushOrder: GroupFlushEntry[] = [];
 
   for (const file of input.files) {
@@ -102,6 +110,11 @@ export function runBatchParseOrchestrator(
 
     if (file.platform === "munpia") {
       collectMunpiaFile(input.batchId, file, batchResult, munpiaGroups, groupFlushOrder, dependencies);
+      continue;
+    }
+
+    if (file.platform === "joara") {
+      collectJoaraFile(input.batchId, file, batchResult, joaraGroups, groupFlushOrder, dependencies);
       continue;
     }
 
@@ -159,6 +172,16 @@ export function runBatchParseOrchestrator(
       const group = munpiaGroups.get(entry.key);
       if (group) {
         const groupResult = parseMunpiaFileGroup(group.context, group.files);
+        batchResult.rows.push(...groupResult.rows);
+        batchResult.issues.push(...groupResult.issues);
+      }
+      continue;
+    }
+
+    if (entry.platform === "joara") {
+      const group = joaraGroups.get(entry.key);
+      if (group) {
+        const groupResult = parseJoaraFileGroup(group.context, group.files);
         batchResult.rows.push(...groupResult.rows);
         batchResult.issues.push(...groupResult.issues);
       }
@@ -254,6 +277,38 @@ function collectMunpiaFile(
   const adapterResult = runFileAdapter(batchId, file, dependencies);
   const groupKey = createMunpiaGroupKey(file);
   const group = getOrCreateMunpiaGroup(batchId, file, groupKey, munpiaGroups, groupFlushOrder);
+
+  group.context.sourceFileNames.push(file.fileName);
+  group.files.push({
+    sourceFileName: file.fileName,
+    slot: file.slot,
+    rows: adapterResult.rows,
+    issues: adapterResult.issues,
+  });
+
+  batchResult.fileResults.push({
+    fileName: file.fileName,
+    company: file.company,
+    platform: file.platform,
+    fileKind: file.fileKind,
+    saleMonth: file.saleMonth,
+    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    rowCount: adapterResult.rows.length,
+    issueCount: adapterResult.issues.length,
+  });
+}
+
+function collectJoaraFile(
+  batchId: string,
+  file: BatchParseFileInput,
+  batchResult: BatchParseOrchestratorResult,
+  joaraGroups: Map<string, JoaraFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
+  dependencies: FileParseOrchestratorDependencies,
+): void {
+  const adapterResult = runFileAdapter(batchId, file, dependencies);
+  const groupKey = createJoaraGroupKey(file);
+  const group = getOrCreateJoaraGroup(batchId, file, groupKey, joaraGroups, groupFlushOrder);
 
   group.context.sourceFileNames.push(file.fileName);
   group.files.push({
@@ -398,6 +453,37 @@ function getOrCreateMunpiaGroup(
 }
 
 function createMunpiaGroupKey(file: BatchParseFileInput): string {
+  return [file.company, file.platform, file.saleMonth].join("\u001f");
+}
+
+function getOrCreateJoaraGroup(
+  batchId: string,
+  file: BatchParseFileInput,
+  groupKey: string,
+  joaraGroups: Map<string, JoaraFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
+): JoaraFileGroup {
+  const existingGroup = joaraGroups.get(groupKey);
+  if (existingGroup !== undefined) {
+    return existingGroup;
+  }
+
+  const group: JoaraFileGroup = {
+    context: {
+      batchId,
+      company: file.company,
+      platform: "joara",
+      saleMonth: file.saleMonth,
+      sourceFileNames: [],
+    },
+    files: [],
+  };
+  joaraGroups.set(groupKey, group);
+  groupFlushOrder.push({ platform: "joara", key: groupKey });
+  return group;
+}
+
+function createJoaraGroupKey(file: BatchParseFileInput): string {
   return [file.company, file.platform, file.saleMonth].join("\u001f");
 }
 

@@ -186,6 +186,7 @@ function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
       context.platform !== "series"
       && context.platform !== "ridibooks"
       && context.platform !== "munpia"
+      && context.platform !== "joara"
     ) {
       return parseCsvAdapter(context, file);
     }
@@ -242,6 +243,56 @@ function createMunpiaFile(input: {
     slot: input.slot,
     fileKind: input.fileKind ?? (input.slot === "settlement" ? "xlsx" : "csv"),
     content: input.content,
+  });
+}
+
+function createJoaraDetailRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  return {
+    판매일: "2026-05-10",
+    작품명: "기사의 일기(Diary of a Knight)",
+    작품코드: "1863448",
+    작가명: "편곤",
+    권차: "2 권",
+    "구매/환불": "구매",
+    "판매금액(원)": 3200,
+    정산비율: "60 %",
+    "정산금액(원)": 1920,
+    정산일: "2026.06.06",
+    sourceFileName: "joara-detail.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createJoaraWorkRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  return {
+    작품명: "기사의 일기(Diary of a Knight)",
+    작품코드: "1863448",
+    작가명: "편곤",
+    단가: 100,
+    판매건수: 20,
+    비율: "60%",
+    정산금액: 5500,
+    정산일: "2026.06.06",
+    sourceFileName: "joara-work.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createJoaraFile(input: {
+  fileName: string;
+  slot: "settlementDetail" | "workSettlement";
+  content: TabularRow[];
+}) {
+  return createFile({
+    company: "raon",
+    platform: "joara",
+    fileName: input.fileName,
+    slot: input.slot,
+    fileKind: "csv",
+    content: input.content,
+    saleMonth: "2026-05",
   });
 }
 
@@ -1274,6 +1325,97 @@ describe("batch parse orchestrator", () => {
     expect(result.issues).toEqual([settlementIssue]);
     expect(result.fileResults).toEqual([
       expect.objectContaining({ fileName: "munpia-settlement.xlsx", platform: "munpia", status: "failed", rowCount: 1, issueCount: 1 }),
+    ]);
+  });
+
+  it("parses joara settlementDetail and workSettlement as one grouped batch", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-joara-1",
+        files: [
+          createJoaraFile({
+            fileName: "joara-detail.csv",
+            slot: "settlementDetail",
+            content: [
+              createJoaraDetailRow(),
+              createJoaraDetailRow({ sourceRowIndex: 3, "판매금액(원)": 1800, "정산금액(원)": 1080 }),
+            ],
+          }),
+          createJoaraFile({
+            fileName: "joara-work.csv",
+            slot: "workSettlement",
+            content: [createJoaraWorkRow({ 정산금액: 5500 })],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        company: "raon",
+        platform: "joara",
+        saleMonth: "2026-05",
+        workTitle: "기사의 일기(Diary of a Knight)",
+        mailerContentTitle: "기사의 일기(Diary of a Knight)",
+        author: "편곤",
+        grossSales: 5000,
+        settlementAmount: 5500,
+        sourceFileName: "joara-detail.csv",
+        sourceRowIndex: 2,
+      }),
+    ]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "joara-detail.csv", platform: "joara", status: "success", rowCount: 2, issueCount: 0 }),
+      expect.objectContaining({ fileName: "joara-work.csv", platform: "joara", status: "success", rowCount: 1, issueCount: 0 }),
+    ]);
+  });
+
+  it("surfaces joara adapter issues and blocks grouped output when a required slot fails", () => {
+    const joaraIssue: ParseIssue = {
+      issueId: "batch-joara-2-parse_error-joara-work.csv-file",
+      batchId: "batch-joara-2",
+      company: "raon",
+      platform: "joara",
+      severity: "error",
+      issueType: "parse_error",
+      message: "Joara workSettlement adapter failed.",
+      sourceFileName: "joara-work.csv",
+    };
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-joara-2",
+        files: [
+          createJoaraFile({
+            fileName: "joara-detail.csv",
+            slot: "settlementDetail",
+            content: [createJoaraDetailRow()],
+          }),
+          createJoaraFile({
+            fileName: "joara-work.csv",
+            slot: "workSettlement",
+            content: [createJoaraWorkRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter({ "joara-work.csv": joaraIssue }),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([joaraIssue]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "joara-detail.csv", platform: "joara", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "joara-work.csv", platform: "joara", status: "failed", issueCount: 1 }),
     ]);
   });
 
