@@ -28,11 +28,13 @@ describe("parser registry", () => {
       "yes24",
       "aladin",
       "guru_company",
+      "misterblue",
     ]);
   });
 
   it("returns a parser for supported platforms", () => {
     expect(getParser("novelpia")).toEqual(expect.any(Function));
+    expect(getParser("misterblue")).toEqual(expect.any(Function));
   });
 
   it("runs the selected parser with the requested platform in context", () => {
@@ -62,7 +64,7 @@ describe("parser registry", () => {
     expect(result.rows[0].platform).toBe("novelpia");
   });
 
-  it.each<Platform>(["series", "munpia", "misterblue", "ridibooks"])(
+  it.each<Platform>(["series", "munpia", "ridibooks"])(
     "returns mapping_failed for unsupported Formula Platform %s",
     (platform) => {
       const result = parsePlatformRows(platform, baseContext, []);

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { simpleExtractMappings } from "../parsers/simpleExtractMappings";
 import type { ParserContext, ParserResult, TabularRow } from "../parsers/parserContract";
@@ -53,6 +55,15 @@ function createIssue(
   };
 }
 
+function readMisterblueSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx",
+    ),
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -77,6 +88,53 @@ describe("file parse orchestrator", () => {
         sourceRowIndex: 2,
       }),
     ]);
+  });
+
+  it("runs the Misterblue XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "misterblue",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "misterblue",
+        saleMonth: "2026-04",
+        sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+        fileKind: "xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "misterblue",
+        saleMonth: "2026-04",
+        sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+      },
+      fileContent: readMisterblueSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: "misterblue",
+          saleMonth: "2026-04",
+          workTitle: "대물로 태어나게 해주세요!",
+          mailerContentTitle: "대물로 태어나게 해주세요!",
+          grossSales: 480000,
+          settlementAmount: 296949.5,
+          sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+        }),
+        expect.objectContaining({
+          platform: "misterblue",
+          saleMonth: "2026-04",
+          workTitle: "대물로 태어나게 해주세요!",
+          mailerContentTitle: "대물로 태어나게 해주세요!(app)",
+          grossSales: 99960,
+          settlementAmount: 61839.7,
+          sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+        }),
+      ]),
+    );
   });
 
   it("returns adapter parse_error without calling the parser when adapter fails", () => {

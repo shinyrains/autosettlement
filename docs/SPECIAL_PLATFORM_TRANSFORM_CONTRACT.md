@@ -198,11 +198,14 @@ Munpia may proceed to contract-safe batch/orchestrator wiring, but UI connection
 Input rule:
 
 - Use only the `작품별` sheet.
+- Ignore row 1 title text and flatten rows 2-5 into hierarchical header keys.
 
 Transform rule:
 
-- Calculate normal gross sales and normal settlement amount.
-- Calculate app gross sales and app settlement amount.
+- Calculate normal gross sales from `종량 / 블루머니 / */매출액` columns.
+- Calculate app gross sales from `종량 / A.앱머니 / */매출액` and `종량 / i.앱머니 / */매출액` columns.
+- Read total settlement from `합계(정액+종량) / 정산액`.
+- Split normal/app settlement amounts proportionally by gross-share when both sides exist.
 - Create separate rows for normal/app output.
 
 Title output:
@@ -218,13 +221,12 @@ Why not Simple Extract:
 - Requires separate normal/app calculations.
 - Settlement amount is not a single direct column extraction for all rows.
 
-Unresolved before implementation:
+Authority status for current repo slice:
 
-- Exact sheet name matching rule.
-- Exact normal gross sales formula.
-- Exact normal settlement amount formula.
-- Exact app gross sales formula.
-- Exact app settlement amount formula.
+- `작품별` exact-sheet rule closed from the inspected sample workbook.
+- Normal gross/app gross formulas closed from the inspected sample workbook header structure.
+- Settlement split rule closed as proportional allocation from the authoritative total settlement column.
+- See `docs/MISTERBLUE_CONTRACT.md` for the exact contract.
 
 ## 8. Onestore
 

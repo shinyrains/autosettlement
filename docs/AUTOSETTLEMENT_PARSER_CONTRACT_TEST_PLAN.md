@@ -430,13 +430,24 @@ AutoSettlement의 책임:
 
 미스터블루는 `platform = "misterblue"`로 테스트한다.
 
+현재 authority source:
+
+- `docs/MISTERBLUE_CONTRACT.md`
+- `tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx`
+
 우선 고정할 fixture group:
 
-- 일반 매출 또는 일반 정산금 기준 입력
-- app 매출 또는 app 정산금 기준 입력
-- 일반/app 정산금 구분은 실제 샘플에서 확인된 컬럼 또는 업로드 슬롯 기준으로 확정한다.
+- 일반 gross + app gross가 함께 존재하는 입력
+- 일반 gross만 존재하는 입력
+- app gross만 존재하는 입력
+- 집계 summary row 입력
 
-아직 미스터블루 샘플 구조와 정산금 산식은 확정되지 않았으므로, 테스트 계획은 일반/app 정산금이 각각 `SettlementRow`로 안전하게 분리되는지를 먼저 고정한다.
+고정 규칙:
+
+- 일반 gross는 `종량 / 블루머니 / */매출액` 합계로 계산한다.
+- app gross는 `종량 / A.앱머니 / */매출액`와 `종량 / i.앱머니 / */매출액` 합계로 계산한다.
+- `settlementAmount` source는 `합계(정액+종량) / 정산액`이다.
+- normal/app이 둘 다 존재하면 gross 비중으로 1 decimal proportional split 한다.
 
 ### 6.2 expected SettlementRow[]
 
@@ -444,38 +455,43 @@ AutoSettlement의 책임:
 
 - 일반 정산금 결과는 `mailerContentTitle = 작품명` 형식으로 만든다.
 - app 정산금 결과는 `mailerContentTitle = 작품명(app)` 형식으로 만든다.
-- `settlementAmount`는 미스터블루 기준 파일에서 지정한 정산금 값을 사용한다.
-- `grossSales`는 기준 파일에서 추출 가능한 총매출 또는 매출 기준 값을 사용한다.
+- `grossSales`는 authority 문서에 고정된 gross 그룹 합계를 사용한다.
+- `settlementAmount`는 authority 문서에 고정된 total settlement proportional split 결과를 사용한다.
 - 일반/app이 같은 작품에 대해 각각 존재하면 별도 `SettlementRow`로 분리한다.
+- normal/app 결과의 `settlementAmount` 합은 원본 row의 `합계(정액+종량) / 정산액`과 같아야 한다.
 
 대표 테스트 케이스:
 
 - `misterblue_valid_normal_app_amounts`: 일반/app 정산금이 별도 row로 생성되는 케이스
 - `misterblue_normal_only`: 일반 정산금만 있는 작품
 - `misterblue_app_only`: app 정산금만 있는 작품
-- `misterblue_amount_source`: 정산금 추출 컬럼이 올바르게 `settlementAmount`에 반영되는 케이스
+- `misterblue_amount_source`: 총 정산액이 normal/app row로 올바르게 split 되는 케이스
+- `misterblue_summary_row_skipped`: 집계 row를 결과 없이 skip 하는 케이스
 
 ### 6.3 expected ParseIssue[]
 
 오류 fixture에서 기대하는 이슈:
 
-- 일반/app 정산금 컬럼 또는 슬롯을 찾을 수 없으면 `missing_column` 또는 `mapping_failed`
+- gross 분해에 필요한 컬럼을 찾을 수 없으면 `missing_column`
 - 필수 작품명/작가명 값이 없으면 `missing_field`
-- 정산금이 숫자로 해석되지 않으면 `invalid_value`
+- 총 정산액이 숫자로 해석되지 않으면 `invalid_value`
 - 동일 회사/플랫폼/작품/app 구분 기준에서 중복 row가 발생하면 `duplicate_row`
 
 대표 테스트 케이스:
 
-- `misterblue_missing_app_amount`: app 정산금 기준 누락
-- `misterblue_missing_normal_amount`: 일반 정산금 기준 누락
-- `misterblue_invalid_settlement_amount`: 정산금 숫자 변환 실패
+- `misterblue_missing_app_amount`: app gross 기준 누락
+- `misterblue_missing_normal_amount`: 일반 gross 기준 누락
+- `misterblue_invalid_settlement_amount`: 총 정산액 숫자 변환 실패
+- `misterblue_missing_total_settlement`: 총 정산액 기준 누락
 - `misterblue_duplicate_amount_row`: 동일 기준 중복 row
 
 ### 6.4 forbidden behavior
 
 - 일반 정산금과 app 정산금을 하나의 row로 무조건 합산하지 않는다.
 - app 정산금 결과에서 `(app)` suffix를 누락하지 않는다.
+- `볼륨별` 시트를 읽어서 작품별 정산 산식을 새로 구성하지 않는다.
 - 기준 파일에 없는 임의 산식으로 `settlementAmount`를 재계산하지 않는다.
+- 집계 summary row를 실제 작품 row로 해석하지 않는다.
 - 금액 오류를 0원으로 조용히 보정하지 않는다.
 
 ## 7. file adapter 계약 테스트 계획

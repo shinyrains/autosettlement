@@ -4,6 +4,7 @@ import { parseEpyrus } from "./epyrus";
 import { parseGuruCompany } from "./guruCompany";
 import { parseKyobo } from "./kyobo";
 import { parseMootoon } from "./mootoon";
+import { parseMisterblueSingleFileRows } from "./misterblueSingleFileParser";
 import { parseNovelpia } from "./novelpia";
 import type { ParserContext, ParserResult, PlatformParser, TabularRow } from "./parserContract";
 import { parseYes24 } from "./yes24";
@@ -16,6 +17,7 @@ export const parserRegistry = {
   yes24: parseYes24,
   aladin: parseAladin,
   guru_company: parseGuruCompany,
+  misterblue: parseMisterblueSingleFileRows,
 } satisfies Partial<Record<Platform, PlatformParser>>;
 
 export type SupportedParserPlatform = keyof typeof parserRegistry;

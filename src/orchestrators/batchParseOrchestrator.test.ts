@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseCsvAdapter } from "../fileAdapters";
 import type { FileAdapterContext, FileAdapterResult } from "../fileAdapters/types";
@@ -241,6 +243,15 @@ function createMunpiaFile(input: {
     fileKind: input.fileKind ?? (input.slot === "settlement" ? "xlsx" : "csv"),
     content: input.content,
   });
+}
+
+function readMisterblueSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx",
+    ),
+  );
 }
 
 function createRidibooksBaseRow(overrides: Partial<TabularRow> = {}): TabularRow {
@@ -1042,6 +1053,46 @@ describe("batch parse orchestrator", () => {
       expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "success", rowCount: 1, issueCount: 0 }),
       expect.objectContaining({ fileName: "ridibooks-mg.csv", status: "success", rowCount: 1, issueCount: 0 }),
     ]);
+  });
+
+  it("parses a Misterblue workbook through the batch orchestrator single-file path", () => {
+    const result = runBatchParseOrchestrator({
+      batchId: "batch-misterblue-1",
+      files: [
+        createFile({
+          company: "raon",
+          platform: "misterblue",
+          fileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+          fileKind: "xlsx",
+          saleMonth: "2026-04",
+          content: readMisterblueSampleWorkbook(),
+        }),
+      ],
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          platform: "misterblue",
+          saleMonth: "2026-04",
+          workTitle: "대물로 태어나게 해주세요!",
+          mailerContentTitle: "대물로 태어나게 해주세요!",
+          grossSales: 480000,
+          settlementAmount: 296949.5,
+          sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+        }),
+        expect.objectContaining({
+          platform: "misterblue",
+          saleMonth: "2026-04",
+          workTitle: "대물로 태어나게 해주세요!",
+          mailerContentTitle: "대물로 태어나게 해주세요!(app)",
+          grossSales: 99960,
+          settlementAmount: 61839.7,
+          sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
+        }),
+      ]),
+    );
   });
 
   it("parses munpia settlement and optional authorCorrection as one group", () => {

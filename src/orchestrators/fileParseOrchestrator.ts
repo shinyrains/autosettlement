@@ -1,4 +1,4 @@
-import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
+import { parseCsvAdapter, parseHtmlXlsAdapter, parseMisterblueXlsxAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapter, FileAdapterContext, FileKind } from "../fileAdapters/types";
 import type { ParserContext, ParserResult, TabularRow } from "../parsers/parserContract";
 import { parsePlatformRows } from "../parsers/registry";
@@ -42,7 +42,7 @@ export function runFileParseOrchestrator(
     ...defaultAdapters,
     ...dependencies.adapters,
   };
-  const adapter = adapters[input.fileKind];
+  const adapter = resolveAdapter(input.platform, input.fileKind, adapters);
 
   if (!adapter) {
     return {
@@ -89,4 +89,16 @@ function createUnsupportedFileKindIssue(input: FileParseOrchestratorInput): Pars
     message: `Unsupported fileKind "${String(input.fileKind)}".`,
     sourceFileName: input.adapterContext.sourceFileName,
   };
+}
+
+function resolveAdapter(
+  platform: Platform,
+  fileKind: FileKind,
+  adapters: Record<FileKind, FileAdapter>,
+): FileAdapter | undefined {
+  if (platform === "misterblue" && fileKind === "xlsx") {
+    return parseMisterblueXlsxAdapter;
+  }
+
+  return adapters[fileKind];
 }
