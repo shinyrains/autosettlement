@@ -10,14 +10,15 @@ export function parseCsvAdapter(
   context: FileAdapterContext,
   file: unknown,
 ): FileAdapterResult {
-  if (typeof file !== "string") {
+  const csv = resolveCsvText(file);
+  if (csv === null) {
     return {
       rows: [],
-      issues: [createCsvParseIssue(context, "CSV adapter expects string file contents.")],
+      issues: [createCsvParseIssue(context, "CSV decode failed.")],
     };
   }
 
-  const records = parseCsvRecords(file);
+  const records = parseCsvRecords(csv);
   if (records.length === 0) {
     return {
       rows: [],
@@ -37,6 +38,59 @@ export function parseCsvAdapter(
     rows: records.slice(1).flatMap((record) => buildRow(header, record, context)),
     issues: [],
   };
+}
+
+function resolveCsvText(file: unknown): string | null {
+  if (typeof file === "string") {
+    return hasBrokenDecodeMarker(file) ? null : file;
+  }
+
+  const bytes = toUint8Array(file);
+  if (bytes === null) {
+    return null;
+  }
+
+  return decodeCsvBytes(bytes);
+}
+
+function toUint8Array(file: unknown): Uint8Array | null {
+  if (file instanceof Uint8Array) {
+    return file;
+  }
+
+  if (file instanceof ArrayBuffer) {
+    return new Uint8Array(file);
+  }
+
+  if (ArrayBuffer.isView(file)) {
+    return new Uint8Array(file.buffer, file.byteOffset, file.byteLength);
+  }
+
+  return null;
+}
+
+function decodeCsvBytes(bytes: Uint8Array): string | null {
+  const candidates = hasUtf8Bom(bytes)
+    ? [decodeWithEncoding(bytes, "utf-8")]
+    : [decodeWithEncoding(bytes, "utf-8"), decodeWithEncoding(bytes, "euc-kr")];
+
+  return candidates.find((candidate) => candidate !== null && !hasBrokenDecodeMarker(candidate)) ?? null;
+}
+
+function decodeWithEncoding(bytes: Uint8Array, encoding: string): string | null {
+  try {
+    return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function hasUtf8Bom(bytes: Uint8Array): boolean {
+  return bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+}
+
+function hasBrokenDecodeMarker(text: string): boolean {
+  return text.includes("\uFFFD");
 }
 
 function parseCsvRecords(csv: string): CsvRecord[] {

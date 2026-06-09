@@ -93,4 +93,84 @@ describe("csv file adapter", () => {
       "sourceRowIndex",
     ]);
   });
+  it("decodes UTF-8 BOM byte input before parsing", () => {
+    const bytes = new Uint8Array([
+      0xef,
+      0xbb,
+      0xbf,
+      ...new TextEncoder().encode("상품명,작가\n검은 별의 시점,서도원"),
+    ]);
+
+    const result = parseCsvAdapter(baseContext, bytes);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        상품명: "검은 별의 시점",
+        작가: "서도원",
+        sourceRowIndex: 2,
+      }),
+    ]);
+  });
+
+  it("decodes CP949 byte input before parsing", () => {
+    const bytes = new Uint8Array([
+      0xbb,
+      0xf3,
+      0xc7,
+      0xb0,
+      0xb8,
+      0xed,
+      0x2c,
+      0xc0,
+      0xdb,
+      0xb0,
+      0xa1,
+      0x0a,
+      0xb0,
+      0xcb,
+      0xc0,
+      0xba,
+      0x20,
+      0xba,
+      0xb0,
+      0xc0,
+      0xc7,
+      0x20,
+      0xbd,
+      0xc3,
+      0xc1,
+      0xa1,
+      0x2c,
+      0xbc,
+      0xad,
+      0xb5,
+      0xb5,
+      0xbf,
+      0xf8,
+    ]);
+
+    const result = parseCsvAdapter(baseContext, bytes);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        상품명: "검은 별의 시점",
+        작가: "서도원",
+        sourceRowIndex: 2,
+      }),
+    ]);
+  });
+
+  it("returns a parse_error when byte input cannot be decoded safely", () => {
+    const result = parseCsvAdapter(baseContext, new Uint8Array([0xff, 0xff, 0xff]));
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "parse_error",
+        message: expect.stringContaining("decode"),
+      }),
+    ]);
+  });
 });
