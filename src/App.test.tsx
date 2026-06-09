@@ -22,6 +22,15 @@ function readMisterblueSampleWorkbook(): Uint8Array {
   );
 }
 
+function readPanmurimSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/panmurim/（주）라온이앤엠_2026년 5월.xlsx",
+    ),
+  );
+}
+
 describe("AutoSettlement UI shell", () => {
   it("renders the batch-centered MVP workflow with series, munpia slots, and export status", () => {
     render(<App />);
@@ -89,5 +98,38 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("작품별정산_2026-04-01_2026-04-30.xlsx")).toBeInTheDocument();
+  });
+
+  it("parses a real panmurim workbook through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-raon-panmurim") as HTMLInputElement;
+    const bytes = readPanmurimSampleWorkbook().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "（주）라온이앤엠_2026년 5월.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-panmurim");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 354,
+        sourceFileNames: ["（주）라온이앤엠_2026년 5월.xlsx"],
+      }));
+    });
+
+    expect(screen.getByText("（주）라온이앤엠_2026년 5월.xlsx")).toBeInTheDocument();
   });
 });

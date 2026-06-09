@@ -5,7 +5,7 @@ import { isLiveUploadEnabled } from "../state/uploadMutation";
 import { UploadSection } from "./UploadSection";
 
 describe("UploadSection", () => {
-  it("renders munpia slot-based upload state for settlement and author correction", () => {
+  it("renders munpia slot-based upload state and the current live upload cards", () => {
     render(
       <UploadSection
         uploads={mockUploads}
@@ -21,7 +21,8 @@ describe("UploadSection", () => {
     expect(screen.getByText("required · xlsx")).toBeInTheDocument();
     expect(screen.getByText("optional · csv/xlsx")).toBeInTheDocument();
     expect(screen.getByText("munpia-author-correction.csv")).toBeInTheDocument();
-    expect(screen.getByText("실파일 업로드")).toBeInTheDocument();
+    expect(screen.getAllByText("실파일 업로드")).toHaveLength(2);
     expect(screen.getByText("현재 live path: 미스터블루 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 판무림 단일 XLSX 1-file")).toBeInTheDocument();
   });
 });

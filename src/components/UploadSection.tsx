@@ -4,6 +4,10 @@ import {
   companyLabels,
   type PlatformUploadCard,
 } from "../data/mockSettlement";
+import {
+  getLiveUploadAcceptAttribute,
+  getLiveUploadDescription,
+} from "../state/uploadMutation";
 import type { Company } from "../types/settlement";
 import { MiniMetric, StatusBadge } from "./ShellPrimitives";
 
@@ -75,6 +79,8 @@ function UploadCard({
   const inputId = useId();
   const [isUploading, setIsUploading] = useState(false);
   const canUpload = isUploadEnabled && onUploadFiles !== undefined;
+  const liveUploadDescription = getLiveUploadDescription(upload);
+  const acceptAttribute = getLiveUploadAcceptAttribute(upload) ?? ".xlsx";
   return (
     <article className="rounded-md border border-line bg-ink-800 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -101,7 +107,7 @@ function UploadCard({
             id={inputId}
             data-testid={`upload-input-${upload.uploadId}`}
             type="file"
-            accept=".csv,.xlsx,.xls"
+            accept={acceptAttribute}
             className="hidden"
             onChange={async (event) => {
               const files = Array.from(event.currentTarget.files ?? []);
@@ -125,7 +131,7 @@ function UploadCard({
           >
             {isUploading ? "처리 중..." : "실파일 업로드"}
           </label>
-          <p className="text-xs text-slate-400">현재 live path: 미스터블루 단일 XLSX 1-file</p>
+          <p className="text-xs text-slate-400">현재 live path: {liveUploadDescription}</p>
         </div>
       ) : null}
       {!canUpload && !hasSlots ? (

@@ -14,14 +14,44 @@ type UploadMutationDependencies = {
   now?: () => string;
 };
 
-const LIVE_UPLOAD_PLATFORM: Platform = "misterblue";
-const LIVE_UPLOAD_COMPANY = "sr";
+type LiveUploadAcceptedKind = "csv" | "xlsx" | "xls";
+
+type LiveUploadSpec = {
+  uploadId: string;
+  company: AppDraftState["uploads"][number]["company"];
+  platform: Platform;
+  acceptedKinds: LiveUploadAcceptedKind[];
+  uiLabel: string;
+};
+
+const LIVE_UPLOAD_SPECS: LiveUploadSpec[] = [
+  {
+    uploadId: "upload-sr-misterblue",
+    company: "sr",
+    platform: "misterblue",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "미스터블루 단일 XLSX 1-file",
+  },
+  {
+    uploadId: "upload-raon-panmurim",
+    company: "raon",
+    platform: "panmurim",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "판무림 단일 XLSX 1-file",
+  },
+];
 
 export function isLiveUploadEnabled(upload: PlatformUploadCard): boolean {
-  return upload.company === LIVE_UPLOAD_COMPANY
-    && upload.platform === LIVE_UPLOAD_PLATFORM
-    && upload.requiredFileCount === 1
-    && (upload.slots?.length ?? 0) === 0;
+  return getLiveUploadSpec(upload) !== undefined;
+}
+
+export function getLiveUploadAcceptAttribute(upload: PlatformUploadCard): string | undefined {
+  const spec = getLiveUploadSpec(upload);
+  return spec?.acceptedKinds.map((kind) => `.${kind}`).join(",");
+}
+
+export function getLiveUploadDescription(upload: PlatformUploadCard): string | undefined {
+  return getLiveUploadSpec(upload)?.uiLabel;
 }
 
 export async function applyLiveUploadMutation(
@@ -31,14 +61,20 @@ export async function applyLiveUploadMutation(
   dependencies: UploadMutationDependencies = {},
 ): Promise<AppDraftState> {
   const uploadedAt = dependencies.now?.() ?? new Date().toISOString();
+  const liveSpec = getLiveUploadSpec(upload);
 
-  if (!isLiveUploadEnabled(upload)) {
+  if (!liveSpec) {
     return applyFailureResult(
       state,
       upload,
       files.map((file) => file.name),
       uploadedAt,
-      createUploadIssue(state, upload, files[0]?.name, "현재 live upload가 승인된 카드는 미스터블루 1-file 경로뿐입니다."),
+      createUploadIssue(
+        state,
+        upload,
+        files[0]?.name,
+        `현재 live upload가 승인된 카드는 ${formatApprovedLiveUploadCards()}뿐입니다.`,
+      ),
     );
   }
 
@@ -54,13 +90,18 @@ export async function applyLiveUploadMutation(
 
   const file = files[0];
   const fileKind = inferFileKind(file.name);
-  if (!fileKind) {
+  if (!fileKind || !isAcceptedFileKind(liveSpec, fileKind)) {
     return applyFailureResult(
       state,
       upload,
       [file.name],
       uploadedAt,
-      createUploadIssue(state, upload, file.name, "지원하지 않는 파일 확장자입니다. csv/xlsx/xls만 허용됩니다."),
+      createUploadIssue(
+        state,
+        upload,
+        file.name,
+        `지원하지 않는 파일 확장자입니다. 현재 ${liveSpec.uiLabel} 경로는 ${formatAcceptedKinds(liveSpec.acceptedKinds)}만 허용됩니다.`,
+      ),
     );
   }
 
@@ -198,6 +239,32 @@ function inferFileKind(fileName: string): FileKind | null {
   }
 
   return null;
+}
+
+function getLiveUploadSpec(upload: PlatformUploadCard): LiveUploadSpec | undefined {
+  return LIVE_UPLOAD_SPECS.find((spec) => (
+    spec.uploadId === upload.uploadId
+    && spec.company === upload.company
+    && spec.platform === upload.platform
+    && upload.requiredFileCount === 1
+    && (upload.slots?.length ?? 0) === 0
+  ));
+}
+
+function isAcceptedFileKind(spec: LiveUploadSpec, fileKind: FileKind): boolean {
+  if (fileKind === "html_xls") {
+    return spec.acceptedKinds.includes("xls");
+  }
+
+  return spec.acceptedKinds.includes(fileKind as LiveUploadAcceptedKind);
+}
+
+function formatAcceptedKinds(acceptedKinds: LiveUploadAcceptedKind[]): string {
+  return acceptedKinds.map((kind) => `.${kind}`).join("/");
+}
+
+function formatApprovedLiveUploadCards(): string {
+  return LIVE_UPLOAD_SPECS.map((spec) => spec.uiLabel).join(", ");
 }
 
 function createUploadIssue(
