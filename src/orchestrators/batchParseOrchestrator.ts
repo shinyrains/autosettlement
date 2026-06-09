@@ -1,7 +1,9 @@
 import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapter, FileAdapterResult, FileKind } from "../fileAdapters/types";
-import { parseSeriesFileGroup } from "../parsers";
+import { parseRidibooksFileGroup, parseSeriesFileGroup } from "../parsers";
 import type { PlatformFileGroupInput, PlatformFileGroupParserContext } from "../parsers";
+import type { RidibooksFileSlot } from "../parsers/ridibooksCalcConstants";
+import type { RidibooksGroupFileInput, RidibooksGroupParserContext } from "../parsers/ridibooksGroupParser";
 import type { Company, ParseIssue, Platform, SettlementRow } from "../types/settlement";
 import {
   runFileParseOrchestrator,
@@ -15,6 +17,10 @@ export type BatchParseFileInput = {
   fileName: string;
   saleMonth: string;
   slot?: string;
+  eventPeriod?: {
+    startDate: string;
+    endDate: string;
+  };
   content: unknown;
 };
 
@@ -47,6 +53,15 @@ type SeriesFileGroup = {
   files: PlatformFileGroupInput[];
 };
 
+type RidibooksFileGroup = {
+  context: RidibooksGroupParserContext;
+  files: RidibooksGroupFileInput[];
+};
+
+type GroupFlushEntry =
+  | { platform: "series"; key: string }
+  | { platform: "ridibooks"; key: string };
+
 const defaultAdapters: Record<FileKind, FileAdapter> = {
   csv: parseCsvAdapter,
   xlsx: parseXlsxAdapter,
@@ -63,10 +78,17 @@ export function runBatchParseOrchestrator(
     fileResults: [],
   };
   const seriesGroups = new Map<string, SeriesFileGroup>();
+  const ridibooksGroups = new Map<string, RidibooksFileGroup>();
+  const groupFlushOrder: GroupFlushEntry[] = [];
 
   for (const file of input.files) {
     if (file.platform === "series") {
-      collectSeriesFile(input.batchId, file, batchResult, seriesGroups, dependencies);
+      collectSeriesFile(input.batchId, file, batchResult, seriesGroups, groupFlushOrder, dependencies);
+      continue;
+    }
+
+    if (file.platform === "ridibooks") {
+      collectRidibooksFile(input.batchId, file, batchResult, ridibooksGroups, groupFlushOrder, dependencies);
       continue;
     }
 
@@ -109,10 +131,23 @@ export function runBatchParseOrchestrator(
 
   }
 
-  for (const group of seriesGroups.values()) {
-    const groupResult = parseSeriesFileGroup(group.context, group.files);
-    batchResult.rows.push(...groupResult.rows);
-    batchResult.issues.push(...groupResult.issues);
+  for (const entry of groupFlushOrder) {
+    if (entry.platform === "series") {
+      const group = seriesGroups.get(entry.key);
+      if (group) {
+        const groupResult = parseSeriesFileGroup(group.context, group.files);
+        batchResult.rows.push(...groupResult.rows);
+        batchResult.issues.push(...groupResult.issues);
+      }
+      continue;
+    }
+
+    const group = ridibooksGroups.get(entry.key);
+    if (group) {
+      const groupResult = parseRidibooksFileGroup(group.context, group.files);
+      batchResult.rows.push(...groupResult.rows);
+      batchResult.issues.push(...groupResult.issues);
+    }
   }
 
   return batchResult;
@@ -123,16 +158,52 @@ function collectSeriesFile(
   file: BatchParseFileInput,
   batchResult: BatchParseOrchestratorResult,
   seriesGroups: Map<string, SeriesFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
   dependencies: FileParseOrchestratorDependencies,
 ): void {
   const adapterResult = runFileAdapter(batchId, file, dependencies);
   const groupKey = createSeriesGroupKey(file);
-  const group = getOrCreateSeriesGroup(batchId, file, groupKey, seriesGroups);
+  const group = getOrCreateSeriesGroup(batchId, file, groupKey, seriesGroups, groupFlushOrder);
 
   group.context.sourceFileNames.push(file.fileName);
   group.files.push({
     sourceFileName: file.fileName,
     slot: file.slot,
+    rows: adapterResult.rows,
+    issues: adapterResult.issues,
+  });
+
+  batchResult.fileResults.push({
+    fileName: file.fileName,
+    company: file.company,
+    platform: file.platform,
+    fileKind: file.fileKind,
+    saleMonth: file.saleMonth,
+    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    rowCount: adapterResult.rows.length,
+    issueCount: adapterResult.issues.length,
+  });
+}
+
+function collectRidibooksFile(
+  batchId: string,
+  file: BatchParseFileInput,
+  batchResult: BatchParseOrchestratorResult,
+  ridibooksGroups: Map<string, RidibooksFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
+  dependencies: FileParseOrchestratorDependencies,
+): void {
+  const adapterResult = runFileAdapter(batchId, file, dependencies);
+  const groupKey = createRidibooksGroupKey(file);
+  const group = getOrCreateRidibooksGroup(batchId, file, groupKey, ridibooksGroups, groupFlushOrder);
+
+  group.context.sourceFileNames.push(file.fileName);
+  if (group.context.eventPeriod === undefined && file.eventPeriod !== undefined) {
+    group.context.eventPeriod = file.eventPeriod;
+  }
+  group.files.push({
+    sourceFileName: file.fileName,
+    slot: file.slot as RidibooksFileSlot,
     rows: adapterResult.rows,
     issues: adapterResult.issues,
   });
@@ -186,6 +257,7 @@ function getOrCreateSeriesGroup(
   file: BatchParseFileInput,
   groupKey: string,
   seriesGroups: Map<string, SeriesFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
 ): SeriesFileGroup {
   const existingGroup = seriesGroups.get(groupKey);
   if (existingGroup !== undefined) {
@@ -203,10 +275,43 @@ function getOrCreateSeriesGroup(
     files: [],
   };
   seriesGroups.set(groupKey, group);
+  groupFlushOrder.push({ platform: "series", key: groupKey });
   return group;
 }
 
 function createSeriesGroupKey(file: BatchParseFileInput): string {
+  return [file.company, file.platform, file.saleMonth].join("\u001f");
+}
+
+function getOrCreateRidibooksGroup(
+  batchId: string,
+  file: BatchParseFileInput,
+  groupKey: string,
+  ridibooksGroups: Map<string, RidibooksFileGroup>,
+  groupFlushOrder: GroupFlushEntry[],
+): RidibooksFileGroup {
+  const existingGroup = ridibooksGroups.get(groupKey);
+  if (existingGroup !== undefined) {
+    return existingGroup;
+  }
+
+  const group: RidibooksFileGroup = {
+    context: {
+      batchId,
+      company: file.company,
+      platform: "ridibooks",
+      saleMonth: file.saleMonth,
+      sourceFileNames: [],
+      ...(file.eventPeriod ? { eventPeriod: file.eventPeriod } : {}),
+    },
+    files: [],
+  };
+  ridibooksGroups.set(groupKey, group);
+  groupFlushOrder.push({ platform: "ridibooks", key: groupKey });
+  return group;
+}
+
+function createRidibooksGroupKey(file: BatchParseFileInput): string {
   return [file.company, file.platform, file.saleMonth].join("\u001f");
 }
 

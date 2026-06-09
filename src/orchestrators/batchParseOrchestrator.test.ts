@@ -7,6 +7,7 @@ import {
   SERIES_IDENTITY_COLUMNS,
   SERIES_REFERENCE_COLUMNS,
 } from "../parsers/seriesColumnMappings";
+import { RIDIBOOKS_REQUIRED_COLUMNS as RIDIBOOKS_COLUMNS } from "../parsers/ridibooksCalcConstants";
 import { simpleExtractMappings, type SimpleExtractPlatform } from "../parsers/simpleExtractMappings";
 import type { Company, ParseIssue, Platform } from "../types/settlement";
 import { runBatchParseOrchestrator } from "./batchParseOrchestrator";
@@ -48,6 +49,10 @@ function createFile(input: {
   content: unknown;
   fileKind?: "csv";
   slot?: string;
+  eventPeriod?: {
+    startDate: string;
+    endDate: string;
+  };
 }) {
   return {
     company: input.company,
@@ -56,6 +61,7 @@ function createFile(input: {
     fileName: input.fileName,
     saleMonth: input.saleMonth ?? "2026-06",
     slot: input.slot,
+    eventPeriod: input.eventPeriod,
     content: input.content,
   };
 }
@@ -174,7 +180,7 @@ function createSeriesFiles(): ReturnType<typeof createSeriesFile>[] {
 
 function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
   return (context: FileAdapterContext, file: unknown): FileAdapterResult => {
-    if (context.platform !== "series") {
+    if (context.platform !== "series" && context.platform !== "ridibooks") {
       return parseCsvAdapter(context, file);
     }
 
@@ -186,6 +192,114 @@ function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
       issues: issueByFileName[sourceFileName] === undefined ? [] : [issueByFileName[sourceFileName]],
     };
   };
+}
+
+function createRidibooksBaseRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  const [bookId, title, author, publisher] = RIDIBOOKS_COLUMNS.base.identity;
+  const [
+    normalSales,
+    normalCancel,
+    appTargetAmount,
+    appFee,
+    appCancelAmount,
+    settlementAmount,
+  ] = RIDIBOOKS_COLUMNS.base.amounts;
+
+  return {
+    [bookId]: "RIDI-001",
+    [title]: "Ridibooks Work",
+    [author]: "Ridibooks Author",
+    [publisher]: "Ridibooks Publisher",
+    [normalSales]: "1,000",
+    [normalCancel]: "-100",
+    [appTargetAmount]: "500",
+    [appFee]: "150",
+    [appCancelAmount]: "-50",
+    [settlementAmount]: "999",
+    sourceFileName: "calculate_1.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createRidibooksFile1Row(overrides: Partial<TabularRow> = {}): TabularRow {
+  const [bookId, title] = RIDIBOOKS_COLUMNS.file1.identity;
+  const [normalSales, normalCancel, settlementAmount] = RIDIBOOKS_COLUMNS.file1.amounts;
+
+  return {
+    [bookId]: "RIDI-001",
+    [title]: "Ridibooks Work",
+    [normalSales]: "200",
+    [normalCancel]: "-20",
+    [settlementAmount]: "30",
+    sourceFileName: "calculate_1 (1).csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createRidibooksEventRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  const [bookId, title] = RIDIBOOKS_COLUMNS.event.identity;
+  const [
+    paidAt,
+    normalSales,
+    normalSettlementAmount,
+    iosTargetAmount,
+    iosSettlementAmount,
+    androidTargetAmount,
+    androidSettlementAmount,
+    oneStoreTargetAmount,
+    oneStoreSettlementAmount,
+  ] = RIDIBOOKS_COLUMNS.event.amounts;
+
+  return {
+    [bookId]: "RIDI-001",
+    [title]: "Ridibooks Work",
+    [paidAt]: "2026-06-15",
+    [normalSales]: "1,000",
+    [normalSettlementAmount]: "700",
+    [iosTargetAmount]: "100",
+    [iosSettlementAmount]: "44.1",
+    [androidTargetAmount]: "200",
+    [androidSettlementAmount]: "113.4",
+    [oneStoreTargetAmount]: "300",
+    [oneStoreSettlementAmount]: "210",
+    sourceFileName: "calculate_date_tran_1.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createRidibooksMgCorrectionRow(overrides: Partial<TabularRow> = {}): TabularRow {
+  const [bookId] = RIDIBOOKS_COLUMNS.mgCorrection.matching;
+  const [mgFlag] = RIDIBOOKS_COLUMNS.mgCorrection.values;
+
+  return {
+    [bookId]: "RIDI-001",
+    [mgFlag]: "Y",
+    sourceFileName: "ridibooks-mg.csv",
+    sourceRowIndex: 2,
+    ...overrides,
+  };
+}
+
+function createRidibooksFile(input: {
+  fileName: string;
+  slot: "base" | "file1" | "event" | "mgCorrection";
+  content: TabularRow[];
+  eventPeriod?: {
+    startDate: string;
+    endDate: string;
+  };
+}) {
+  return createFile({
+    company: "raon",
+    platform: "ridibooks",
+    fileName: input.fileName,
+    slot: input.slot,
+    content: input.content,
+    eventPeriod: input.eventPeriod,
+  });
 }
 
 describe("batch parse orchestrator", () => {
@@ -563,6 +677,221 @@ describe("batch parse orchestrator", () => {
         }),
       ),
     );
+  });
+
+  it("groups ridibooks base and file1 files before running the group parser", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-ridibooks-1",
+        files: [
+          createRidibooksFile({
+            fileName: "calculate_1.csv",
+            slot: "base",
+            content: [createRidibooksBaseRow()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_1 (1).csv",
+            slot: "file1",
+            content: [createRidibooksFile1Row()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        company: "raon",
+        platform: "ridibooks",
+        workTitle: "Ridibooks Work",
+        mailerContentTitle: "Ridibooks Work",
+        grossSales: 720,
+        settlementAmount: 534,
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "ridibooks",
+        mailerContentTitle: "Ridibooks Work(app)",
+        grossSales: 550,
+        settlementAmount: 280,
+      }),
+    ]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "calculate_1.csv", status: "success", rowCount: 1, issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_1 (1).csv", status: "success", rowCount: 1, issueCount: 0 }),
+    ]);
+  });
+
+  it("passes ridibooks eventPeriod to event files and keeps group issues out of fileResults", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-ridibooks-event",
+        files: [
+          createRidibooksFile({
+            fileName: "calculate_1.csv",
+            slot: "base",
+            content: [createRidibooksBaseRow()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_1 (1).csv",
+            slot: "file1",
+            content: [createRidibooksFile1Row()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_date_tran_1.csv",
+            slot: "event",
+            content: [createRidibooksEventRow()],
+            eventPeriod: {
+              startDate: "2026-06-01",
+              endDate: "2026-06-30",
+            },
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows.map((row) => row.mailerContentTitle)).toEqual([
+      "Ridibooks Work(이벤트)",
+      "Ridibooks Work(이벤트)(app)",
+    ]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "calculate_1.csv", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_1 (1).csv", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "success", issueCount: 0 }),
+    ]);
+  });
+
+  it("passes optional ridibooks MG correction files to the group parser", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-ridibooks-mg",
+        files: [
+          createRidibooksFile({
+            fileName: "calculate_1.csv",
+            slot: "base",
+            content: [createRidibooksBaseRow()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_1 (1).csv",
+            slot: "file1",
+            content: [createRidibooksFile1Row()],
+          }),
+          createRidibooksFile({
+            fileName: "ridibooks-mg.csv",
+            slot: "mgCorrection",
+            content: [createRidibooksMgCorrectionRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        mailerContentTitle: "Ridibooks Work",
+        grossSales: 720,
+        settlementAmount: 432,
+      }),
+      expect.objectContaining({
+        mailerContentTitle: "Ridibooks Work(app)",
+        grossSales: 550,
+        settlementAmount: 280,
+      }),
+    ]);
+  });
+
+  it("returns ridibooks blocked group issues without assigning them to fileResults", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-ridibooks-blocked",
+        files: [
+          createRidibooksFile({
+            fileName: "calculate_1.csv",
+            slot: "base",
+            content: [createRidibooksBaseRow()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_1 (1).csv",
+            slot: "file1",
+            content: [createRidibooksFile1Row()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_date_tran_1.csv",
+            slot: "event",
+            content: [createRidibooksEventRow()],
+          }),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        platform: "ridibooks",
+        issueType: "missing_field",
+        severity: "error",
+      }),
+    ]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "calculate_1.csv", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_1 (1).csv", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "success", issueCount: 0 }),
+    ]);
+  });
+
+  it("runs ridibooks and series group paths side by side", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-series-ridibooks",
+        files: [
+          createRidibooksFile({
+            fileName: "calculate_1.csv",
+            slot: "base",
+            content: [createRidibooksBaseRow()],
+          }),
+          createRidibooksFile({
+            fileName: "calculate_1 (1).csv",
+            slot: "file1",
+            content: [createRidibooksFile1Row()],
+          }),
+          ...createSeriesFiles(),
+        ],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({ platform: "ridibooks", mailerContentTitle: "Ridibooks Work" }),
+      expect.objectContaining({ platform: "ridibooks", mailerContentTitle: "Ridibooks Work(app)" }),
+      expect.objectContaining({ platform: "series", mailerContentTitle: "Same Series Work" }),
+      expect.objectContaining({ platform: "series", mailerContentTitle: "Same Series Work(app)" }),
+    ]);
   });
 
   it("returns unsupported fileKind issues in the batch result", () => {
