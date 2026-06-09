@@ -16,6 +16,7 @@ export * from "./ridibooksRowToSettlement";
 export * from "./ridibooksGroupParser";
 export * from "./munpiaCalcConstants";
 export * from "./munpiaRowCalcUtils";
+export * from "./munpiaAuthorCorrectionUtils";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";

@@ -47,6 +47,13 @@ export const MUNPIA_REQUIRED_COLUMNS = {
   correction: ["작품코드", "계정"],
 } as const satisfies MunpiaRequiredColumnGroup;
 
+export const MUNPIA_AUTHOR_CORRECTION_COLUMNS = {
+  workCode: "작품코드",
+  workTitle: "작품",
+  author: "작가명",
+  account: "계정",
+} as const;
+
 export const MUNPIA_CALC_RATES = {
   web: 0.63,
   iosApp: 0.441,
