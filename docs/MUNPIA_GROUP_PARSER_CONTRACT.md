@@ -7,6 +7,7 @@ This document fixes the Munpia production parser input shape before implementati
 It does not replace:
 
 - `docs/MUNPIA_CONTRACT.md`
+- `docs/MUNPIA_FIXTURE_PLAN.md`
 - `docs/AUTOSETTLEMENT_PARSER_CONTRACT_TEST_PLAN.md`
 - `docs/SPECIAL_PLATFORM_TRANSFORM_CONTRACT.md`
 

@@ -11,6 +11,7 @@
 - `docs/AUTOSETTLEMENT_DATA_MODEL.md`
 - `docs/AUTOSETTLEMENT_SITE_DESIGN.md`
 - `docs/MUNPIA_GROUP_PARSER_CONTRACT.md` (Munpia production group parser shape authority)
+- `docs/MUNPIA_FIXTURE_PLAN.md` (Munpia fixture family and expected-result planning)
 - `src/types/settlement.ts`
 
 이 문서는 구현 문서가 아니다. fixture 파일, 테스트 코드, 파서 함수, 엑셀/HTML 읽기 로직, 실제 계산 로직은 작성하지 않는다.

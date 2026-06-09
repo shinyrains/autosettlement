@@ -20,6 +20,12 @@ For the Munpia production group parser input shape and blocking policy, see:
 docs/MUNPIA_GROUP_PARSER_CONTRACT.md
 ```
 
+For the sanitized fixture families and expected-result planning that follow this contract, see:
+
+```text
+docs/MUNPIA_FIXTURE_PLAN.md
+```
+
 ## 2. Sample File
 
 Audit sample:
