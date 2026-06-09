@@ -31,6 +31,7 @@ describe("parser registry", () => {
       "misterblue",
       "panmurim",
       "bookcube",
+      "onestore",
     ]);
   });
 
@@ -39,6 +40,7 @@ describe("parser registry", () => {
     expect(getParser("misterblue")).toEqual(expect.any(Function));
     expect(getParser("panmurim")).toEqual(expect.any(Function));
     expect(getParser("bookcube")).toEqual(expect.any(Function));
+    expect(getParser("onestore")).toEqual(expect.any(Function));
   });
 
   it("runs the selected parser with the requested platform in context", () => {

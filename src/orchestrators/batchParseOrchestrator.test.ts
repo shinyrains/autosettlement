@@ -188,6 +188,7 @@ function createSeriesAdapter(issueByFileName: Record<string, ParseIssue> = {}) {
       && context.platform !== "munpia"
       && context.platform !== "joara"
       && context.platform !== "bookcube"
+      && context.platform !== "onestore"
     ) {
       return parseCsvAdapter(context, file);
     }
@@ -320,6 +321,15 @@ function readBookcubeSampleWorkbook(): Uint8Array {
     path.resolve(
       process.cwd(),
       "tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+    ),
+  );
+}
+
+function readOnestoreSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/onestore/정산내역_20260608_163327.xlsx",
     ),
   );
 }
@@ -1268,6 +1278,40 @@ describe("batch parse orchestrator", () => {
         grossSales: 3000,
         settlementAmount: 2100,
         sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+        sourceRowIndex: 3,
+      }),
+    );
+  });
+
+  it("parses an Onestore workbook through the batch orchestrator single-file path", () => {
+    const result = runBatchParseOrchestrator({
+      batchId: "batch-onestore-1",
+      files: [
+        createFile({
+          company: "raon",
+          platform: "onestore",
+          fileName: "정산내역_20260608_163327.xlsx",
+          fileKind: "xlsx",
+          saleMonth: "2026-06",
+          content: readOnestoreSampleWorkbook(),
+        }),
+      ],
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(13209);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "sr",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "레이드 커맨더 4권",
+        mailerContentTitle: "레이드 커맨더 4권",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 3200,
+        settlementAmount: 2016,
+        sourceFileName: "정산내역_20260608_163327.xlsx",
         sourceRowIndex: 3,
       }),
     );

@@ -91,6 +91,15 @@ function readBookcubeSampleWorkbook(): Uint8Array {
   );
 }
 
+function readOnestoreSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/onestore/정산내역_20260608_163327.xlsx",
+    ),
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -279,6 +288,47 @@ describe("file parse orchestrator", () => {
         grossSales: 3000,
         settlementAmount: 2100,
         sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
+        sourceRowIndex: 3,
+      }),
+    );
+  });
+
+  it("runs the Onestore XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "onestore",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        sourceFileName: "정산내역_20260608_163327.xlsx",
+        fileKind: "xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        sourceFileName: "정산내역_20260608_163327.xlsx",
+      },
+      fileContent: readOnestoreSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(13209);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "sr",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "레이드 커맨더 4권",
+        mailerContentTitle: "레이드 커맨더 4권",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 3200,
+        settlementAmount: 2016,
+        sourceFileName: "정산내역_20260608_163327.xlsx",
         sourceRowIndex: 3,
       }),
     );

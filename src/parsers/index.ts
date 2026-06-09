@@ -24,6 +24,7 @@ export * from "./joaraGroupParser";
 export * from "./misterblueSingleFileParser";
 export * from "./panmurim";
 export * from "./bookcube";
+export * from "./onestore";
 export * from "./registry";
 export * from "./simpleExtractMappings";
 export * from "./simpleExtractUtils";
