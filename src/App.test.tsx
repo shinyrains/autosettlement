@@ -1,4 +1,6 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import App from "./App";
 import {
@@ -10,6 +12,15 @@ afterEach(() => {
   cleanup();
   window.localStorage.removeItem(APP_STATE_STORAGE_KEY);
 });
+
+function readMisterblueSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/misterblue/작품별정산_2026-04-01_2026-04-30.xlsx",
+    ),
+  );
+}
 
 describe("AutoSettlement UI shell", () => {
   it("renders the batch-centered MVP workflow with series, munpia slots, and export status", () => {
@@ -45,5 +56,38 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "초기 상태로 리셋" }));
 
     expect(screen.getByRole("heading", { name: "검은 별의 서점(app)" })).toBeInTheDocument();
+  });
+
+  it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-sr-misterblue") as HTMLInputElement;
+    const bytes = readMisterblueSampleWorkbook().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "작품별정산_2026-04-01_2026-04-30.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-sr-misterblue");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 198,
+        sourceFileNames: ["작품별정산_2026-04-01_2026-04-30.xlsx"],
+      }));
+    });
+
+    expect(screen.getByText("작품별정산_2026-04-01_2026-04-30.xlsx")).toBeInTheDocument();
   });
 });
