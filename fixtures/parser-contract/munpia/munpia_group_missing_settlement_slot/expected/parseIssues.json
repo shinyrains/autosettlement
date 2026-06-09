@@ -1,0 +1,11 @@
+[
+  {
+    "issueId": "fixture-munpia-002-munpia-sr-missing-settlement-slot",
+    "batchId": "fixture-munpia-002",
+    "company": "sr",
+    "platform": "munpia",
+    "severity": "error",
+    "issueType": "missing_file",
+    "message": "Required settlement slot is missing for this Munpia group."
+  }
+]

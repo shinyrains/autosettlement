@@ -1,0 +1,18 @@
+{
+  "fixtureId": "munpia_group_missing_settlement_slot",
+  "description": "group manifest with no explicit settlement slot so the whole Munpia group must block with missing_file",
+  "batchId": "fixture-munpia-002",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "The settlement slot is intentionally absent.",
+    "This fixture validates the required-slot blocking boundary only.",
+    "No input artifact exists because slot meaning must be explicit and no settlement file is provided."
+  ]
+}

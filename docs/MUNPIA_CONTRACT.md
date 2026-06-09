@@ -54,7 +54,8 @@ empty trailing columns: Q:W
 
 Parser requirements:
 
-- Use the first worksheet for the MVP.
+- If exactly one worksheet is present, use that worksheet for the MVP.
+- If multiple worksheets are detected, follow the blocking and future `sheetName` policy in `docs/MUNPIA_GROUP_PARSER_CONTRACT.md`.
 - Use row 1 as the header row.
 - Exclude row 2 where `번호 = Total`.
 - Ignore empty trailing columns.

@@ -1,0 +1,12 @@
+[
+  {
+    "issueId": "fixture-munpia-003-munpia-sr-multisheet-without-sheet-name",
+    "batchId": "fixture-munpia-003",
+    "company": "sr",
+    "platform": "munpia",
+    "severity": "error",
+    "issueType": "parse_error",
+    "message": "Settlement workbook has multiple worksheets but no explicit sheetName was provided.",
+    "sourceFileName": "munpia_settlement_multisheet_sample.xlsx"
+  }
+]

@@ -150,7 +150,7 @@ Field intent:
 - `fileKind = "xlsx"`: reserved for tiny synthetic workbook fixtures only
 - `path`: relative path to the input artifact under `input/`
 - `worksheetCount`: required when the fixture is validating single-sheet vs multi-sheet behavior
-- `rowCount`: optional review aid for deterministic fixture auditing
+- `rowCount`: optional review aid for deterministic fixture auditing; count input artifact rows only, and state clearly whether excluded `Total` rows are still physically present in the input artifact
 - `headerRowIndex = 1`: documents the audited Munpia header contract
 - `dataStartRowIndex = 2`: documents first physical data row after header
 - `excludesTotalRow = true`: fixture expectation never includes `번호 = Total`
@@ -405,6 +405,7 @@ munpia_group_missing_required_column_blocks
 
 Expected `SettlementRow[]` in normal Munpia fixtures must follow:
 
+- `rowId` = deterministic normalized row identifier required by `SettlementRow`
 - `company` = manifest company
 - `platform` = `munpia`
 - `saleMonth` = manifest saleMonth
@@ -415,7 +416,7 @@ Expected `SettlementRow[]` in normal Munpia fixtures must follow:
 - `settlementAmount` = Munpia formula authority result
 - `sourceFileName` = representative settlement source file
 - `sourceRowIndex` = representative settlement source row
-- `issues` = linked issue ids when row-level issue linking is needed
+- `issues` = linked issue ids when row-level issue linking is needed; happy-path rows use `[]`
 
 ## 8. Expected ParseIssue Rules
 

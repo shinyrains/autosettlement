@@ -1,0 +1,32 @@
+{
+  "fixtureId": "munpia_group_valid_single_sheet",
+  "description": "single-sheet settlement file with one Total row excluded and one source data row that produces web/app outputs",
+  "batchId": "fixture-munpia-001",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 1,
+      "rowCount": 2,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Sanitized parser-ready rows for the Munpia settlement workbook. Includes one Total row and one normal data row."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This is a parser-ready rows fixture, not a raw XLSX workbook fixture.",
+    "Slot meaning is explicit and must not be inferred from the file name.",
+    "The Total row is intentionally present in input rows and intentionally absent from expected SettlementRow output."
+  ]
+}

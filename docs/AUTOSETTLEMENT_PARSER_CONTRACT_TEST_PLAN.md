@@ -41,7 +41,7 @@
 - `batchId`: 정산 작업 식별자
 - `company`: `raon` 또는 `sr`
 - `platform`: `series`, `ridibooks`, `munpia`, `misterblue` 등
-- `settlementMonth`: `SettlementRow.saleMonth`에 반영될 판매월
+- `saleMonth`: `SettlementRow.saleMonth`에 반영될 판매월
 - `files`: 플랫폼별 입력 파일 묶음
 - `slot`: 파일 내부 컬럼으로 구분할 수 없는 입력을 구분하기 위한 업로드 슬롯 또는 파일 그룹
 
@@ -101,7 +101,7 @@ type SettlementRow = {
 
 검증 원칙:
 
-- 모든 row는 입력 fixture group의 `company`, `platform`, `settlementMonth`를 정확히 반영한다.
+- 모든 row는 입력 fixture group의 `company`, `platform`, `saleMonth`를 정확히 반영한다.
 - 플랫폼별 원본 컬럼명은 출력 계약에 남기지 않는다.
 - `workTitle`은 원 작품명 또는 검수 기준 제목으로 유지한다.
 - `mailerContentTitle`은 메일러 출력용 컨텐츠명으로, 일반/app/이벤트 구분을 반영한다.
@@ -336,16 +336,21 @@ AutoSettlement의 책임:
 
 우선 고정할 fixture group:
 
-- 웹 매출 파일 또는 웹 매출 슬롯
-- app 매출 파일 또는 app 매출 슬롯
-- 웹/app 구분은 파일 내부 컬럼, 파일 그룹, 업로드 슬롯 중 실제 샘플에서 확인된 기준으로 확정한다.
+- required `settlement` slot exactly once
+- optional `authorCorrection` slot zero or one
+- 웹/app 구분은 별도 입력 파일 분리가 아니라 단일 settlement row 계산 결과로 확정한다.
 
-문피아 계산식은 거의 확정되었지만, 최종 입력 계약은 아직 미확정이다. 따라서 테스트 계획은 웹/app 분리 결과와 계약 경계를 먼저 고정한다.
+실제 샘플 `tmp/platform-samples/munpia/아레떼북스.xlsx` 확인 기준:
 
-현재 미확정 입력 계약:
+- worksheet는 1개다.
+- row 1 header에는 `총매출`, `IOS매출`, `Google매출`, `정산`이 존재한다.
+- row 2는 `번호 = Total` 요약 행이다.
+- row 3부터 source data row가 시작된다.
 
-- Munpia production parser를 single-file로 고정할지, optional correction input을 포함한 group parser로 볼지
-- future multi-sheet workbook에서 explicit `sheetName` 입력을 어디서 받을지
+현재 authority 기준으로 고정된 입력 계약:
+
+- Munpia production parser shape는 optional correction input을 포함한 group parser boundary로 본다.
+- future multi-sheet workbook의 explicit `sheetName`은 reserved contract이며 MVP 활성 입력은 아니다.
 
 현재 안전한 방향:
 
@@ -562,7 +567,7 @@ type ParserFixtureManifest = {
   batchId: string;
   company: Company;
   platform: Platform;
-  settlementMonth: string;
+  saleMonth: string;
   files: Array<{
     fileName: string;
     slot?: string;

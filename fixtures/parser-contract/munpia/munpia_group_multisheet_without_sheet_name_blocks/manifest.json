@@ -1,0 +1,32 @@
+{
+  "fixtureId": "munpia_group_multisheet_without_sheet_name_blocks",
+  "description": "settlement slot is present but advertises multiple worksheets without an explicit sheetName so the group must block",
+  "batchId": "fixture-munpia-003",
+  "company": "sr",
+  "platform": "munpia",
+  "saleMonth": "2026-05",
+  "files": [
+    {
+      "fileId": "settlement-main",
+      "fileName": "munpia_settlement_multisheet_sample.xlsx",
+      "fileKind": "json_rows",
+      "slot": "settlement",
+      "path": "input/settlement.rows.json",
+      "worksheetCount": 2,
+      "rowCount": 1,
+      "headerRowIndex": 1,
+      "dataStartRowIndex": 2,
+      "excludesTotalRow": true,
+      "description": "Sanitized parser-ready rows exist, but this fixture should block before row parsing because worksheetCount is greater than one and manifest sheetName is absent."
+    }
+  ],
+  "expected": {
+    "settlementRows": "expected/settlementRows.json",
+    "parseIssues": "expected/parseIssues.json"
+  },
+  "notes": [
+    "This fixture intentionally omits manifest.sheetName.",
+    "The rows artifact is only a minimal placeholder because the blocking boundary is worksheetCount > 1.",
+    "Conservative issue type selection: parse_error for unsupported multi-sheet settlement input without explicit sheetName."
+  ]
+}
