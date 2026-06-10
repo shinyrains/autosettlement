@@ -68,6 +68,15 @@ function readAladinSampleCsv(): Uint8Array {
   );
 }
 
+function readGuruCompanySampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/guru_company/정산_공급사_202604.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -107,12 +116,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, and aladin cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, and guru_company cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(6);
+    expect(enabledUploads).toHaveLength(7);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -143,6 +152,11 @@ describe("uploadMutation", () => {
         company: "sr",
         platform: "aladin",
         uploadId: "upload-sr-aladin",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "guru_company",
+        uploadId: "upload-raon-guru-company",
       }),
     ]));
   });
@@ -443,6 +457,51 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "aladin")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed guru_company rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-guru-company");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "정산_공급사_202604.csv",
+        arrayBuffer: async () => {
+          const bytes = readGuruCompanySampleCsv().slice();
+          return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        },
+      }],
+      { now: () => "2026-06-10T01:00:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-guru-company");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 25,
+      issueCount: 0,
+      sourceFileNames: ["정산_공급사_202604.csv"],
+      lastUploadedAt: "2026-06-10T01:00:00+09:00",
+    }));
+
+    const guruRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "guru_company");
+    expect(guruRows).toHaveLength(25);
+    expect(guruRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "절세무혼",
+        mailerContentTitle: "절세무혼",
+        author: "뤄청동",
+        grossSales: 557863.9,
+        settlementAmount: 390472,
+        sourceFileName: "정산_공급사_202604.csv",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "guru_company")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 

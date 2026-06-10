@@ -81,8 +81,8 @@ export const simpleExtractMappings: Record<SimpleExtractPlatform, SimpleExtractM
     columns: {
       workTitle: "작품명",
       author: "작가",
-      grossSales: "정산대상금액",
-      settlementAmount: "콘텐츠정산금액",
+      grossSales: "정산 대상금액",
+      settlementAmount: "콘텐츠 정산금액",
     },
   },
 };

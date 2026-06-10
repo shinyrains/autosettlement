@@ -112,6 +112,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["csv"],
     uiLabel: "알라딘 단일 CSV 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-raon-guru-company",
+    company: "raon",
+    platform: "guru_company",
+    acceptedKinds: ["csv"],
+    uiLabel: "구루컴퍼니 단일 CSV 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [

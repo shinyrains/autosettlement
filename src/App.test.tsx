@@ -72,6 +72,15 @@ function readAladinSampleCsv(): Uint8Array {
   );
 }
 
+function readGuruCompanySampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/guru_company/정산_공급사_202604.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): File {
   const html = `<table><tr><td>${name}</td></tr></table>`;
   const bytes = new TextEncoder().encode(html).buffer;
@@ -382,6 +391,39 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("sales_19835_202605.csv")).toBeInTheDocument();
+  });
+
+  it("parses a real guru_company csv through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-raon-guru-company") as HTMLInputElement;
+    const bytes = readGuruCompanySampleCsv().slice();
+    const fileBytes = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const file = new File(
+      [fileBytes],
+      "정산_공급사_202604.csv",
+      { type: "text/csv" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-guru-company");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 25,
+        sourceFileNames: ["정산_공급사_202604.csv"],
+      }));
+    });
+
+    expect(screen.getByText("정산_공급사_202604.csv")).toBeInTheDocument();
   });
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {

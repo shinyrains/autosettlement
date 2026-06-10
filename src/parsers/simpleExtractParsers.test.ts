@@ -137,8 +137,8 @@ const cases: ParserCase[] = [
     validRow: {
       작품명: "검은 별의 서점",
       작가: "서도윤",
-      정산대상금액: "18,420",
-      콘텐츠정산금액: "7,368",
+      "정산 대상금액": "18,420",
+      "콘텐츠 정산금액": "7,368",
     },
     expected: {
       workTitle: "검은 별의 서점",
@@ -146,9 +146,9 @@ const cases: ParserCase[] = [
       grossSales: 18420,
       settlementAmount: 7368,
     },
-    missingColumn: "콘텐츠정산금액",
+    missingColumn: "콘텐츠 정산금액",
     blankColumn: "작품명",
-    invalidMoneyColumn: "정산대상금액",
+    invalidMoneyColumn: "정산 대상금액",
   },
 ];
 
