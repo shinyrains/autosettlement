@@ -85,6 +85,20 @@ function createEmptySeriesDraft() {
   return state;
 }
 
+function createExportBlockedDraft() {
+  const state = createSeedAppState();
+  state.rows = state.rows.map((row, index) => (
+    index === 0
+      ? {
+          ...row,
+          mailerContentTitle: "",
+        }
+      : row
+  ));
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
 describe("AutoSettlement UI shell", () => {
   it("renders the batch-centered MVP workflow with series, munpia slots, and export status", () => {
     render(<App />);
@@ -119,6 +133,16 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "초기 상태로 리셋" }));
 
     expect(screen.getByRole("heading", { name: "검은 별의 서점(app)" })).toBeInTheDocument();
+  });
+
+  it("shows blocked export state when persisted rows fail pre-export validation", () => {
+    saveAppDraftState(createExportBlockedDraft(), window.localStorage);
+
+    render(<App />);
+
+    expect(screen.getByText(/export blocked/i)).toBeInTheDocument();
+    expect(screen.getByText("0/4 ready")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
   });
 
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {

@@ -24,7 +24,8 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
   const selectedRowIssues = selectedRow
     ? state.issues.filter((issue) => selectedRow.issues.includes(issue.issueId))
     : [];
-  const exportPackages = useMemo(() => createExportPackages(state.rows).packages, [state.rows]);
+  const exportResult = useMemo(() => createExportPackages(state.rows), [state.rows]);
+  const exportPackages = exportResult.packages;
 
   const totals = useMemo(() => {
     const uploadedFiles = state.uploads.reduce((sum, upload) => sum + upload.fileCount, 0);
@@ -73,7 +74,11 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
                 onSelectRow={setSelectedRowId}
               />
             ) : null}
-            <ExportSection exportPackages={exportPackages} readyExports={totals.readyExports} />
+            <ExportSection
+              exportPackages={exportPackages}
+              exportResult={exportResult}
+              readyExports={totals.readyExports}
+            />
           </div>
         </section>
       </div>
