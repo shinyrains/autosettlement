@@ -109,6 +109,16 @@ function readKyoboSampleWorkbook(): Uint8Array {
   );
 }
 
+function readNovelpiaSampleHtmlXls(): string {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/novelpia/일별 정산.xls",
+    ),
+    "utf8",
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -338,6 +348,46 @@ describe("file parse orchestrator", () => {
         grossSales: 900,
         settlementAmount: 450,
         sourceFileName: "정산내역조회.xlsx",
+        sourceRowIndex: 2,
+      }),
+    );
+  });
+
+  it("runs the Novelpia HTML-XLS adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "html_xls",
+      platform: "novelpia",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "novelpia",
+        saleMonth: "2026-05",
+        sourceFileName: "일별 정산.xls",
+        fileKind: "html_xls",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "novelpia",
+        saleMonth: "2026-05",
+        sourceFileName: "일별 정산.xls",
+      },
+      fileContent: readNovelpiaSampleHtmlXls(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(116);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "raon",
+        platform: "novelpia",
+        saleMonth: "2026-05",
+        workTitle: "객잔 주인이 요리를 너무 잘함",
+        mailerContentTitle: "객잔 주인이 요리를 너무 잘함",
+        author: "해씨",
+        grossSales: 3800,
+        settlementAmount: 2394,
+        sourceFileName: "일별 정산.xls",
         sourceRowIndex: 2,
       }),
     );

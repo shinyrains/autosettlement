@@ -128,6 +128,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["xlsx"],
     uiLabel: "교보문고 단일 XLSX 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-raon-novelpia",
+    company: "raon",
+    platform: "novelpia",
+    acceptedKinds: ["xls"],
+    uiLabel: "노벨피아 단일 HTML-XLS 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [

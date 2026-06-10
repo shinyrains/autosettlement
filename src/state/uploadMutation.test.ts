@@ -86,6 +86,15 @@ function readKyoboSampleWorkbook(): Uint8Array {
   );
 }
 
+function readNovelpiaSampleHtmlXls(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/novelpia/일별 정산.xls",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -125,12 +134,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, and kyobo cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, and novelpia cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(8);
+    expect(enabledUploads).toHaveLength(9);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -171,6 +180,11 @@ describe("uploadMutation", () => {
         company: "sr",
         platform: "kyobo",
         uploadId: "upload-sr-kyobo",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "novelpia",
+        uploadId: "upload-raon-novelpia",
       }),
     ]));
   });
@@ -562,6 +576,52 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "kyobo")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed novelpia rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-novelpia");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "일별 정산.xls",
+        arrayBuffer: async () => {
+          const bytes = readNovelpiaSampleHtmlXls().slice();
+          return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        },
+      }],
+      { now: () => "2026-06-10T02:00:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-novelpia");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 116,
+      issueCount: 0,
+      sourceFileNames: ["일별 정산.xls"],
+      lastUploadedAt: "2026-06-10T02:00:00+09:00",
+    }));
+
+    const novelpiaRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "novelpia");
+    expect(novelpiaRows).toHaveLength(116);
+    expect(novelpiaRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "객잔 주인이 요리를 너무 잘함",
+        mailerContentTitle: "객잔 주인이 요리를 너무 잘함",
+        author: "해씨",
+        grossSales: 3800,
+        settlementAmount: 2394,
+        sourceFileName: "일별 정산.xls",
+        sourceRowIndex: 2,
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "novelpia")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 

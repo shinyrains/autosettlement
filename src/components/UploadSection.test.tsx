@@ -23,7 +23,7 @@ describe("UploadSection", () => {
     expect(screen.getByText("required · xlsx")).toBeInTheDocument();
     expect(screen.getAllByText("required · html_xls").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText("munpia-author-correction.csv")).toBeInTheDocument();
-    expect(screen.getAllByText("실파일 업로드")).toHaveLength(14);
+    expect(screen.getAllByText("실파일 업로드")).toHaveLength(15);
     expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
     expect(screen.getAllByText("현재 live path: 시리즈 일반 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
@@ -36,5 +36,6 @@ describe("UploadSection", () => {
     expect(screen.getByText("현재 live path: 알라딘 단일 CSV 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 구루컴퍼니 단일 CSV 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 교보문고 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 노벨피아 단일 HTML-XLS 1-file")).toBeInTheDocument();
   });
 });
