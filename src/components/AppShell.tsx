@@ -25,9 +25,10 @@ import { WorkflowStrip } from "./WorkflowStrip";
 
 type AppShellProps = {
   uploadMutationDependencies?: Parameters<typeof applyLiveUploadMutation>[3];
+  onBackToBatchList?: () => void;
 };
 
-export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
+export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppShellProps = {}) {
   const {
     state,
     setSelectedRowId,
@@ -80,6 +81,7 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
             batch={state.batch}
             issueCount={state.issues.length}
             onResetState={resetState}
+            onBackToBatchList={onBackToBatchList}
             readyExports={totals.readyExports}
             requiredFiles={totals.requiredFiles}
             rowsCount={totals.rows}

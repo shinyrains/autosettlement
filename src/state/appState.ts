@@ -42,6 +42,14 @@ export function createSeedAppState(): AppDraftState {
   });
 }
 
+export function hasPersistedAppDraftState(storage: Storage | undefined = getBrowserStorage()): boolean {
+  if (!storage) {
+    return false;
+  }
+
+  return storage.getItem(APP_STATE_STORAGE_KEY) !== null;
+}
+
 export function loadAppDraftState(storage: Storage | undefined = getBrowserStorage()): AppDraftState {
   if (!storage) {
     return createSeedAppState();

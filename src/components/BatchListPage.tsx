@@ -1,0 +1,166 @@
+import type { AppDraftState } from "../state/appState";
+
+type BatchListPageProps = {
+  draftState: AppDraftState | null;
+  onOpenBatch: () => void;
+  onCreateNewBatch: () => void;
+};
+
+type BatchSummaryStatus = "uploading" | "review_needed" | "ready_for_export" | "completed";
+
+const statusLabels: Record<BatchSummaryStatus, string> = {
+  uploading: "업로드 중",
+  review_needed: "검수 필요",
+  ready_for_export: "출력 가능",
+  completed: "완료",
+};
+
+const statusClasses: Record<BatchSummaryStatus, string> = {
+  uploading: "border-sky-400/30 bg-sky-500/10 text-sky-200",
+  review_needed: "border-amber/40 bg-amber/10 text-amber",
+  ready_for_export: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+  completed: "border-violet-400/30 bg-violet-500/10 text-violet-200",
+};
+
+export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: BatchListPageProps) {
+  if (!draftState) {
+    return (
+      <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8">
+          <header className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
+              <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+                저장된 active batch draft가 아직 없습니다. 새 batch를 시작하면 업로드/검수/출력 shell로 진입합니다.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+              onClick={onCreateNewBatch}
+            >
+              새 배치 시작
+            </button>
+          </header>
+
+          <section className="rounded-2xl border border-dashed border-line bg-ink-900/80 px-6 py-10 text-center">
+            <p className="text-lg font-semibold text-white">저장된 batch 없음</p>
+            <p className="mt-3 text-sm text-slate-400">브라우저 localStorage에 복원 가능한 active draft가 없으므로 재진입 버튼은 노출되지 않습니다.</p>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  const uploadedFiles = draftState.uploads.reduce((sum, upload) => sum + upload.fileCount, 0);
+  const requiredFiles = draftState.uploads.reduce((sum, upload) => sum + upload.requiredFileCount, 0);
+  const readyExports = draftState.rows.length > 0 && draftState.issues.length === 0 ? 4 : 0;
+  const summaryStatus = getBatchSummaryStatus({
+    uploadedFiles,
+    requiredFiles,
+    issueCount: draftState.issues.length,
+    readyExports,
+  });
+
+  return (
+    <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
+            <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+              브라우저에 저장된 활성 batch draft를 다시 열거나, 초기 상태에서 새 batch 작업을 시작합니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+            onClick={onCreateNewBatch}
+          >
+            새 배치 시작
+          </button>
+        </header>
+
+        <section className="rounded-2xl border border-line bg-ink-900/80 shadow-card">
+          <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-5">
+            <div>
+              <p className="text-sm font-semibold text-slate-200">현재 브라우저 저장 batch</p>
+              <p className="mt-1 text-sm text-slate-500">업로드 / 검수 / 출력 상태를 요약한 단일 진입 카드</p>
+            </div>
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[summaryStatus]}`}>
+              {statusLabels[summaryStatus]}
+            </span>
+          </div>
+
+          <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div>
+              <div className="flex items-center gap-3 text-sm text-slate-400">
+                <span>{draftState.batch.settlementMonth}</span>
+                <span className="h-1 w-1 rounded-full bg-slate-600" />
+                <span>{draftState.batch.batchId}</span>
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold text-white">{draftState.batch.batchName}</h2>
+              <dl className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <SummaryCard label="업로드" value={`${uploadedFiles}/${requiredFiles}`} helper="필수 파일 기준" />
+                <SummaryCard label="정산 행" value={`${draftState.rows.length}`} helper="정규화 완료 행" />
+                <SummaryCard label="이슈" value={`${draftState.issues.length}`} helper="오류/누락/매칭 실패" />
+                <SummaryCard label="출력" value={`${readyExports}/4`} helper="회사별 2종" />
+              </dl>
+            </div>
+
+            <aside className="rounded-xl border border-line bg-ink-850 p-5">
+              <p className="text-sm font-semibold text-slate-200">현재 진입 액션</p>
+              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+                <li>• 저장된 active batch draft 다시 열기</li>
+                <li>• 초기 상태 seed로 새 batch 재시작</li>
+                <li>• 브라우저 재진입 시 draft 복원 상태 확인</li>
+              </ul>
+              <button
+                type="button"
+                className="mt-5 w-full rounded-md border border-line bg-ink-800 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
+                onClick={onOpenBatch}
+              >
+                이 batch 열기
+              </button>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function SummaryCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div className="rounded-xl border border-line bg-ink-850 p-4">
+      <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</dt>
+      <dd className="mt-3 text-2xl font-semibold text-white">{value}</dd>
+      <p className="mt-2 text-xs text-slate-500">{helper}</p>
+    </div>
+  );
+}
+
+function getBatchSummaryStatus({
+  uploadedFiles,
+  requiredFiles,
+  issueCount,
+  readyExports,
+}: {
+  uploadedFiles: number;
+  requiredFiles: number;
+  issueCount: number;
+  readyExports: number;
+}): BatchSummaryStatus {
+  if (readyExports === 4) {
+    return "ready_for_export";
+  }
+  if (issueCount > 0) {
+    return "review_needed";
+  }
+  if (uploadedFiles < requiredFiles) {
+    return "uploading";
+  }
+  return "completed";
+}
