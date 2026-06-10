@@ -138,7 +138,7 @@ MVP 필요성:
 - raw uploaded file binary는 현재 MVP shell persistence 범위에 포함되지 않는다.
 - 현재 single-file live upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - grouped/slot-based future mutation authority는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
-- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`, `raon / panmurim / upload-raon-panmurim`, `raon / bookcube / upload-raon-bookcube`, `raon / epyrus / upload-raon-epyrus`, `sr / yes24 / upload-sr-yes24`, `sr / aladin / upload-sr-aladin`, `raon / guru_company / upload-raon-guru-company`, `sr / kyobo / upload-sr-kyobo`, `raon / novelpia / upload-raon-novelpia` 단일 1-file 경로다.
+- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`, `raon / panmurim / upload-raon-panmurim`, `raon / bookcube / upload-raon-bookcube`, `raon / epyrus / upload-raon-epyrus`, `sr / yes24 / upload-sr-yes24`, `sr / aladin / upload-sr-aladin`, `raon / guru_company / upload-raon-guru-company`, `sr / kyobo / upload-sr-kyobo`, `raon / mootoon / upload-raon-mootoon`, `raon / novelpia / upload-raon-novelpia` 단일 1-file 경로다.
 
 MVP 필요성:
 핵심

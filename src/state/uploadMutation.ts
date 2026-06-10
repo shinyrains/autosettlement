@@ -130,6 +130,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-raon-mootoon",
+    company: "raon",
+    platform: "mootoon",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "무툰 단일 XLSX 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-raon-novelpia",
     company: "raon",
     platform: "novelpia",

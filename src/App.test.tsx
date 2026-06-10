@@ -90,6 +90,15 @@ function readKyoboSampleWorkbook(): Uint8Array {
   );
 }
 
+function readMootoonSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/mootoon/라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+    ),
+  );
+}
+
 function readNovelpiaSampleHtmlXls(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -475,6 +484,50 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("정산내역조회.xlsx")).toBeInTheDocument();
+  });
+
+  it("parses a real mootoon workbook through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-raon-mootoon") as HTMLInputElement;
+    const bytes = readMootoonSampleWorkbook().slice();
+    const fileBytes = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const file = new File(
+      [fileBytes],
+      "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes,
+    });
+
+    fireEvent.change(input, {
+      target: {
+        files: [file],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx")).toBeInTheDocument();
+    });
+
+    const persisted = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY) ?? "null");
+    const upload = persisted.uploads.find((item: { uploadId: string }) => item.uploadId === "upload-raon-mootoon");
+    expect(upload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      sourceFileNames: ["라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx"],
+      parsedRowCount: 194,
+      issueCount: 0,
+    }));
+    expect(
+      persisted.rows.some((row: { platform: string; company: string; workTitle: string; settlementAmount: number }) => (
+        row.platform === "mootoon"
+        && row.company === "raon"
+        && row.workTitle === "강호돌파(江湖突破)"
+        && row.settlementAmount === 3150
+      )),
+    ).toBe(true);
   });
 
   it("parses a real novelpia html-xls through the live upload card and persists the new draft", async () => {

@@ -109,6 +109,15 @@ function readKyoboSampleWorkbook(): Uint8Array {
   );
 }
 
+function readMootoonSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/mootoon/라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+    ),
+  );
+}
+
 function readNovelpiaSampleHtmlXls(): string {
   return readFileSync(
     path.resolve(
@@ -348,6 +357,45 @@ describe("file parse orchestrator", () => {
         grossSales: 900,
         settlementAmount: 450,
         sourceFileName: "정산내역조회.xlsx",
+        sourceRowIndex: 2,
+      }),
+    );
+  });
+
+  it("runs the Mootoon XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "mootoon",
+      adapterContext: {
+        ...adapterContext,
+        company: "raon",
+        platform: "mootoon",
+        saleMonth: "2026-05",
+        sourceFileName: "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "raon",
+        platform: "mootoon",
+        saleMonth: "2026-05",
+        sourceFileName: "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+      },
+      fileContent: readMootoonSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(194);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "raon",
+        platform: "mootoon",
+        saleMonth: "2026-05",
+        workTitle: "강호돌파(江湖突破)",
+        mailerContentTitle: "강호돌파(江湖突破)",
+        author: "손연우",
+        grossSales: 4500,
+        settlementAmount: 3150,
+        sourceFileName: "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
         sourceRowIndex: 2,
       }),
     );

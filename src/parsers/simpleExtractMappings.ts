@@ -27,8 +27,8 @@ export const simpleExtractMappings: Record<SimpleExtractPlatform, SimpleExtractM
     columns: {
       workTitle: "타이틀",
       author: "작가",
-      grossSales: "대상금액",
-      settlementAmount: "정산금액",
+      grossSales: "정산총액 / 계산금액",
+      settlementAmount: "정산총액 / 정산금액",
     },
   },
   epyrus: {

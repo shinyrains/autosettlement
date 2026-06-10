@@ -63,7 +63,13 @@ The following upload cards are live-wired in the current slice:
    - accepted extension set: `.xlsx`
    - contracted real sample path: `tmp/platform-samples/kyobo/정산내역조회.xlsx`
 
-9. `raon / novelpia / upload-raon-novelpia`
+9. `raon / mootoon / upload-raon-mootoon`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/mootoon/라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx`
+
+10. `raon / novelpia / upload-raon-novelpia`
    - shape: single file
    - required count: `1`
    - accepted extension set: `.xls` (HTML-XLS)
@@ -102,6 +108,7 @@ Current contracted platform lanes under this live path:
 - Aladin CSV adapter + parser
 - Guru Company CSV adapter + parser
 - Kyobo XLSX adapter + parser
+- Mootoon XLSX adapter + parser
 - Novelpia HTML-XLS adapter + parser
 
 ## 5. Draft mutation boundary
@@ -178,12 +185,12 @@ Not included in the current live-upload closure:
 - server persistence
 - upload progress transport semantics
 - cross-session recovery of raw file bytes
-- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company + Kyobo + Novelpia single-file cards
+- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company + Kyobo + Mootoon + Novelpia single-file cards
 
 ## 11. Verification target
 
 This slice is only considered closed when all of the following succeed:
 - unit tests for upload mutation helper coverage
 - component/UI test for current live upload card rendering
-- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, Guru Company, Kyobo, and Novelpia samples and verify persisted draft mutation
+- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, Guru Company, Kyobo, Mootoon, and Novelpia samples and verify persisted draft mutation
 - full `npm run check`

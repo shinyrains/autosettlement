@@ -86,6 +86,15 @@ function readKyoboSampleWorkbook(): Uint8Array {
   );
 }
 
+function readMootoonSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/mootoon/라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+    ),
+  );
+}
+
 function readNovelpiaSampleHtmlXls(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -134,12 +143,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, and novelpia cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, mootoon, and novelpia cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(9);
+    expect(enabledUploads).toHaveLength(10);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -180,6 +189,11 @@ describe("uploadMutation", () => {
         company: "sr",
         platform: "kyobo",
         uploadId: "upload-sr-kyobo",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "mootoon",
+        uploadId: "upload-raon-mootoon",
       }),
       expect.objectContaining({
         company: "raon",
@@ -577,6 +591,48 @@ describe("uploadMutation", () => {
 
     expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "kyobo")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed mootoon rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-mootoon");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+        arrayBuffer: async () => {
+          const bytes = readMootoonSampleWorkbook().slice();
+          return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        },
+      }],
+      { now: () => "2026-06-10T01:30:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-mootoon");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      sourceFileNames: ["라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx"],
+      parsedRowCount: 194,
+      issueCount: 0,
+      lastUploadedAt: "2026-06-10T01:30:00+09:00",
+    }));
+
+    const mootoonRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "mootoon");
+    expect(mootoonRows).toHaveLength(194);
+    expect(mootoonRows[0]).toEqual(expect.objectContaining({
+      workTitle: "강호돌파(江湖突破)",
+      mailerContentTitle: "강호돌파(江湖突破)",
+      author: "손연우",
+      grossSales: 4500,
+      settlementAmount: 3150,
+      sourceFileName: "라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx",
+      sourceRowIndex: 2,
+    }));
+    expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "mootoon")).toEqual([]);
   });
 
   it("replaces the target upload slice with parsed novelpia rows and persisted metadata", async () => {

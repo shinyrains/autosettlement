@@ -3,6 +3,7 @@ export * from "./csvAdapter";
 export * from "./xlsxAdapter";
 export * from "./bookcubeXlsxAdapter";
 export * from "./kyoboXlsxAdapter";
+export * from "./mootoonXlsxAdapter";
 export * from "./novelpiaHtmlXlsAdapter";
 export * from "./onestoreXlsxAdapter";
 export * from "./misterblueXlsxAdapter";

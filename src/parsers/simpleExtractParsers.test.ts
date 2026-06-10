@@ -34,8 +34,8 @@ const cases: ParserCase[] = [
     validRow: {
       작가: "서도윤",
       타이틀: "검은 별의 서점",
-      대상금액: "18,420",
-      정산금액: "7,368",
+      "정산총액 / 계산금액": "18,420",
+      "정산총액 / 정산금액": "7,368",
     },
     expected: {
       workTitle: "검은 별의 서점",
@@ -43,9 +43,9 @@ const cases: ParserCase[] = [
       grossSales: 18420,
       settlementAmount: 7368,
     },
-    missingColumn: "정산금액",
+    missingColumn: "정산총액 / 정산금액",
     blankColumn: "타이틀",
-    invalidMoneyColumn: "대상금액",
+    invalidMoneyColumn: "정산총액 / 계산금액",
   },
   {
     platform: "epyrus",
