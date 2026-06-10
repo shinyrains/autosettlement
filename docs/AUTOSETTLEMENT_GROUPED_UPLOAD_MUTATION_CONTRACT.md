@@ -1,19 +1,19 @@
 # AutoSettlement Grouped Upload Mutation Contract
 
-Status: authority-frozen for grouped upload cards before real browser wiring.
+Status: authority-frozen for the current implemented grouped browser upload cards.
 
 ## 1. Purpose
 
-This document freezes the future browser-draft mutation boundary for grouped or slot-based upload cards.
+This document freezes the browser-draft mutation boundary for grouped or slot-based upload cards.
 
 Current goal is intentionally narrow:
-- close the mutation semantics before UI wiring
+- keep grouped live-upload behavior aligned with already-implemented parser/orchestrator truth
 - prevent single-file live-upload rules from being copied onto grouped cards
 - define what may update slot metadata vs what may replace platform rows/issues
 - keep raw uploaded file bytes out of persistence
 
-This document does **not** authorize immediate implementation.
-It freezes the authority boundary first.
+This document authorizes the current grouped browser upload implementation boundary.
+It should stay aligned to the existing live slot wiring and parser/orchestrator contracts.
 
 ## 2. Current grouped-card scope
 
@@ -25,6 +25,7 @@ This authority applies to the following grouped upload cards:
    - optional slot: `authorCorrection`
    - parse authority: `docs/MUNPIA_GROUP_PARSER_CONTRACT.md`
    - formula/row authority: `docs/MUNPIA_CONTRACT.md`
+   - current browser live path: `settlement` and `authorCorrection` slots are wired in the current repo slice
 
 2. `raon / series / upload-raon-series`
 3. `sr / series / upload-sr-series`
@@ -35,6 +36,7 @@ This authority applies to the following grouped upload cards:
    - required slot: `seriesApp`
    - parse authority: `docs/SERIES_OPERATING_SPEC.md`
    - fixture/expected-result authority: `docs/SERIES_PARSER_FIXTURE_PLAN.md`
+   - current browser live path: both slots are wired with staged-slot persistence and 3+3 parse gating in the current repo slice
 
 4. `raon / ridibooks / upload-raon-ridibooks`
    - shape: 4-slot grouped card
@@ -43,6 +45,7 @@ This authority applies to the following grouped upload cards:
    - optional slots: `event`, `mgCorrection`
    - parse authority: `docs/RIDIBOOKS_GROUP_PARSER_CONTRACT.md`
    - formula/row authority: `docs/RIDIBOOKS_CONTRACT.md`
+   - current browser live path: all four slots are wired with staged-slot persistence and contracted replacement semantics in the current repo slice
 
 5. `raon / joara / upload-raon-joara`
    - shape: 2-slot grouped card
@@ -310,9 +313,9 @@ Still not authorized here:
 - destructive clear/reset semantics for committed grouped slices beyond ordinary slot replacement/removal
 - future explicit `sheetName` input UX for Munpia multi-sheet support
 
-## 8. Verification target for future implementation
+## 8. Verification target for the current implementation boundary
 
-A future grouped-card implementation is only considered closed when all of the following succeed:
+The current grouped-card implementation boundary is only considered closed when all of the following succeed:
 - grouped slot UI tests for Munpia, Series, Ridibooks, and Joara rendering
 - mutation helper tests for staged-slot vs committed-slice behavior
 - tests that prove partial slot uploads do not destructively replace committed rows/issues

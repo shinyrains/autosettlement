@@ -1,4 +1,4 @@
-import { parseBookcubeXlsxAdapter, parseCsvAdapter, parseHtmlXlsAdapter, parseKyoboXlsxAdapter, parseMisterblueXlsxAdapter, parseMootoonXlsxAdapter, parseNovelpiaHtmlXlsAdapter, parseOnestoreXlsxAdapter, parsePanmurimXlsxAdapter, parseXlsxAdapter } from "../fileAdapters";
+import { parseBookcubeXlsxAdapter, parseCsvAdapter, parseHtmlXlsAdapter, parseKakaoPageXlsxAdapter, parseKyoboXlsxAdapter, parseMisterblueXlsxAdapter, parseMootoonXlsxAdapter, parseNovelpiaHtmlXlsAdapter, parseOnestoreXlsxAdapter, parsePanmurimXlsxAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapter, FileAdapterContext, FileKind } from "../fileAdapters/types";
 import type { ParserContext, ParserResult, TabularRow } from "../parsers/parserContract";
 import { parsePlatformRows } from "../parsers/registry";
@@ -106,6 +106,10 @@ function resolveAdapter(
 
   if (platform === "bookcube" && fileKind === "xlsx") {
     return parseBookcubeXlsxAdapter;
+  }
+
+  if (platform === "kakao_page" && fileKind === "xlsx") {
+    return parseKakaoPageXlsxAdapter;
   }
 
   if (platform === "kyobo" && fileKind === "xlsx") {

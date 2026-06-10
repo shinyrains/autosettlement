@@ -1,19 +1,20 @@
 # AutoSettlement Mixed-Company Upload Mutation Contract
 
-Status: implemented authority for current mixed-company browser upload cards in this repo slice.
+Status: implemented authority for the current mixed-company browser upload card in this repo slice.
 
 ## 1. Purpose
 
-This document freezes the future browser-draft mutation boundary for upload cards where one selected source file may produce committed parsed slices for more than one company.
+This document freezes the browser-draft mutation boundary for upload cards where one selected source file may produce committed parsed slices for more than one company.
 
 Current goal is intentionally narrow:
+- keep the implemented shared Onestore browser upload aligned with parser/orchestrator truth
 - prevent the current single-file live-upload rule from being misapplied to mixed-company cards
 - preserve parser/orchestrator truth where `SettlementRow.company` is decided row-by-row inside the parser lane
 - define what one browser selection event may replace in persisted draft state
 - keep raw uploaded file bytes out of persistence
 
-This document does **not** authorize immediate implementation.
-It closes the authority boundary first.
+This document authorizes the current mixed-company browser upload implementation boundary.
+It keeps the shared Onestore live card aligned to parser/orchestrator-owned company truth.
 
 ## 2. Current mixed-company scope
 
@@ -96,7 +97,7 @@ If browser file reading fails, adapter parsing throws, or orchestrator parsing t
 
 ### 4.1 Card contract
 
-Future Onestore live upload is frozen as:
+Onestore live upload is frozen as:
 - one shared upload card
 - one selected file event
 - exact file count: `1`
@@ -134,7 +135,7 @@ Current rule:
 
 ### 4.4 Aggregate upload metadata semantics
 
-The future Onestore shared upload card owns one aggregate metadata surface.
+The current Onestore shared upload card owns one aggregate metadata surface.
 
 Aggregate metadata contract:
 - `fileCount = 1`
@@ -152,7 +153,7 @@ Status boundary:
 
 ### 4.5 Company-level visibility without company-level upload cards
 
-The future UI may still display company-level status views for Onestore, but those views must be derived from the shared committed result rather than separate file-selection cards.
+The current UI may still display company-level status views for Onestore, but those views must be derived from the shared committed result rather than separate file-selection cards.
 
 Allowed future display pattern:
 - one shared Onestore upload card
@@ -211,7 +212,6 @@ It freezes the mutation semantics first.
 ## 6. Out of scope
 
 Still not authorized here:
-- real browser implementation
 - drag-and-drop UX
 - background parsing jobs
 - server persistence
@@ -220,9 +220,9 @@ Still not authorized here:
 - publisher alias expansion beyond the current Onestore authority
 - destructive clear/reset semantics beyond ordinary failed attempts or staged runtime discard
 
-## 7. Verification target for future implementation
+## 7. Verification target for the current implementation boundary
 
-A future mixed-company-card implementation is only considered closed when all of the following succeed:
+The current mixed-company-card implementation boundary is only considered closed when all of the following succeed:
 - upload mutation helper tests for shared-card -> two-company committed replacement
 - tests that prove unrelated platform slices survive Onestore replacement
 - tests that prove failed attempts preserve previously committed Onestore slices

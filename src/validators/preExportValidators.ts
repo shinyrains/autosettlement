@@ -15,6 +15,7 @@ const validPlatforms = new Set<Platform>([
   "joara",
   "bookcube",
   "onestore",
+  "kakao_page",
   "munpia",
   "misterblue",
   "ridibooks",

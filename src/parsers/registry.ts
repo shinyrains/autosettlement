@@ -3,6 +3,7 @@ import { parseAladin } from "./aladin";
 import { parseBookcube } from "./bookcube";
 import { parseEpyrus } from "./epyrus";
 import { parseGuruCompany } from "./guruCompany";
+import { parseKakaoPage } from "./kakaoPage";
 import { parseKyobo } from "./kyobo";
 import { parseMootoon } from "./mootoon";
 import { parseMisterblueSingleFileRows } from "./misterblueSingleFileParser";
@@ -24,6 +25,7 @@ export const parserRegistry = {
   panmurim: parsePanmurim,
   bookcube: parseBookcube,
   onestore: parseOnestore,
+  kakao_page: parseKakaoPage,
 } satisfies Partial<Record<Platform, PlatformParser>>;
 
 export type SupportedParserPlatform = keyof typeof parserRegistry;

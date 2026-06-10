@@ -32,6 +32,7 @@ describe("parser registry", () => {
       "panmurim",
       "bookcube",
       "onestore",
+      "kakao_page",
     ]);
   });
 
@@ -41,6 +42,7 @@ describe("parser registry", () => {
     expect(getParser("panmurim")).toEqual(expect.any(Function));
     expect(getParser("bookcube")).toEqual(expect.any(Function));
     expect(getParser("onestore")).toEqual(expect.any(Function));
+    expect(getParser("kakao_page")).toEqual(expect.any(Function));
   });
 
   it("runs the selected parser with the requested platform in context", () => {

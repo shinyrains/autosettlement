@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./csvAdapter";
 export * from "./xlsxAdapter";
 export * from "./bookcubeXlsxAdapter";
+export * from "./kakaoPageXlsxAdapter";
 export * from "./kyoboXlsxAdapter";
 export * from "./mootoonXlsxAdapter";
 export * from "./novelpiaHtmlXlsAdapter";

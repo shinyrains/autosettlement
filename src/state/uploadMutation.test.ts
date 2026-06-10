@@ -265,12 +265,12 @@ function createEmptyJoaraUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, mootoon, novelpia, and shared onestore cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, kakao_page, mootoon, novelpia, and shared onestore cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(11);
+    expect(enabledUploads).toHaveLength(12);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -311,6 +311,11 @@ describe("uploadMutation", () => {
         company: "sr",
         platform: "kyobo",
         uploadId: "upload-sr-kyobo",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "kakao_page",
+        uploadId: "upload-sr-kakao-page",
       }),
       expect.objectContaining({
         company: "raon",
@@ -1221,6 +1226,7 @@ describe("uploadMutation", () => {
     const state = createSeedAppState();
     const upload = state.uploads.find((item) => item.uploadId === "upload-shared-onestore");
     expect(upload).toBeDefined();
+    const previousKyoboRows = state.rows.filter((row) => row.company === "sr" && row.platform === "kyobo");
 
     const nextState = await applyLiveUploadMutation(
       state,
@@ -1249,6 +1255,7 @@ describe("uploadMutation", () => {
     expect(onestoreRows).toHaveLength(13209);
     expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더 4권" && row.settlementAmount === 2016)).toBe(true);
     expect(onestoreRows.some((row) => row.company === "raon")).toBe(true);
+    expect(nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo")).toEqual(previousKyoboRows);
     expect(nextState.issues.filter((issue) => issue.platform === "onestore")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });

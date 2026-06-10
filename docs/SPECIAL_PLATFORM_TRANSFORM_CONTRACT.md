@@ -197,7 +197,14 @@ Deferred beyond the current slice:
 
 - whether MG rows replace normal rows or are added as separate rows
 - exact MG source fields and matching key
-- `Platform` type expansion + implementation wiring for `kakao_page`
+- any MG-specific platform expansion beyond the current normal-workbook Kakao Page wiring
+
+Already implemented in the current slice:
+
+- `Platform` type expansion for `kakao_page`
+- dedicated Kakao Page adapter/parser wiring
+- single-file orchestrator wiring for the audited normal workbook path
+- single-file browser live upload wiring for `upload-sr-kakao-page`
 
 ## 6. Munpia
 
@@ -267,7 +274,7 @@ Current implementation summary:
 - Sanitized Munpia fixture coverage exists for happy path, correction priority/fallback, partial-row skip, adapter-issue passthrough, multi-sheet block, duplicate/missing slot block, required-column block, and settlement-adapter block.
 - Batch orchestrator wiring is allowed once authority sync is complete.
 
-Munpia may proceed to contract-safe batch/orchestrator wiring, but real grouped browser upload wiring remains blocked until the grouped mutation authority in `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md` is implemented and the remaining authority gaps are closed.
+Munpia may proceed under the current grouped mutation authority: contract-safe batch/orchestrator wiring is implemented, and grouped browser upload wiring is authorized through `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`. Remaining future work should be framed only as explicit authority gaps beyond the current wired slots.
 
 ## 7. Misterblue
 
@@ -470,10 +477,15 @@ Additional special transform candidates:
 
 ```text
 joara
-kakao_page
 onestore
 panmurim
 ```
+
+Kakao Page current status in this repo slice:
+
+- authority-documented and parser/orchestrator-backed for the audited normal workbook
+- see `docs/KAKAO_PAGE_CONTRACT.md`
+- current allowed boundary: normal workbook only, no MG workbook support yet
 
 Current special-header single-file candidate already authority-closed in this repo slice:
 

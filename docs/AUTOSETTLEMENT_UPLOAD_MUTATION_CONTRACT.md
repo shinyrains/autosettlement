@@ -75,8 +75,14 @@ The following upload cards are live-wired in the current slice:
    - accepted extension set: `.xls` (HTML-XLS)
    - contracted real sample path: `tmp/platform-samples/novelpia/일별 정산.xls`
 
-All other upload cards remain non-live in this slice.
-They may render current status, but they do not mutate persisted draft state through a browser file selection yet.
+11. `sr / kakao_page / upload-sr-kakao-page`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/kakao_page/카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx`
+
+All other single-file upload cards remain non-live in this slice.
+They may render current status, but they do not mutate persisted draft state through a browser file selection under this single-file contract yet.
 
 Explicit current exclusion from this single-file contract:
 - Onestore is excluded from this document even though its live browser wiring is now implemented.
@@ -115,6 +121,7 @@ Current contracted platform lanes under this live path:
 - Kyobo XLSX adapter + parser
 - Mootoon XLSX adapter + parser
 - Novelpia HTML-XLS adapter + parser
+- Kakao Page XLSX adapter + parser
 
 ## 5. Draft mutation boundary
 
@@ -183,19 +190,19 @@ Raw `File`, `Blob`, `ArrayBuffer`, and `Uint8Array` values are runtime-only.
 ## 10. Out of scope
 
 Not included in the current live-upload closure:
-- real browser implementation of grouped-card mutation (see `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`)
+- grouped/multi-slot live upload semantics beyond the separate grouped authority (see `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`)
 - multi-file upload cards beyond the grouped authority frozen there
 - drag-and-drop UX
 - background parsing jobs
 - server persistence
 - upload progress transport semantics
 - cross-session recovery of raw file bytes
-- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company + Kyobo + Mootoon + Novelpia single-file cards
+- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company + Kyobo + Mootoon + Novelpia + Kakao Page single-file cards
 
 ## 11. Verification target
 
 This slice is only considered closed when all of the following succeed:
 - unit tests for upload mutation helper coverage
 - component/UI test for current live upload card rendering
-- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, Guru Company, Kyobo, Mootoon, and Novelpia samples and verify persisted draft mutation
+- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, Guru Company, Kyobo, Mootoon, Novelpia, and Kakao Page samples and verify persisted draft mutation
 - full `npm run check`

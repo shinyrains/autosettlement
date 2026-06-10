@@ -18,6 +18,7 @@ This plan covers only the current repo-slice contract:
 - row 3+ data rows
 - one output row per valid source row
 - no MG workbook support yet
+- one browser single-file XLSX upload path using the same audited workbook boundary
 
 ## 2. Fixture families
 
@@ -26,10 +27,12 @@ This plan covers only the current repo-slice contract:
 Purpose:
 
 - prove the audited workbook is read as a single-sheet normal-file input
-- prove row 1 + row 2 header flattening is stable
+- prove row 2 leaf headers remain the adapter's canonical required-column keys
+- prove row 1 is used only as supporting group-header context, not as a blanket prefix for every output header
 - prove row 3+ becomes source data
 - prove the first audited row normalizes to the contract values
 - prove settlement authority comes from `공급가액`
+- prove negative numeric source rows are preserved as valid data when present in the workbook
 
 Expected assertions:
 

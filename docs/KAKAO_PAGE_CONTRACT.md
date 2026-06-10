@@ -1,6 +1,6 @@
 # Kakao Page Contract
 
-Status: authority-grounded for the current pre-implementation repo slice.
+Status: authority-grounded and implementation-backed in the current repo slice.
 
 Authority sources inspected before writing this document:
 
@@ -19,7 +19,9 @@ The current slice is intentionally narrow:
 - no MG workbook support yet
 - no grouped normal+MG merge semantics yet
 
-This document does **not** authorize future MG merge logic, multi-workbook behavior, or browser upload wiring.
+This document does **not** authorize future MG merge logic or multi-workbook behavior.
+
+For the current audited normal-workbook slice, browser single-file upload wiring is authorized only for the same one-file XLSX path already covered by the adapter/parser/orchestrator contract.
 
 ## 2. Current audited workbook shape
 
@@ -39,6 +41,8 @@ Current contract-safe interpretation:
 
 - row 1 is a group-header row
 - row 2 is the authoritative base-header row
+- adapter canonical keys for the current slice must stay aligned to the audited row-2 leaf headers (`시리즈명`, `작가명`, `발행자명`, `총합계-원화`, `공급가액`)
+- row 1 may be used only to disambiguate duplicate header families if needed; the current slice must not blindly prefix every column with row-1 labels
 - row 3+ is data
 - parser/adapter must preserve `sourceFileName` and `sourceRowIndex`
 
@@ -54,7 +58,7 @@ Therefore the current repo slice is frozen as:
 
 - normal workbook parsing only
 - MG workbook handling deferred
-- `kakao_page` platform type expansion remains a later implementation step, not an authority blocker for this document itself
+- `kakao_page` platform type, dedicated XLSX adapter, parser registry entry, and orchestrator single-file path are implemented for the audited normal-workbook slice
 
 ## 4. Current authoritative source columns
 
@@ -115,6 +119,7 @@ For the current repo slice:
 
 - blank `시리즈명` or blank `작가명` becomes `missing_field`
 - non-numeric `총합계-원화` or `공급가액` becomes `invalid_value`
+- negative numeric `총합계-원화` / `공급가액` values are valid when they come from the workbook as audited source data; the current slice must not reject them only because they are negative
 - valid rows produce exactly one `SettlementRow`
 - current slice does not authorize cross-row merge, MG overlay, or grouped replacement behavior
 

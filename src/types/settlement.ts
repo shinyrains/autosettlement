@@ -13,6 +13,7 @@ export type Platform =
   | "joara"
   | "bookcube"
   | "onestore"
+  | "kakao_page"
   | "munpia"
   | "misterblue"
   | "ridibooks";

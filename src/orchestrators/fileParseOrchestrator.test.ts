@@ -100,6 +100,15 @@ function readOnestoreSampleWorkbook(): Uint8Array {
   );
 }
 
+function readKakaoPageSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/kakao_page/카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
+    ),
+  );
+}
+
 function readKyoboSampleWorkbook(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -477,6 +486,47 @@ describe("file parse orchestrator", () => {
         grossSales: 3200,
         settlementAmount: 2016,
         sourceFileName: "정산내역_20260608_163327.xlsx",
+        sourceRowIndex: 3,
+      }),
+    );
+  });
+
+  it("runs the Kakao Page XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "kakao_page",
+      adapterContext: {
+        ...adapterContext,
+        company: "sr",
+        platform: "kakao_page",
+        saleMonth: "2026-05",
+        sourceFileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
+        fileKind: "xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "sr",
+        platform: "kakao_page",
+        saleMonth: "2026-05",
+        sourceFileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
+      },
+      fileContent: readKakaoPageSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(207);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "sr",
+        platform: "kakao_page",
+        saleMonth: "2026-05",
+        workTitle: "둠스데이 [완결]",
+        mailerContentTitle: "둠스데이 [완결]",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 2340,
+        settlementAmount: 1499,
+        sourceFileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
         sourceRowIndex: 3,
       }),
     );

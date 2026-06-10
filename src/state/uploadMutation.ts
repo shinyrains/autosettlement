@@ -153,6 +153,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-sr-kakao-page",
+    company: "sr",
+    platform: "kakao_page",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "카카오페이지 단일 XLSX 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-raon-mootoon",
     company: "raon",
     platform: "mootoon",

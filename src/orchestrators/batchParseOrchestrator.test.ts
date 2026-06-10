@@ -334,6 +334,15 @@ function readOnestoreSampleWorkbook(): Uint8Array {
   );
 }
 
+function readKakaoPageSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/kakao_page/카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
+    ),
+  );
+}
+
 function readEpyrusSampleCsv(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -1312,6 +1321,40 @@ describe("batch parse orchestrator", () => {
         grossSales: 3200,
         settlementAmount: 2016,
         sourceFileName: "정산내역_20260608_163327.xlsx",
+        sourceRowIndex: 3,
+      }),
+    );
+  });
+
+  it("parses a Kakao Page workbook through the batch orchestrator single-file path", () => {
+    const result = runBatchParseOrchestrator({
+      batchId: "batch-kakao-page-1",
+      files: [
+        createFile({
+          company: "sr",
+          platform: "kakao_page",
+          fileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
+          fileKind: "xlsx",
+          saleMonth: "2026-05",
+          content: readKakaoPageSampleWorkbook(),
+        }),
+      ],
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(207);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "sr",
+        platform: "kakao_page",
+        saleMonth: "2026-05",
+        workTitle: "둠스데이 [완결]",
+        mailerContentTitle: "둠스데이 [완결]",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 2340,
+        settlementAmount: 1499,
+        sourceFileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
         sourceRowIndex: 3,
       }),
     );
