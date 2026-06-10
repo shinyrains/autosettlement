@@ -251,6 +251,7 @@ type Batch = {
 - 현재 single-file live browser upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - 현재 live-wired single-file browser upload cards는 Misterblue / Panmurim / Bookcube / Yes24 / Kyobo / Mootoon XLSX, Epyrus / Aladin / Guru Company CSV, Novelpia HTML-XLS다.
 - grouped/slot-based future mutation authority는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
+- mixed-company future mutation authority는 `docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - 현재 slice에서는 raw uploaded file bytes를 `Batch` 안에 저장하지 않는다.
 - 현재 slice에서는 localStorage에 저장되는 것은 batch/upload/row/issue/selectedRow metadata snapshot뿐이다.
 
@@ -313,6 +314,8 @@ type BatchPlatformUpload = {
 - 이 aggregate 모델만으로는 단일 슬롯 플랫폼 상태 표현에는 충분하다.
 - 하지만 문피아는 `settlement`(required)와 `authorCorrection`(optional) 슬롯 단위 상태가 필요하므로, 현재 `BatchPlatformUpload` 단독 모델만으로는 실 UI 연결에 충분하지 않다.
 - 문피아 UI 연결은 slot-level child model 또는 동등한 authority-approved shape가 추가되기 전까지 `BatchPlatformUpload`만 믿고 진행하면 안 된다.
+- Onestore처럼 one-workbook parse result가 여러 `company` slice(`sr` + `raon`)로 fan-out되는 mixed-company 카드도 현재 `BatchPlatformUpload.company` 단일값 모델만으로는 안전하게 표현되지 않는다.
+- 따라서 Onestore browser live upload는 별도 mixed-company mutation authority 또는 동등한 authority-approved parent/child shape가 추가되기 전까지 `BatchPlatformUpload` 단독 모델로 연결하면 안 된다.
 
 ### 4.5 SettlementRow
 

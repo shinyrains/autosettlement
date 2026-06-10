@@ -238,7 +238,29 @@ Current rule:
 - missing contracted header -> `missing_column`
 - workbook/header read failure -> `parse_error`
 
-## 10. Forbidden behavior
+## 10. Browser live-upload design boundary
+
+Current judgment for browser live upload:
+
+- Onestore is **not** authorized under the current single-file live-upload contract.
+- Reason: one audited workbook produces rows for both `sr` and `raon` in the same parse result.
+- The current single-file live-upload authority assumes one upload card maps to one committed `(company, platform)` slice.
+- Current `BatchPlatformUpload` shape also carries a single `company` per upload card, so plain reuse would force an invalid one-card/one-company simplification.
+
+Current authority-safe future direction:
+
+- keep the existing parser/orchestrator output unchanged (`SettlementRow.company` remains row-level truth)
+- do **not** split the workbook into fake separate browser uploads by filename or manual company guess
+- freeze a future mixed-company upload-mutation contract before UI wiring (`docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`)
+- that future contract must define:
+  - one Onestore workbook selection event
+  - two committed replacement targets: `(sr, onestore)` and `(raon, onestore)` together
+  - one aggregate upload-card metadata surface for the shared workbook
+  - safe failure semantics when only one company slice returns issues
+
+Until that authority exists, Onestore remains parser/orchestrator-complete but browser-live-upload-blocked.
+
+## 11. Forbidden behavior
 
 - do not route the current path through the generic `xlsxAdapter`
 - do not silently default unknown publishers to `raon`
@@ -246,8 +268,9 @@ Current rule:
 - do not recalculate `grossSales` from support columns when `합계` already exists
 - do not recalculate `settlementAmount` from service-fee columns when `정산지급액` already exists
 - do not derive title suffixes from `구매요청POC` in the current repo slice
+- do not force Onestore into the current single-company live-upload card model without a separate mixed-company mutation authority
 
-## 11. Remaining open items
+## 12. Remaining open items
 
 Still intentionally unresolved:
 
