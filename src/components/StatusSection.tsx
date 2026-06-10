@@ -3,7 +3,17 @@ import type { ParseIssue } from "../types/settlement";
 import { KpiCard } from "./ShellPrimitives";
 import { IssuePanel } from "./IssuePanel";
 
-export function StatusSection({ rows, issues }: { rows: number; issues: ParseIssue[] }) {
+export function StatusSection({
+  rows,
+  issues,
+  companyCount,
+  rowsWithIssues,
+}: {
+  rows: number;
+  issues: ParseIssue[];
+  companyCount: number;
+  rowsWithIssues: number;
+}) {
   return (
     <section id="step-2" className="grid grid-cols-[1fr_1.35fr] gap-5">
       <div className="rounded-md border border-line bg-ink-850 p-5">
@@ -14,8 +24,8 @@ export function StatusSection({ rows, issues }: { rows: number; issues: ParseIss
         <div className="mt-5 grid grid-cols-2 gap-3">
           <KpiCard label="정규화 행" value={`${rows}`} />
           <KpiCard label="ParseIssue" value={`${issues.length}`} tone="warn" />
-          <KpiCard label="회사" value="2" />
-          <KpiCard label="출력 대상" value="4 files" />
+          <KpiCard label="회사" value={`${companyCount}`} />
+          <KpiCard label="이슈 행" value={`${rowsWithIssues}`} tone={rowsWithIssues > 0 ? "warn" : "default"} />
         </div>
         <div className="mt-6 space-y-3">
           {["업로드 확인", "파일 묶음 검증", "공통 모델 정규화", "검수 대기"].map((label, index) => (

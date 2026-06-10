@@ -11,7 +11,7 @@ export function IssuePanel({ issues }: { issues: ParseIssue[] }) {
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <div className="flex items-center gap-3">
           <AlertTriangle className="h-5 w-5 text-amber" />
-          <h2 className="text-lg font-semibold tracking-normal">오류/누락/매칭 실패 mock 패널</h2>
+          <h2 className="text-lg font-semibold tracking-normal">오류/누락/매칭 실패 패널</h2>
         </div>
         <span className="rounded-md bg-coral/15 px-3 py-1 text-sm font-semibold text-coral">{issues.length}건</span>
       </div>

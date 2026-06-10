@@ -1,5 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createExportPackages } from "../exporters";
+import {
+  defaultReviewFilterState,
+  getAvailableCompanies,
+  getAvailablePlatforms,
+  getFilteredReviewRows,
+  getReviewOverview,
+  getSelectedReviewRow,
+} from "../selectors";
 import { usePersistedAppState } from "../state/appState";
 import {
   applyLiveUploadMutation,
@@ -20,7 +28,15 @@ type AppShellProps = {
 
 export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
   const { state, setSelectedRowId, resetState, replaceState } = usePersistedAppState();
-  const selectedRow = state.rows.find((row) => row.rowId === state.selectedRowId) ?? state.rows[0];
+  const [reviewFilters, setReviewFilters] = useState(defaultReviewFilterState);
+  const reviewOverview = useMemo(() => getReviewOverview(state.rows, state.issues), [state.rows, state.issues]);
+  const availableCompanies = useMemo(() => getAvailableCompanies(state.rows, state.issues), [state.rows, state.issues]);
+  const availablePlatforms = useMemo(() => getAvailablePlatforms(state.rows, state.issues), [state.rows, state.issues]);
+  const filteredRows = useMemo(() => getFilteredReviewRows(state.rows, reviewFilters), [state.rows, reviewFilters]);
+  const selectedRow = useMemo(
+    () => getSelectedReviewRow(filteredRows, state.selectedRowId),
+    [filteredRows, state.selectedRowId],
+  );
   const selectedRowIssues = selectedRow
     ? state.issues.filter((issue) => selectedRow.issues.includes(issue.issueId))
     : [];
@@ -64,16 +80,24 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
               onUploadFiles={handleUploadFiles}
               isUploadEnabled={isLiveUploadEnabled}
             />
-            <StatusSection issues={state.issues} rows={totals.rows} />
-            {selectedRow ? (
-              <ReviewSection
-                rows={state.rows}
-                selectedRow={selectedRow}
-                selectedRowIssues={selectedRowIssues}
-                selectedRowId={state.selectedRowId}
-                onSelectRow={setSelectedRowId}
-              />
-            ) : null}
+            <StatusSection
+              issues={state.issues}
+              rows={totals.rows}
+              companyCount={reviewOverview.companyCount}
+              rowsWithIssues={reviewOverview.rowsWithIssues}
+            />
+            <ReviewSection
+              rows={filteredRows}
+              totalRowCount={state.rows.length}
+              availableCompanies={availableCompanies}
+              availablePlatforms={availablePlatforms}
+              filters={reviewFilters}
+              onChangeFilters={setReviewFilters}
+              selectedRow={selectedRow}
+              selectedRowIssues={selectedRowIssues}
+              selectedRowId={selectedRow?.rowId ?? state.selectedRowId}
+              onSelectRow={setSelectedRowId}
+            />
             <ExportSection
               exportPackages={exportPackages}
               exportResult={exportResult}

@@ -1,8 +1,10 @@
 import type {
   Company,
+  ParseIssue,
   ParseIssueSeverity,
   ParseIssueType,
   Platform,
+  SettlementRow,
 } from "../types/settlement";
 import type {
   BatchParseFileResult,
@@ -37,6 +39,32 @@ export type IssueSummary = {
   bySeverity: Partial<Record<ParseIssueSeverity, number>>;
   byIssueType: Partial<Record<ParseIssueType, number>>;
 };
+
+export type ReviewCompanyFilter = Company | "all";
+export type ReviewPlatformFilter = Platform | "all";
+export type ReviewIssueFilter = "all" | "with_issues";
+
+export type ReviewFilterState = {
+  company: ReviewCompanyFilter;
+  platform: ReviewPlatformFilter;
+  issueMode: ReviewIssueFilter;
+};
+
+export type ReviewOverview = {
+  totalRows: number;
+  totalIssues: number;
+  rowsWithIssues: number;
+  companyCount: number;
+  platformCount: number;
+};
+
+export const defaultReviewFilterState: ReviewFilterState = {
+  company: "all",
+  platform: "all",
+  issueMode: "all",
+};
+
+const companyOrder: Company[] = ["raon", "sr"];
 
 export function getBatchSummary(result: BatchParseOrchestratorResult): BatchSummary {
   const summary: BatchSummary = {
@@ -109,6 +137,60 @@ export function getFailedFiles(result: BatchParseOrchestratorResult): BatchParse
   return result.fileResults.filter((fileResult) => fileResult.status === "failed");
 }
 
+export function getAvailableCompanies(rows: SettlementRow[], issues: ParseIssue[] = []): Company[] {
+  const companySet = new Set<Company>();
+  rows.forEach((row) => companySet.add(row.company));
+  issues.forEach((issue) => companySet.add(issue.company));
+  return companyOrder.filter((company) => companySet.has(company));
+}
+
+export function getAvailablePlatforms(rows: SettlementRow[], issues: ParseIssue[] = []): Platform[] {
+  const orderedPlatforms: Platform[] = [];
+  const seen = new Set<Platform>();
+
+  for (const platform of [...rows.map((row) => row.platform), ...issues.map((issue) => issue.platform)]) {
+    if (seen.has(platform)) {
+      continue;
+    }
+    seen.add(platform);
+    orderedPlatforms.push(platform);
+  }
+
+  return orderedPlatforms;
+}
+
+export function getFilteredReviewRows(
+  rows: SettlementRow[],
+  filters: ReviewFilterState,
+): SettlementRow[] {
+  return rows.filter((row) => {
+    if (filters.company !== "all" && row.company !== filters.company) {
+      return false;
+    }
+    if (filters.platform !== "all" && row.platform !== filters.platform) {
+      return false;
+    }
+    if (filters.issueMode === "with_issues" && row.issues.length === 0) {
+      return false;
+    }
+    return true;
+  });
+}
+
+export function getSelectedReviewRow(rows: SettlementRow[], selectedRowId: string): SettlementRow | undefined {
+  return rows.find((row) => row.rowId === selectedRowId) ?? rows[0];
+}
+
+export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[]): ReviewOverview {
+  return {
+    totalRows: rows.length,
+    totalIssues: issues.length,
+    rowsWithIssues: rows.filter((row) => row.issues.length > 0).length,
+    companyCount: getAvailableCompanies(rows, issues).length,
+    platformCount: getAvailablePlatforms(rows, issues).length,
+  };
+}
+
 function getOrCreateCompanySummary(
   summaries: Partial<Record<Company, CompanySummary>>,
   company: Company,
@@ -121,7 +203,7 @@ function getOrCreateCompanySummary(
     settlementAmount: 0,
   };
 
-  return summaries[company];
+  return summaries[company]!;
 }
 
 function getOrCreatePlatformSummary(
@@ -136,5 +218,5 @@ function getOrCreatePlatformSummary(
     settlementAmount: 0,
   };
 
-  return summaries[platform];
+  return summaries[platform]!;
 }

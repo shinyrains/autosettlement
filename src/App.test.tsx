@@ -145,6 +145,20 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
   });
 
+  it("filters review rows through the actual app-shell controls", () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    expect(screen.queryByText("밤의 계산서")).not.toBeInTheDocument();
+    expect(screen.getAllByText("달빛 회계법").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "with_issues" } });
+    expect(screen.queryByText("파란 항구의 기록(app)")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건")).toBeInTheDocument();
+    expect(screen.getByText("이슈 행")).toBeInTheDocument();
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     render(<App />);
 

@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 import type { BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
 import type { ParseIssue, SettlementRow } from "../types/settlement";
 import {
+  defaultReviewFilterState,
+  getAvailableCompanies,
+  getAvailablePlatforms,
   getBatchSummary,
   getFailedFiles,
+  getFilteredReviewRows,
   getIssueSummary,
   getIssuesByFile,
   getPlatformSummary,
+  getReviewOverview,
   getRowsByCompany,
+  getSelectedReviewRow,
 } from "./reviewSelectors";
 
 const rows: SettlementRow[] = [
@@ -196,5 +202,28 @@ describe("review selectors", () => {
 
   it("returns failed files", () => {
     expect(getFailedFiles(result)).toEqual([result.fileResults[1], result.fileResults[2]]);
+  });
+
+  it("returns available companies and platforms from rows plus issues", () => {
+    expect(getAvailableCompanies(rows, issues)).toEqual(["raon", "sr"]);
+    expect(getAvailablePlatforms(rows, issues)).toEqual(["guru_company", "kyobo", "series"]);
+  });
+
+  it("filters review rows by company, platform, and issue mode", () => {
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, company: "sr" })).toEqual([rows[1], rows[2]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, platform: "guru_company" })).toEqual([rows[0]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, issueMode: "with_issues" })).toEqual([rows[2]]);
+  });
+
+  it("returns selected row fallback and overview counts", () => {
+    expect(getSelectedReviewRow(rows, "row-sr-kyobo-2")).toEqual(rows[2]);
+    expect(getSelectedReviewRow(rows, "missing-row")).toEqual(rows[0]);
+    expect(getReviewOverview(rows, issues)).toEqual({
+      totalRows: 3,
+      totalIssues: 2,
+      rowsWithIssues: 1,
+      companyCount: 2,
+      platformCount: 3,
+    });
   });
 });
