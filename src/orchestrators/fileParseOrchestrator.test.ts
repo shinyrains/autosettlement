@@ -100,6 +100,15 @@ function readOnestoreSampleWorkbook(): Uint8Array {
   );
 }
 
+function readKyoboSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/kyobo/정산내역조회.xlsx",
+    ),
+  );
+}
+
 describe("file parse orchestrator", () => {
   it("runs CSV adapter then parser registry to create SettlementRow objects", () => {
     const result = runFileParseOrchestrator({
@@ -289,6 +298,47 @@ describe("file parse orchestrator", () => {
         settlementAmount: 2100,
         sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
         sourceRowIndex: 3,
+      }),
+    );
+  });
+
+  it("runs the Kyobo XLSX adapter and parser through the file orchestrator", () => {
+    const result = runFileParseOrchestrator({
+      fileKind: "xlsx",
+      platform: "kyobo",
+      adapterContext: {
+        ...adapterContext,
+        company: "sr",
+        platform: "kyobo",
+        saleMonth: "2026-05",
+        sourceFileName: "정산내역조회.xlsx",
+        fileKind: "xlsx",
+      },
+      parserContext: {
+        ...parserContext,
+        company: "sr",
+        platform: "kyobo",
+        saleMonth: "2026-05",
+        sourceFileName: "정산내역조회.xlsx",
+      },
+      fileContent: readKyoboSampleWorkbook(),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(46);
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        company: "sr",
+        platform: "kyobo",
+        saleMonth: "2026-05",
+        workTitle: "1챕터의 고인물. 6",
+        mailerContentTitle: "1챕터의 고인물. 6",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 900,
+        settlementAmount: 450,
+        sourceFileName: "정산내역조회.xlsx",
+        sourceRowIndex: 2,
       }),
     );
   });

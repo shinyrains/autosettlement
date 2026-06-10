@@ -120,6 +120,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["csv"],
     uiLabel: "구루컴퍼니 단일 CSV 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-sr-kyobo",
+    company: "sr",
+    platform: "kyobo",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "교보문고 단일 XLSX 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [

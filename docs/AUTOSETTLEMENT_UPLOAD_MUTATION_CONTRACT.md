@@ -57,6 +57,12 @@ The following upload cards are live-wired in the current slice:
    - accepted extension set: `.csv`
    - contracted real sample path: `tmp/platform-samples/guru_company/정산_공급사_202604.csv`
 
+8. `sr / kyobo / upload-sr-kyobo`
+   - shape: single file
+   - required count: `1`
+   - accepted extension set: `.xlsx`
+   - contracted real sample path: `tmp/platform-samples/kyobo/정산내역조회.xlsx`
+
 All other upload cards remain non-live in this slice.
 They may render current status, but they do not mutate persisted draft state through a browser file selection yet.
 
@@ -89,6 +95,7 @@ Current contracted platform lanes under this live path:
 - Yes24 XLSX adapter + parser
 - Aladin CSV adapter + parser
 - Guru Company CSV adapter + parser
+- Kyobo XLSX adapter + parser
 
 ## 5. Draft mutation boundary
 
@@ -164,12 +171,12 @@ Not included in the current live-upload closure:
 - server persistence
 - upload progress transport semantics
 - cross-session recovery of raw file bytes
-- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company single-file cards
+- live upload action wiring for platforms beyond Misterblue + Panmurim + Bookcube + Epyrus + Yes24 + Aladin + Guru Company + Kyobo single-file cards
 
 ## 11. Verification target
 
 This slice is only considered closed when all of the following succeed:
 - unit tests for upload mutation helper coverage
 - component/UI test for current live upload card rendering
-- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, and Guru Company samples and verify persisted draft mutation
+- browser-like app tests that select the real Misterblue, Panmurim, Bookcube, Epyrus, Yes24, Aladin, Guru Company, and Kyobo samples and verify persisted draft mutation
 - full `npm run check`

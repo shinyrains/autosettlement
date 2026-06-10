@@ -77,6 +77,15 @@ function readGuruCompanySampleCsv(): Uint8Array {
   );
 }
 
+function readKyoboSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/kyobo/정산내역조회.xlsx",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -116,12 +125,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, and guru_company cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, and kyobo cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(7);
+    expect(enabledUploads).toHaveLength(8);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -157,6 +166,11 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "guru_company",
         uploadId: "upload-raon-guru-company",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "kyobo",
+        uploadId: "upload-sr-kyobo",
       }),
     ]));
   });
@@ -502,6 +516,52 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "guru_company")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed kyobo rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-sr-kyobo");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "정산내역조회.xlsx",
+        arrayBuffer: async () => {
+          const bytes = readKyoboSampleWorkbook().slice();
+          return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        },
+      }],
+      { now: () => "2026-06-10T01:30:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-sr-kyobo");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 46,
+      issueCount: 0,
+      sourceFileNames: ["정산내역조회.xlsx"],
+      lastUploadedAt: "2026-06-10T01:30:00+09:00",
+    }));
+
+    const kyoboRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo");
+    expect(kyoboRows).toHaveLength(46);
+    expect(kyoboRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "1챕터의 고인물. 6",
+        mailerContentTitle: "1챕터의 고인물. 6",
+        author: "산호초",
+        publisher: "Arete",
+        grossSales: 900,
+        settlementAmount: 450,
+        sourceFileName: "정산내역조회.xlsx",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "kyobo")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 
