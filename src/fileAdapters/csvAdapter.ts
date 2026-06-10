@@ -178,8 +178,14 @@ function buildRow(
 }
 
 function createCsvParseIssue(context: FileAdapterContext, message: string): ParseIssue {
+  const sourceToken = context.sourceFileName
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const slotToken = context.slot ? `${context.slot}-` : "";
+
   return {
-    issueId: `${context.batchId}-${context.platform}-csv-parse_error-file`,
+    issueId: `${context.batchId}-${context.platform}-${slotToken}csv-parse_error-${sourceToken || "file"}`,
     batchId: context.batchId,
     company: context.company,
     platform: context.platform,

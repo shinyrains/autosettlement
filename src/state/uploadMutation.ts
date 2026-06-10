@@ -2,6 +2,7 @@ import type { PlatformUploadCard } from "../data/mockSettlement";
 import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
 import type { FileAdapterResult, FileKind } from "../fileAdapters/types";
 import { runBatchParseOrchestrator, type BatchParseFileInput, type BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
+import { parseJoaraFileGroup } from "../parsers/joaraGroupParser";
 import { parseMunpiaFileGroup } from "../parsers/munpiaGroupParser";
 import { parseRidibooksFileGroup } from "../parsers/ridibooksGroupParser";
 import { parseSeriesFileGroup } from "../parsers/seriesGroupParser";
@@ -275,6 +276,24 @@ const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [
     acceptedKinds: ["csv", "xlsx"],
     uiLabel: "리디북스 MG 보정 슬롯 CSV/XLSX 1-file",
   },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-joara",
+    company: "raon",
+    platform: "joara",
+    slotKey: "settlementDetail",
+    acceptedKinds: ["csv"],
+    uiLabel: "조아라 정산 상세리스트 슬롯 CSV 1-file",
+  },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-joara",
+    company: "raon",
+    platform: "joara",
+    slotKey: "workSettlement",
+    acceptedKinds: ["csv"],
+    uiLabel: "조아라 작품별 정산리스트 슬롯 CSV 1-file",
+  },
 ];
 
 const liveUploadRuntimeSnapshots = new Map<string, RuntimeUploadSnapshot>();
@@ -282,6 +301,7 @@ const seriesSlotRuntimeSnapshots = new Map<string, RuntimeUploadSnapshot[]>();
 const PERSISTED_MUNPIA_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
 const PERSISTED_SERIES_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.series-grouped-slot-snapshots.v1";
 const PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
+const PERSISTED_JOARA_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.joara-grouped-slot-snapshots.v1";
 const STAGE_ONLY_ISSUE_MARKER = "-live-upload-stage-";
 
 export function resetLiveUploadRuntimeState(options: { preservePersistedSnapshots?: boolean } = {}): void {
@@ -291,6 +311,7 @@ export function resetLiveUploadRuntimeState(options: { preservePersistedSnapshot
     clearPersistedMunpiaSlotSnapshots();
     clearPersistedSeriesSlotSnapshots();
     clearPersistedRidibooksSlotSnapshots();
+    clearPersistedJoaraSlotSnapshots();
   }
 }
 
@@ -328,6 +349,10 @@ export async function applyLiveUploadMutation(
 
     if (target.upload.platform === "ridibooks") {
       return applyRidibooksSlotUploadMutation(state, target, files, dependencies);
+    }
+
+    if (target.upload.platform === "joara") {
+      return applyJoaraSlotUploadMutation(state, target, files, dependencies);
     }
   }
 
@@ -955,6 +980,145 @@ async function applyRidibooksSlotUploadMutation(
   }
 }
 
+async function applyJoaraSlotUploadMutation(
+  state: AppDraftState,
+  target: LiveUploadTarget,
+  files: BrowserUploadFile[],
+  dependencies: UploadMutationDependencies,
+): Promise<AppDraftState> {
+  const uploadedAt = dependencies.now?.() ?? new Date().toISOString();
+  const upload = target.upload;
+  const slotKey = target.slotKey;
+  const slot = upload.slots?.find((candidate) => candidate.slotKey === slotKey);
+  const liveSpec = slot ? getSlotLiveUploadSpec(upload, slot.slotKey) : undefined;
+
+  if (!slot || !liveSpec) {
+    return applyStageOnlyJoaraResult(
+      state,
+      upload,
+      upload.slots ?? [],
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slotKey,
+        files[0]?.name,
+        "현재 live grouped upload가 승인된 조아라 슬롯이 아닙니다.",
+      ),
+    );
+  }
+
+  if (files.length !== 1) {
+    return applyStageOnlyJoaraResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: files.length,
+        sourceFileNames: files.map((file) => file.name),
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        files[0]?.name,
+        "조아라 grouped live upload는 슬롯당 파일 1개만 허용합니다.",
+        "mapping_failed",
+      ),
+    );
+  }
+
+  const file = files[0];
+  const fileKind = inferFileKind(file.name);
+  if (!fileKind || !isAcceptedFileKind(liveSpec, fileKind)) {
+    return applyStageOnlyJoaraResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: 1,
+        sourceFileNames: [file.name],
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        file.name,
+        `지원하지 않는 파일 확장자입니다. 현재 ${liveSpec.uiLabel} 경로는 ${formatAcceptedKinds(liveSpec.acceptedKinds)}만 허용됩니다.`,
+      ),
+    );
+  }
+
+  const runtimeSnapshot: RuntimeUploadSnapshot = {
+    fileName: file.name,
+    fileKind,
+    content: new Uint8Array(await file.arrayBuffer()),
+    uploadedAt,
+  };
+  saveRuntimeSnapshot(state, upload, slot.slotKey, runtimeSnapshot);
+  const persistedSnapshot = createPersistedJoaraSlotSnapshot(state, upload, slot.slotKey, runtimeSnapshot);
+  savePersistedJoaraSlotSnapshot(state, upload, slot.slotKey, persistedSnapshot);
+
+  const stagedSlots = updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+    status: "uploaded",
+    fileCount: 1,
+    sourceFileNames: [file.name],
+    issueCount: 0,
+    lastUploadedAt: uploadedAt,
+  });
+
+  const settlementDetailSnapshot = readPersistedJoaraSlotSnapshot(state, upload, "settlementDetail");
+  const workSettlementSnapshot = readPersistedJoaraSlotSnapshot(state, upload, "workSettlement");
+
+  if (!settlementDetailSnapshot || !workSettlementSnapshot) {
+    return applyStageOnlyJoaraResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      createJoaraCompletenessIssue(state, upload, slot.slotKey, file.name, settlementDetailSnapshot, workSettlementSnapshot),
+    );
+  }
+
+  try {
+    const result = canUseInjectedJoaraBatchParse(dependencies, state, upload)
+      ? (dependencies.parseBatch ?? runBatchParseOrchestrator)({
+          batchId: state.batch.batchId,
+          files: buildJoaraBatchParseInputs(state, upload),
+        })
+      : runPersistedJoaraGroupedParse(state, upload, settlementDetailSnapshot, workSettlementSnapshot);
+
+    return applySuccessfulJoaraGroupedResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      result,
+      {
+        settlementDetail: settlementDetailSnapshot,
+        workSettlement: workSettlementSnapshot,
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "알 수 없는 조아라 grouped upload 오류가 발생했습니다.";
+    return applyStageOnlyJoaraResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      createStageOnlyIssue(state, upload, slot.slotKey, file.name, message),
+    );
+  }
+}
+
 function applySuccessfulResult(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -1128,6 +1292,32 @@ function applySuccessfulSeriesGroupedResult(
   );
 }
 
+function applySuccessfulJoaraGroupedResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  stagedSlots: BatchPlatformUploadSlot[],
+  uploadedAt: string,
+  result: BatchParseOrchestratorResult,
+  snapshots: {
+    settlementDetail: PersistedGroupedSlotSnapshot;
+    workSettlement: PersistedGroupedSlotSnapshot;
+  },
+): AppDraftState {
+  const rows = result.rows.filter((row) => row.company === upload.company && row.platform === upload.platform);
+  const issues = result.issues.filter((issue) => issue.company === upload.company && issue.platform === upload.platform);
+  const nextSlots = deriveCommittedJoaraSlots(stagedSlots, issues, snapshots);
+  const nextUpload = buildGroupedAggregateUpload(upload, nextSlots, rows.length, issues.length, deriveUploadStatus(rowCountOrZero(rows), issues), uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
+}
+
 function applyStageOnlyMunpiaResult(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -1228,6 +1418,32 @@ function applyStageOnlyRidibooksResult(
     preservedRowsForPlatform.length,
     nextIssuesForPlatform.length,
     deriveRidibooksGroupedStageStatus(nextSlots, nextIssuesForPlatform),
+    uploadedAt,
+  );
+
+  return mergeStageOnlyUploadResult(state, upload, nextUpload, nextIssuesForPlatform, uploadedAt);
+}
+
+function applyStageOnlyJoaraResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  nextSlots: BatchPlatformUploadSlot[],
+  uploadedAt: string,
+  stageIssue: ParseIssue,
+): AppDraftState {
+  const preservedRowsForPlatform = state.rows.filter((row) => row.company === upload.company && row.platform === upload.platform);
+  const preservedIssuesForPlatform = state.issues.filter((issue) => (
+    issue.company === upload.company
+    && issue.platform === upload.platform
+    && !isStageOnlyIssueForUpload(issue, upload)
+  ));
+  const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
+  const nextUpload = buildGroupedAggregateUpload(
+    upload,
+    nextSlots,
+    preservedRowsForPlatform.length,
+    nextIssuesForPlatform.length,
+    deriveJoaraGroupedStageStatus(nextSlots, nextIssuesForPlatform),
     uploadedAt,
   );
 
@@ -1406,6 +1622,45 @@ function deriveCommittedRidibooksSlots(
   });
 }
 
+function deriveCommittedJoaraSlots(
+  slots: BatchPlatformUploadSlot[],
+  issues: ParseIssue[],
+  snapshots: {
+    settlementDetail: PersistedGroupedSlotSnapshot;
+    workSettlement: PersistedGroupedSlotSnapshot;
+  },
+): BatchPlatformUploadSlot[] {
+  return slots.map((slot) => {
+    const snapshot = slot.slotKey === "settlementDetail"
+      ? snapshots.settlementDetail
+      : slot.slotKey === "workSettlement"
+        ? snapshots.workSettlement
+        : undefined;
+
+    if (!snapshot || snapshot.files.length === 0) {
+      return {
+        ...slot,
+        status: "empty",
+        fileCount: 0,
+        sourceFileNames: [],
+        issueCount: 0,
+        lastUploadedAt: undefined,
+      };
+    }
+
+    const sourceFileNames = snapshot.files.map((file) => file.fileName);
+    const slotIssues = issues.filter((issue) => issue.sourceFileName ? sourceFileNames.includes(issue.sourceFileName) : false);
+    return {
+      ...slot,
+      status: deriveSlotStatus(snapshot.files.length, slotIssues, true),
+      fileCount: snapshot.files.length,
+      sourceFileNames,
+      issueCount: slotIssues.length,
+      lastUploadedAt: snapshot.uploadedAt,
+    };
+  });
+}
+
 function buildGroupedAggregateUpload(
   upload: PlatformUploadCard,
   slots: BatchPlatformUploadSlot[],
@@ -1486,6 +1741,25 @@ function deriveRidibooksGroupedStageStatus(
   const baseSlot = slots.find((slot) => slot.slotKey === "base");
   const file1Slot = slots.find((slot) => slot.slotKey === "file1");
   const hasRequiredSlots = (baseSlot?.fileCount ?? 0) === 1 && (file1Slot?.fileCount ?? 0) === 1;
+
+  if (issues.some((issue) => issue.severity === "error")) {
+    return "error";
+  }
+
+  if (!hasRequiredSlots || issues.length > 0) {
+    return "warning";
+  }
+
+  return "uploaded";
+}
+
+function deriveJoaraGroupedStageStatus(
+  slots: BatchPlatformUploadSlot[],
+  issues: ParseIssue[],
+): PlatformUploadCard["status"] {
+  const settlementDetailSlot = slots.find((slot) => slot.slotKey === "settlementDetail");
+  const workSettlementSlot = slots.find((slot) => slot.slotKey === "workSettlement");
+  const hasRequiredSlots = (settlementDetailSlot?.fileCount ?? 0) === 1 && (workSettlementSlot?.fileCount ?? 0) === 1;
 
   if (issues.some((issue) => issue.severity === "error")) {
     return "error";
@@ -1631,6 +1905,35 @@ function buildRidibooksBatchParseInputs(
   ];
 }
 
+function buildJoaraBatchParseInputs(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+): BatchParseFileInput[] {
+  const settlementDetail = readRuntimeSnapshot(state, upload, "settlementDetail");
+  const workSettlement = readRuntimeSnapshot(state, upload, "workSettlement");
+
+  return [
+    ...(settlementDetail ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: settlementDetail.fileKind,
+      fileName: settlementDetail.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "settlementDetail" as const,
+      content: settlementDetail.content,
+    }] : []),
+    ...(workSettlement ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: workSettlement.fileKind,
+      fileName: workSettlement.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "workSettlement" as const,
+      content: workSettlement.content,
+    }] : []),
+  ];
+}
+
 function saveRuntimeSnapshot(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -1666,6 +1969,15 @@ function createPersistedRidibooksSlotSnapshot(
   eventPeriod?: RidibooksEventPeriod,
 ): PersistedGroupedSlotSnapshot {
   return createPersistedGroupedSlotSnapshot(state, upload, slotKey, [snapshot], eventPeriod);
+}
+
+function createPersistedJoaraSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  snapshot: RuntimeUploadSnapshot,
+): PersistedGroupedSlotSnapshot {
+  return createPersistedGroupedSlotSnapshot(state, upload, slotKey, [snapshot]);
 }
 
 function createPersistedGroupedSlotSnapshot(
@@ -1745,6 +2057,15 @@ function savePersistedRidibooksSlotSnapshot(
   savePersistedGroupedSlotSnapshot(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey, snapshot);
 }
 
+function savePersistedJoaraSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  snapshot: PersistedGroupedSlotSnapshot,
+): void {
+  savePersistedGroupedSlotSnapshot(PERSISTED_JOARA_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey, snapshot);
+}
+
 function savePersistedGroupedSlotSnapshot(
   storageKey: string,
   state: AppDraftState,
@@ -1784,6 +2105,14 @@ function readPersistedRidibooksSlotSnapshot(
   slotKey: BatchPlatformUploadSlotKey,
 ): PersistedGroupedSlotSnapshot | undefined {
   return readPersistedGroupedSlotSnapshot(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey);
+}
+
+function readPersistedJoaraSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+): PersistedGroupedSlotSnapshot | undefined {
+  return readPersistedGroupedSlotSnapshot(PERSISTED_JOARA_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey);
 }
 
 function readPersistedGroupedSlotSnapshot(
@@ -1827,6 +2156,10 @@ function clearPersistedSeriesSlotSnapshots(): void {
 
 function clearPersistedRidibooksSlotSnapshots(): void {
   getBrowserStorage()?.removeItem(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY);
+}
+
+function clearPersistedJoaraSlotSnapshots(): void {
+  getBrowserStorage()?.removeItem(PERSISTED_JOARA_SLOT_SNAPSHOT_STORAGE_KEY);
 }
 
 function saveSeriesRuntimeSnapshots(
@@ -1904,6 +2237,19 @@ function canUseInjectedRidibooksBatchParse(
   }
 
   return !(mgCorrectionSnapshot && !readRuntimeSnapshot(state, upload, "mgCorrection"));
+}
+
+function canUseInjectedJoaraBatchParse(
+  dependencies: UploadMutationDependencies,
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+): boolean {
+  if (!dependencies.parseBatch) {
+    return false;
+  }
+
+  return readRuntimeSnapshot(state, upload, "settlementDetail") !== undefined
+    && readRuntimeSnapshot(state, upload, "workSettlement") !== undefined;
 }
 
 function runPersistedMunpiaGroupedParse(
@@ -1988,6 +2334,55 @@ function runPersistedSeriesGroupedParse(
     rows: result.rows,
     issues: result.issues,
     fileResults: [...seriesGeneral.files, ...seriesApp.files].map((file) => ({
+      fileName: file.fileName,
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: file.fileKind,
+      saleMonth: state.batch.settlementMonth,
+      status: file.issues.length > 0 ? "failed" as const : "success" as const,
+      rowCount: file.rows.length,
+      issueCount: file.issues.length,
+    })),
+  };
+}
+
+function runPersistedJoaraGroupedParse(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  settlementDetail: PersistedGroupedSlotSnapshot,
+  workSettlement: PersistedGroupedSlotSnapshot,
+): BatchParseOrchestratorResult {
+  const result = parseJoaraFileGroup(
+    {
+      batchId: state.batch.batchId,
+      company: upload.company,
+      platform: "joara",
+      saleMonth: state.batch.settlementMonth,
+      sourceFileNames: [
+        ...settlementDetail.files.map((file) => file.fileName),
+        ...workSettlement.files.map((file) => file.fileName),
+      ],
+    },
+    [
+      ...settlementDetail.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "settlementDetail" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })),
+      ...workSettlement.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "workSettlement" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })),
+    ],
+  );
+
+  return {
+    rows: result.rows,
+    issues: result.issues,
+    fileResults: [...settlementDetail.files, ...workSettlement.files].map((file) => ({
       fileName: file.fileName,
       company: upload.company,
       platform: upload.platform,
@@ -2295,6 +2690,42 @@ function createRidibooksCompletenessIssue(
     slotKey === "event"
       ? "리디북스 event 슬롯 live upload는 기본 정산(base)과 file_1 보정(file1)이 먼저 준비되어야 합니다."
       : "리디북스 grouped live upload는 기본 정산(base)과 file_1 보정(file1)이 모두 준비된 뒤에만 재계산합니다.",
+    "missing_file",
+  );
+}
+
+function createJoaraCompletenessIssue(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  sourceFileName: string | undefined,
+  settlementDetailSnapshot?: PersistedGroupedSlotSnapshot,
+  workSettlementSnapshot?: PersistedGroupedSlotSnapshot,
+): ParseIssue {
+  const hasOneSnapshotOnly = (settlementDetailSnapshot?.files.length ?? 0) > 0 || (workSettlementSnapshot?.files.length ?? 0) > 0;
+  const missingRuntimeRecovery = hasOneSnapshotOnly
+    && ((settlementDetailSnapshot?.files.length ?? 0) === 0 || (workSettlementSnapshot?.files.length ?? 0) === 0)
+    && hasSettlementMetadata(upload);
+
+  if (missingRuntimeRecovery) {
+    return createStageOnlyIssue(
+      state,
+      upload,
+      slotKey,
+      sourceFileName,
+      "현재 브라우저 persisted snapshot에는 조아라 정산 상세리스트/작품별 정산리스트 입력이 모두 남아 있지 않아 재계산할 수 없습니다. 두 파일을 다시 업로드하세요.",
+      "parse_error",
+    );
+  }
+
+  return createStageOnlyIssue(
+    state,
+    upload,
+    slotKey,
+    sourceFileName,
+    slotKey === "workSettlement"
+      ? "조아라 작품별 정산리스트 live upload는 정산 상세리스트가 먼저 준비되어야 합니다."
+      : "조아라 grouped live upload는 정산 상세리스트와 작품별 정산리스트가 모두 준비된 뒤에만 재계산합니다.",
     "missing_file",
   );
 }

@@ -117,6 +117,24 @@ function readNovelpiaSampleHtmlXls(): Uint8Array {
   );
 }
 
+function readJoaraSettlementDetailSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/joara/정산 상세리스트_2026-5.csv",
+    ),
+  );
+}
+
+function readJoaraWorkSettlementSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/joara/작품별 정산리스트_2026-5.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): File {
   const html = `<table><tr><td>${name}</td></tr></table>`;
   const bytes = new TextEncoder().encode(html).buffer;
@@ -192,6 +210,36 @@ function createEmptyRidibooksDraft() {
   state.batch.uploads = state.uploads;
   state.rows = state.rows.filter((row) => row.platform !== "ridibooks");
   state.issues = state.issues.filter((issue) => issue.platform !== "ridibooks");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
+function createEmptyJoaraDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "joara"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "joara");
+  state.issues = state.issues.filter((issue) => issue.platform !== "joara");
   state.selectedRowId = state.rows[0]?.rowId ?? "";
   return state;
 }
@@ -810,6 +858,69 @@ describe("AutoSettlement UI shell", () => {
       expect(persistedDraft.rows).toEqual(expect.arrayContaining([
         expect.objectContaining({ rowId: "munpia-app-shell-row-002", workTitle: "문피아 쉘 보정 반영" }),
       ]));
+    });
+  });
+
+  it("persists joara grouped slot uploads through the browser shell", async () => {
+    saveAppDraftState(createEmptyJoaraDraft(), window.localStorage);
+
+    render(<AppShell />);
+
+    const settlementInput = screen.getByTestId("upload-input-upload-raon-joara-settlement-detail") as HTMLInputElement;
+    const settlementBytes = readJoaraSettlementDetailSampleCsv().slice();
+    const settlementFile = new File([settlementBytes], "정산 상세리스트_2026-5.csv", { type: "text/csv" });
+    Object.defineProperty(settlementFile, "arrayBuffer", {
+      value: async () => settlementBytes.slice().buffer as ArrayBuffer,
+    });
+
+    fireEvent.change(settlementInput, { target: { files: [settlementFile] } });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-joara");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        fileCount: 1,
+        sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+      }));
+      expect(liveUpload.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          slotKey: "settlementDetail",
+          sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+        }),
+      ]));
+    });
+
+    const workInput = screen.getByTestId("upload-input-upload-raon-joara-work-settlement") as HTMLInputElement;
+    const workBytes = readJoaraWorkSettlementSampleCsv().slice();
+    const workFile = new File([workBytes], "작품별 정산리스트_2026-5.csv", { type: "text/csv" });
+    Object.defineProperty(workFile, "arrayBuffer", {
+      value: async () => workBytes.slice().buffer as ArrayBuffer,
+    });
+
+    fireEvent.change(workInput, { target: { files: [workFile] } });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-joara");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        fileCount: 2,
+        parsedRowCount: 0,
+        issueCount: expect.any(Number),
+        sourceFileNames: ["정산 상세리스트_2026-5.csv", "작품별 정산리스트_2026-5.csv"],
+      }));
+      expect(liveUpload.issueCount).toBeGreaterThan(0);
+      expect(liveUpload.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          slotKey: "settlementDetail",
+          sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+        }),
+        expect.objectContaining({
+          slotKey: "workSettlement",
+          sourceFileNames: ["작품별 정산리스트_2026-5.csv"],
+        }),
+      ]));
+      expect(persistedDraft.rows.some((row: { platform: string }) => row.platform === "joara")).toBe(false);
+      expect(persistedDraft.issues.some((issue: { platform: string }) => issue.platform === "joara")).toBe(true);
     });
   });
 

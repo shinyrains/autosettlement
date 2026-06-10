@@ -41,10 +41,12 @@ describe("UploadSection", () => {
     expect(screen.getAllByText("정산 상세리스트_2026-5.csv").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("공유 업로드 영역")).toBeInTheDocument();
     expect(screen.getByText("공유 대상: 라온이앤엠 + 에스알이앤엠")).toBeInTheDocument();
-    expect(screen.getAllByText("실파일 업로드")).toHaveLength(21);
-    expect(screen.getAllByText("grouped 계약 정렬만 반영됨 · 실업로드 연결 예정").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("실파일 업로드")).toHaveLength(23);
+    expect(screen.queryByText("grouped 계약 정렬만 반영됨 · 실업로드 연결 예정")).not.toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 조아라 정산 상세리스트 슬롯 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 조아라 작품별 정산리스트 슬롯 CSV 1-file")).toBeInTheDocument();
     expect(screen.getAllByText("현재 live path: 시리즈 일반 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("현재 live path: 시리즈 앱 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("현재 live path: 미스터블루 단일 XLSX 1-file")).toBeInTheDocument();

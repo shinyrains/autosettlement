@@ -49,6 +49,7 @@ This authority applies to the following grouped upload cards:
    - UI / parser slot keys: `settlementDetail`, `workSettlement`
    - required slots: `settlementDetail`, `workSettlement`
    - parse authority: `docs/JOARA_CONTRACT.md`
+   - current browser live path: both required CSV slots are wired in the current repo slice
 
 All single-file live cards continue to use:
 - `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`
@@ -302,8 +303,7 @@ Series parser/orchestrator input slot keys remain:
 ## 7. Out of scope
 
 Still not authorized here:
-- real grouped-card browser implementation
-- drag-and-drop UX
+- grouped-card drag-and-drop UX
 - background parsing jobs
 - server persistence
 - upload progress transport semantics

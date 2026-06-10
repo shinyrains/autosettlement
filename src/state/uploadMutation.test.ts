@@ -113,6 +113,24 @@ function readNovelpiaSampleHtmlXls(): Uint8Array {
   );
 }
 
+function readJoaraSettlementDetailSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/joara/정산 상세리스트_2026-5.csv",
+    ),
+  );
+}
+
+function readJoaraWorkSettlementSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/joara/작품별 정산리스트_2026-5.csv",
+    ),
+  );
+}
+
 function readRidibooksBaseSampleCsv(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -216,6 +234,36 @@ function createEmptyRidibooksUploadDraft() {
   return state;
 }
 
+function createEmptyJoaraUploadDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "joara"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "joara");
+  state.issues = state.issues.filter((issue) => issue.platform !== "joara");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
 describe("uploadMutation", () => {
   it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, mootoon, novelpia, and shared onestore cards", () => {
     const state = createSeedAppState();
@@ -312,6 +360,16 @@ describe("uploadMutation", () => {
     const enabledSlots = ridibooksUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(ridibooksUpload!, slot));
 
     expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["base", "file1", "event", "mgCorrection"]);
+  });
+
+  it("enables live upload for the joara grouped slots", () => {
+    const state = createSeedAppState();
+    const joaraUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-joara");
+    expect(joaraUpload?.slots).toBeDefined();
+
+    const enabledSlots = joaraUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(joaraUpload!, slot));
+
+    expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlementDetail", "workSettlement"]);
   });
 
   it("stages a ridibooks base upload until file1 is also present", async () => {
@@ -1581,6 +1639,76 @@ describe("uploadMutation", () => {
         fileCount: 3,
       }),
     ]));
-    expect(afterApp.issues.filter((issue) => issue.company === "raon" && issue.platform === "series")).toEqual([]);
+  });
+
+  it("reruns joara grouped parsing when settlementDetail and workSettlement are uploaded", async () => {
+    const state = createEmptyJoaraUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-joara");
+    expect(upload).toBeDefined();
+
+    const afterDetail = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "settlementDetail" },
+      [{
+        name: "정산 상세리스트_2026-5.csv",
+        arrayBuffer: async () => readJoaraSettlementDetailSampleCsv().slice().buffer as ArrayBuffer,
+      }],
+      { now: () => "2026-06-14T09:00:00+09:00" },
+    );
+
+    const stagedUpload = afterDetail.uploads.find((item) => item.uploadId === "upload-raon-joara");
+    expect(stagedUpload).toEqual(expect.objectContaining({
+      fileCount: 1,
+      sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+    }));
+    expect(stagedUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "settlementDetail",
+        status: "uploaded",
+        sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+      }),
+      expect.objectContaining({
+        slotKey: "workSettlement",
+        status: "empty",
+      }),
+    ]));
+    expect(afterDetail.rows.filter((row) => row.platform === "joara")).toEqual([]);
+
+    const afterWork = await applyLiveUploadMutation(
+      afterDetail,
+      { upload: afterDetail.uploads.find((item) => item.uploadId === "upload-raon-joara")!, slotKey: "workSettlement" },
+      [{
+        name: "작품별 정산리스트_2026-5.csv",
+        arrayBuffer: async () => readJoaraWorkSettlementSampleCsv().slice().buffer as ArrayBuffer,
+      }],
+      { now: () => "2026-06-14T09:05:00+09:00" },
+    );
+
+    const joaraRows = afterWork.rows.filter((row) => row.company === "raon" && row.platform === "joara");
+    expect(joaraRows).toEqual([]);
+
+    const joaraIssues = afterWork.issues.filter((issue) => issue.company === "raon" && issue.platform === "joara");
+    expect(joaraIssues.length).toBeGreaterThan(0);
+
+    const nextUpload = afterWork.uploads.find((item) => item.uploadId === "upload-raon-joara");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      fileCount: 2,
+      parsedRowCount: 0,
+      issueCount: joaraIssues.length,
+      sourceFileNames: ["정산 상세리스트_2026-5.csv", "작품별 정산리스트_2026-5.csv"],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "settlementDetail",
+        fileCount: 1,
+        sourceFileNames: ["정산 상세리스트_2026-5.csv"],
+      }),
+      expect.objectContaining({
+        slotKey: "workSettlement",
+        fileCount: 1,
+        sourceFileNames: ["작품별 정산리스트_2026-5.csv"],
+      }),
+    ]));
+    expect(afterWork.rows.some((row) => row.company === "raon" && row.platform === "joara")).toBe(false);
   });
 });
