@@ -127,6 +127,15 @@ function createSeriesHtmlFile(name: string): File {
   return file;
 }
 
+function createTextFile(name: string, content: string, type = "text/csv"): File {
+  const bytes = new TextEncoder().encode(content).buffer;
+  const file = new File([bytes], name, { type });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => bytes.slice(0),
+  });
+  return file;
+}
+
 function createEmptySeriesDraft() {
   const state = createSeedAppState();
   state.uploads = state.uploads.map((upload) => (
@@ -157,6 +166,36 @@ function createEmptySeriesDraft() {
   return state;
 }
 
+function createEmptyRidibooksDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "ridibooks"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "ridibooks");
+  state.issues = state.issues.filter((issue) => issue.platform !== "ridibooks");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
 function createExportBlockedDraft() {
   const state = createSeedAppState();
   state.rows = state.rows.map((row, index) => (
@@ -172,7 +211,7 @@ function createExportBlockedDraft() {
 }
 
 describe("AutoSettlement UI shell", () => {
-  it("renders the batch-centered MVP workflow with series, munpia slots, and export status", () => {
+  it("renders the batch-centered MVP workflow with grouped upload cards and export status", () => {
     render(<App />);
 
     expect(screen.getByText("2026-06 정산 Batch")).toBeInTheDocument();
@@ -181,6 +220,8 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getAllByText("필수 6개: 일반 3개 + 앱 3개").length).toBeGreaterThan(0);
     expect(screen.getByText("정산 파일")).toBeInTheDocument();
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
+    expect(screen.getByText("기본 정산")).toBeInTheDocument();
+    expect(screen.getByText("정산 상세리스트")).toBeInTheDocument();
     expect(screen.getAllByText(/batch 전체 4개 파일/).length).toBeGreaterThan(0);
     expect(screen.getByText("라온_메일러_발송용.xlsx")).toBeInTheDocument();
     expect(screen.getByText("에스알_정산_통합검수용.xlsx")).toBeInTheDocument();
@@ -846,6 +887,123 @@ describe("AutoSettlement UI shell", () => {
       ]));
       expect(persistedDraft.rows).toEqual(expect.arrayContaining([
         expect.objectContaining({ rowId: "series-app-shell-row-002", workTitle: "시리즈 3+3 반영" }),
+      ]));
+    });
+  });
+
+  it("persists ridibooks event uploads with eventPeriod through the browser shell", async () => {
+    saveAppDraftState(createEmptyRidibooksDraft(), window.localStorage);
+
+    render(
+      <AppShell
+        uploadMutationDependencies={{
+          now: () => "2026-06-13T10:00:00+09:00",
+          parseBatch: ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => {
+            const eventInput = files.find((file) => file.slot === "event");
+            return {
+              rows: eventInput
+                ? [{
+                    rowId: "ridibooks-app-shell-row-003",
+                    company: "raon",
+                    platform: "ridibooks",
+                    saleMonth: "2026-06",
+                    workTitle: `리디 이벤트 반영 ${eventInput.eventPeriod?.startDate}-${eventInput.eventPeriod?.endDate}`,
+                    mailerContentTitle: "리디 이벤트 반영",
+                    author: "서지후",
+                    publisher: "라온북스",
+                    grossSales: 26000,
+                    settlementAmount: 10400,
+                    sourceFileName: eventInput.fileName,
+                    sourceRowIndex: 11,
+                    issues: [],
+                  }]
+                : [{
+                    rowId: "ridibooks-app-shell-row-001",
+                    company: "raon",
+                    platform: "ridibooks",
+                    saleMonth: "2026-06",
+                    workTitle: "리디 기본 정산 초안",
+                    mailerContentTitle: "리디 기본 정산 초안",
+                    author: "서지후",
+                    publisher: "라온북스",
+                    grossSales: 20000,
+                    settlementAmount: 8000,
+                    sourceFileName: files[0]?.fileName ?? "calculate_1.csv",
+                    sourceRowIndex: 8,
+                    issues: [],
+                  }],
+              issues: [],
+              fileResults: files.map((file) => ({
+                fileName: file.fileName,
+                company: "raon" as const,
+                platform: "ridibooks" as const,
+                fileKind: file.fileKind,
+                saleMonth: "2026-06",
+                status: "success" as const,
+                rowCount: 1,
+                issueCount: 0,
+              })),
+            };
+          },
+        }}
+      />,
+    );
+
+    const baseInput = screen.getByTestId("upload-input-upload-raon-ridibooks-base") as HTMLInputElement;
+    const file1Input = screen.getByTestId("upload-input-upload-raon-ridibooks-file1") as HTMLInputElement;
+    const eventInput = screen.getByTestId("upload-input-upload-raon-ridibooks-event") as HTMLInputElement;
+    const eventStart = screen.getByTestId("upload-input-upload-raon-ridibooks-event-event-start") as HTMLInputElement;
+    const eventEnd = screen.getByTestId("upload-input-upload-raon-ridibooks-event-event-end") as HTMLInputElement;
+
+    fireEvent.change(baseInput, {
+      target: {
+        files: [createTextFile("calculate_1.csv", "work,sale\nbase,1\n")],
+      },
+    });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-ridibooks");
+      expect(liveUpload).toEqual(expect.objectContaining({ fileCount: 1 }));
+    });
+
+    fireEvent.change(file1Input, {
+      target: {
+        files: [createTextFile("calculate_1 (1).csv", "work,sale\nfile1,1\n")],
+      },
+    });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-ridibooks");
+      expect(liveUpload).toEqual(expect.objectContaining({ status: "parsed", fileCount: 2, parsedRowCount: 1 }));
+    });
+
+    fireEvent.change(eventStart, { target: { value: "2026-06-01" } });
+    fireEvent.change(eventEnd, { target: { value: "2026-06-30" } });
+    expect(eventInput.disabled).toBe(false);
+
+    fireEvent.change(eventInput, {
+      target: {
+        files: [createTextFile("calculate_date_tran_1.csv", "work,event\nevent,1\n")],
+      },
+    });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-ridibooks");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 3,
+        parsedRowCount: 1,
+        issueCount: 0,
+        sourceFileNames: ["calculate_1.csv", "calculate_1 (1).csv", "calculate_date_tran_1.csv"],
+      }));
+      expect(liveUpload.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({ slotKey: "event", status: "parsed", sourceFileNames: ["calculate_date_tran_1.csv"] }),
+      ]));
+      expect(persistedDraft.rows).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "ridibooks-app-shell-row-003", workTitle: "리디 이벤트 반영 2026-06-01-2026-06-30" }),
       ]));
     });
   });

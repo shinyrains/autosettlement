@@ -3,6 +3,7 @@ import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileA
 import type { FileAdapterResult, FileKind } from "../fileAdapters/types";
 import { runBatchParseOrchestrator, type BatchParseFileInput, type BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
 import { parseMunpiaFileGroup } from "../parsers/munpiaGroupParser";
+import { parseRidibooksFileGroup } from "../parsers/ridibooksGroupParser";
 import { parseSeriesFileGroup } from "../parsers/seriesGroupParser";
 import type { BatchPlatformUploadSlot, BatchPlatformUploadSlotKey, ParseIssue, Platform } from "../types/settlement";
 import type { AppDraftState } from "./appState";
@@ -12,9 +13,15 @@ type BrowserUploadFile = {
   arrayBuffer(): Promise<ArrayBuffer>;
 };
 
+type RidibooksEventPeriod = {
+  startDate: string;
+  endDate: string;
+};
+
 export type LiveUploadTarget = {
   upload: PlatformUploadCard;
   slotKey?: BatchPlatformUploadSlotKey;
+  eventPeriod?: RidibooksEventPeriod;
 };
 
 type UploadMutationDependencies = {
@@ -75,6 +82,7 @@ type PersistedGroupedFileSnapshot = {
 type PersistedGroupedSlotSnapshot = {
   files: PersistedGroupedFileSnapshot[];
   uploadedAt: string;
+  eventPeriod?: RidibooksEventPeriod;
 };
 
 const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
@@ -231,12 +239,49 @@ const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [
     acceptedKinds: ["xls"],
     uiLabel: "시리즈 앱 슬롯 HTML-XLS 3-file",
   },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-ridibooks",
+    company: "raon",
+    platform: "ridibooks",
+    slotKey: "base",
+    acceptedKinds: ["csv"],
+    uiLabel: "리디북스 기본 정산 슬롯 CSV 1-file",
+  },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-ridibooks",
+    company: "raon",
+    platform: "ridibooks",
+    slotKey: "file1",
+    acceptedKinds: ["csv"],
+    uiLabel: "리디북스 file_1 보정 슬롯 CSV 1-file",
+  },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-ridibooks",
+    company: "raon",
+    platform: "ridibooks",
+    slotKey: "event",
+    acceptedKinds: ["csv"],
+    uiLabel: "리디북스 이벤트 거래 슬롯 CSV 1-file",
+  },
+  {
+    kind: "slot",
+    uploadId: "upload-raon-ridibooks",
+    company: "raon",
+    platform: "ridibooks",
+    slotKey: "mgCorrection",
+    acceptedKinds: ["csv", "xlsx"],
+    uiLabel: "리디북스 MG 보정 슬롯 CSV/XLSX 1-file",
+  },
 ];
 
 const liveUploadRuntimeSnapshots = new Map<string, RuntimeUploadSnapshot>();
 const seriesSlotRuntimeSnapshots = new Map<string, RuntimeUploadSnapshot[]>();
 const PERSISTED_MUNPIA_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
 const PERSISTED_SERIES_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.series-grouped-slot-snapshots.v1";
+const PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
 const STAGE_ONLY_ISSUE_MARKER = "-live-upload-stage-";
 
 export function resetLiveUploadRuntimeState(options: { preservePersistedSnapshots?: boolean } = {}): void {
@@ -245,6 +290,7 @@ export function resetLiveUploadRuntimeState(options: { preservePersistedSnapshot
   if (!options.preservePersistedSnapshots) {
     clearPersistedMunpiaSlotSnapshots();
     clearPersistedSeriesSlotSnapshots();
+    clearPersistedRidibooksSlotSnapshots();
   }
 }
 
@@ -278,6 +324,10 @@ export async function applyLiveUploadMutation(
 
     if (target.upload.platform === "series") {
       return applySeriesSlotUploadMutation(state, target, files, dependencies);
+    }
+
+    if (target.upload.platform === "ridibooks") {
+      return applyRidibooksSlotUploadMutation(state, target, files, dependencies);
     }
   }
 
@@ -735,6 +785,176 @@ async function applySeriesSlotUploadMutation(
   }
 }
 
+async function applyRidibooksSlotUploadMutation(
+  state: AppDraftState,
+  target: LiveUploadTarget,
+  files: BrowserUploadFile[],
+  dependencies: UploadMutationDependencies,
+): Promise<AppDraftState> {
+  const uploadedAt = dependencies.now?.() ?? new Date().toISOString();
+  const upload = target.upload;
+  const slotKey = target.slotKey;
+  const slot = upload.slots?.find((candidate) => candidate.slotKey === slotKey);
+  const liveSpec = slot ? getSlotLiveUploadSpec(upload, slot.slotKey) : undefined;
+
+  if (!slot || !liveSpec) {
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      upload.slots ?? [],
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slotKey,
+        files[0]?.name,
+        "현재 live grouped upload가 승인된 리디북스 슬롯이 아닙니다.",
+      ),
+    );
+  }
+
+  if (files.length !== 1) {
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: files.length,
+        sourceFileNames: files.map((file) => file.name),
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        files[0]?.name,
+        "리디북스 grouped live upload는 슬롯당 파일 1개만 허용합니다.",
+        "mapping_failed",
+      ),
+    );
+  }
+
+  const file = files[0];
+  const fileKind = inferFileKind(file.name);
+  if (!fileKind || !isAcceptedFileKind(liveSpec, fileKind)) {
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: 1,
+        sourceFileNames: [file.name],
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        file.name,
+        `지원하지 않는 파일 확장자입니다. 현재 ${liveSpec.uiLabel} 경로는 ${formatAcceptedKinds(liveSpec.acceptedKinds)}만 허용됩니다.`,
+      ),
+    );
+  }
+
+  const eventPeriod = slot.slotKey === "event"
+    ? normalizeRidibooksEventPeriod(target.eventPeriod)
+    : undefined;
+
+  if (slot.slotKey === "event" && !eventPeriod) {
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: 1,
+        sourceFileNames: [file.name],
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        file.name,
+        "리디북스 event 슬롯은 이벤트 시작일/종료일(eventPeriod)을 함께 입력해야 live 재계산할 수 있습니다.",
+        "missing_field",
+      ),
+    );
+  }
+
+  const runtimeSnapshot: RuntimeUploadSnapshot = {
+    fileName: file.name,
+    fileKind,
+    content: new Uint8Array(await file.arrayBuffer()),
+    uploadedAt,
+  };
+  saveRuntimeSnapshot(state, upload, slot.slotKey, runtimeSnapshot);
+  const persistedSnapshot = createPersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, runtimeSnapshot, eventPeriod);
+  savePersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, persistedSnapshot);
+
+  const stagedSlots = updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+    status: "uploaded",
+    fileCount: 1,
+    sourceFileNames: [file.name],
+    issueCount: 0,
+    lastUploadedAt: uploadedAt,
+  });
+
+  const baseSnapshot = readPersistedRidibooksSlotSnapshot(state, upload, "base");
+  const file1Snapshot = readPersistedRidibooksSlotSnapshot(state, upload, "file1");
+  const eventSnapshot = readPersistedRidibooksSlotSnapshot(state, upload, "event");
+  const mgCorrectionSnapshot = readPersistedRidibooksSlotSnapshot(state, upload, "mgCorrection");
+
+  if (!baseSnapshot || !file1Snapshot) {
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      createRidibooksCompletenessIssue(state, upload, slot.slotKey, file.name, upload, baseSnapshot, file1Snapshot),
+    );
+  }
+
+  try {
+    const result = canUseInjectedRidibooksBatchParse(dependencies, state, upload, eventSnapshot, mgCorrectionSnapshot)
+      ? (dependencies.parseBatch ?? runBatchParseOrchestrator)({
+          batchId: state.batch.batchId,
+          files: buildRidibooksBatchParseInputs(state, upload),
+        })
+      : runPersistedRidibooksGroupedParse(state, upload, baseSnapshot, file1Snapshot, eventSnapshot, mgCorrectionSnapshot);
+
+    return applySuccessfulRidibooksGroupedResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      result,
+      {
+        base: baseSnapshot,
+        file1: file1Snapshot,
+        event: eventSnapshot,
+        mgCorrection: mgCorrectionSnapshot,
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "알 수 없는 리디북스 grouped upload 오류가 발생했습니다.";
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      stagedSlots,
+      uploadedAt,
+      createStageOnlyIssue(state, upload, slot.slotKey, file.name, message),
+    );
+  }
+}
+
 function applySuccessfulResult(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -960,6 +1180,60 @@ function applyStageOnlySeriesResult(
   return mergeStageOnlyUploadResult(state, upload, nextUpload, nextIssuesForPlatform, uploadedAt);
 }
 
+function applySuccessfulRidibooksGroupedResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  stagedSlots: BatchPlatformUploadSlot[],
+  uploadedAt: string,
+  result: BatchParseOrchestratorResult,
+  snapshots: {
+    base: PersistedGroupedSlotSnapshot;
+    file1: PersistedGroupedSlotSnapshot;
+    event?: PersistedGroupedSlotSnapshot;
+    mgCorrection?: PersistedGroupedSlotSnapshot;
+  },
+): AppDraftState {
+  const rows = result.rows.filter((row) => row.company === upload.company && row.platform === upload.platform);
+  const issues = result.issues.filter((issue) => issue.company === upload.company && issue.platform === upload.platform);
+  const nextSlots = deriveCommittedRidibooksSlots(stagedSlots, issues, snapshots);
+  const nextUpload = buildGroupedAggregateUpload(upload, nextSlots, rows.length, issues.length, deriveUploadStatus(rowCountOrZero(rows), issues), uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
+}
+
+function applyStageOnlyRidibooksResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  nextSlots: BatchPlatformUploadSlot[],
+  uploadedAt: string,
+  stageIssue: ParseIssue,
+): AppDraftState {
+  const preservedRowsForPlatform = state.rows.filter((row) => row.company === upload.company && row.platform === upload.platform);
+  const preservedIssuesForPlatform = state.issues.filter((issue) => (
+    issue.company === upload.company
+    && issue.platform === upload.platform
+    && !isStageOnlyIssueForUpload(issue, upload)
+  ));
+  const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
+  const nextUpload = buildGroupedAggregateUpload(
+    upload,
+    nextSlots,
+    preservedRowsForPlatform.length,
+    nextIssuesForPlatform.length,
+    deriveRidibooksGroupedStageStatus(nextSlots, nextIssuesForPlatform),
+    uploadedAt,
+  );
+
+  return mergeStageOnlyUploadResult(state, upload, nextUpload, nextIssuesForPlatform, uploadedAt);
+}
+
 function mergeCommittedUploadResult(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -1087,6 +1361,51 @@ function deriveCommittedSeriesSlots(
   });
 }
 
+function deriveCommittedRidibooksSlots(
+  slots: BatchPlatformUploadSlot[],
+  issues: ParseIssue[],
+  snapshots: {
+    base: PersistedGroupedSlotSnapshot;
+    file1: PersistedGroupedSlotSnapshot;
+    event?: PersistedGroupedSlotSnapshot;
+    mgCorrection?: PersistedGroupedSlotSnapshot;
+  },
+): BatchPlatformUploadSlot[] {
+  return slots.map((slot) => {
+    const snapshot = slot.slotKey === "base"
+      ? snapshots.base
+      : slot.slotKey === "file1"
+        ? snapshots.file1
+        : slot.slotKey === "event"
+          ? snapshots.event
+          : slot.slotKey === "mgCorrection"
+            ? snapshots.mgCorrection
+            : undefined;
+
+    if (!snapshot || snapshot.files.length === 0) {
+      return {
+        ...slot,
+        status: "empty",
+        fileCount: 0,
+        sourceFileNames: [],
+        issueCount: 0,
+        lastUploadedAt: undefined,
+      };
+    }
+
+    const sourceFileNames = snapshot.files.map((file) => file.fileName);
+    const slotIssues = issues.filter((issue) => issue.sourceFileName ? sourceFileNames.includes(issue.sourceFileName) : false);
+    return {
+      ...slot,
+      status: deriveSlotStatus(snapshot.files.length, slotIssues, true),
+      fileCount: snapshot.files.length,
+      sourceFileNames,
+      issueCount: slotIssues.length,
+      lastUploadedAt: snapshot.uploadedAt,
+    };
+  });
+}
+
 function buildGroupedAggregateUpload(
   upload: PlatformUploadCard,
   slots: BatchPlatformUploadSlot[],
@@ -1154,6 +1473,25 @@ function deriveSeriesGroupedStageStatus(
   }
 
   if (!isComplete || issues.length > 0) {
+    return "warning";
+  }
+
+  return "uploaded";
+}
+
+function deriveRidibooksGroupedStageStatus(
+  slots: BatchPlatformUploadSlot[],
+  issues: ParseIssue[],
+): PlatformUploadCard["status"] {
+  const baseSlot = slots.find((slot) => slot.slotKey === "base");
+  const file1Slot = slots.find((slot) => slot.slotKey === "file1");
+  const hasRequiredSlots = (baseSlot?.fileCount ?? 0) === 1 && (file1Slot?.fileCount ?? 0) === 1;
+
+  if (issues.some((issue) => issue.severity === "error")) {
+    return "error";
+  }
+
+  if (!hasRequiredSlots || issues.length > 0) {
     return "warning";
   }
 
@@ -1242,6 +1580,57 @@ function buildSeriesBatchParseInputs(
   ];
 }
 
+function buildRidibooksBatchParseInputs(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+): BatchParseFileInput[] {
+  const base = readRuntimeSnapshot(state, upload, "base");
+  const file1 = readRuntimeSnapshot(state, upload, "file1");
+  const event = readRuntimeSnapshot(state, upload, "event");
+  const mgCorrection = readRuntimeSnapshot(state, upload, "mgCorrection");
+  const eventSnapshot = readPersistedRidibooksSlotSnapshot(state, upload, "event");
+
+  return [
+    ...(base ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: base.fileKind,
+      fileName: base.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "base" as const,
+      content: base.content,
+    }] : []),
+    ...(file1 ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: file1.fileKind,
+      fileName: file1.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "file1" as const,
+      content: file1.content,
+    }] : []),
+    ...(event ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: event.fileKind,
+      fileName: event.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "event" as const,
+      ...(eventSnapshot?.eventPeriod ? { eventPeriod: eventSnapshot.eventPeriod } : {}),
+      content: event.content,
+    }] : []),
+    ...(mgCorrection ? [{
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: mgCorrection.fileKind,
+      fileName: mgCorrection.fileName,
+      saleMonth: state.batch.settlementMonth,
+      slot: "mgCorrection" as const,
+      content: mgCorrection.content,
+    }] : []),
+  ];
+}
+
 function saveRuntimeSnapshot(
   state: AppDraftState,
   upload: PlatformUploadCard,
@@ -1269,11 +1658,22 @@ function createPersistedSeriesSlotSnapshot(
   return createPersistedGroupedSlotSnapshot(state, upload, slotKey, snapshots);
 }
 
+function createPersistedRidibooksSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  snapshot: RuntimeUploadSnapshot,
+  eventPeriod?: RidibooksEventPeriod,
+): PersistedGroupedSlotSnapshot {
+  return createPersistedGroupedSlotSnapshot(state, upload, slotKey, [snapshot], eventPeriod);
+}
+
 function createPersistedGroupedSlotSnapshot(
   state: AppDraftState,
   upload: PlatformUploadCard,
   slotKey: BatchPlatformUploadSlotKey,
   snapshots: RuntimeUploadSnapshot[],
+  eventPeriod?: RidibooksEventPeriod,
 ): PersistedGroupedSlotSnapshot {
   return {
     files: snapshots.map((snapshot) => {
@@ -1287,6 +1687,7 @@ function createPersistedGroupedSlotSnapshot(
       };
     }),
     uploadedAt: snapshots.length > 0 ? snapshots[snapshots.length - 1].uploadedAt : new Date().toISOString(),
+    ...(eventPeriod ? { eventPeriod } : {}),
   };
 }
 
@@ -1335,6 +1736,15 @@ function savePersistedSeriesSlotSnapshot(
   savePersistedGroupedSlotSnapshot(PERSISTED_SERIES_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey, snapshot);
 }
 
+function savePersistedRidibooksSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  snapshot: PersistedGroupedSlotSnapshot,
+): void {
+  savePersistedGroupedSlotSnapshot(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey, snapshot);
+}
+
 function savePersistedGroupedSlotSnapshot(
   storageKey: string,
   state: AppDraftState,
@@ -1366,6 +1776,14 @@ function readPersistedSeriesSlotSnapshot(
   slotKey: BatchPlatformUploadSlotKey,
 ): PersistedGroupedSlotSnapshot | undefined {
   return readPersistedGroupedSlotSnapshot(PERSISTED_SERIES_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey);
+}
+
+function readPersistedRidibooksSlotSnapshot(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+): PersistedGroupedSlotSnapshot | undefined {
+  return readPersistedGroupedSlotSnapshot(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY, state, upload, slotKey);
 }
 
 function readPersistedGroupedSlotSnapshot(
@@ -1405,6 +1823,10 @@ function clearPersistedMunpiaSlotSnapshots(): void {
 
 function clearPersistedSeriesSlotSnapshots(): void {
   getBrowserStorage()?.removeItem(PERSISTED_SERIES_SLOT_SNAPSHOT_STORAGE_KEY);
+}
+
+function clearPersistedRidibooksSlotSnapshots(): void {
+  getBrowserStorage()?.removeItem(PERSISTED_RIDIBOOKS_SLOT_SNAPSHOT_STORAGE_KEY);
 }
 
 function saveSeriesRuntimeSnapshots(
@@ -1458,6 +1880,30 @@ function canUseInjectedSeriesBatchParse(
   const generalRuntime = readSeriesRuntimeSnapshots(state, upload, "seriesGeneral");
   const appRuntime = readSeriesRuntimeSnapshots(state, upload, "seriesApp");
   return (generalRuntime?.length ?? 0) === 3 && (appRuntime?.length ?? 0) === 3;
+}
+
+function canUseInjectedRidibooksBatchParse(
+  dependencies: UploadMutationDependencies,
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  eventSnapshot?: PersistedGroupedSlotSnapshot,
+  mgCorrectionSnapshot?: PersistedGroupedSlotSnapshot,
+): boolean {
+  if (!dependencies.parseBatch) {
+    return false;
+  }
+
+  const baseRuntime = readRuntimeSnapshot(state, upload, "base");
+  const file1Runtime = readRuntimeSnapshot(state, upload, "file1");
+  if (!baseRuntime || !file1Runtime) {
+    return false;
+  }
+
+  if (eventSnapshot && !readRuntimeSnapshot(state, upload, "event")) {
+    return false;
+  }
+
+  return !(mgCorrectionSnapshot && !readRuntimeSnapshot(state, upload, "mgCorrection"));
 }
 
 function runPersistedMunpiaGroupedParse(
@@ -1542,6 +1988,72 @@ function runPersistedSeriesGroupedParse(
     rows: result.rows,
     issues: result.issues,
     fileResults: [...seriesGeneral.files, ...seriesApp.files].map((file) => ({
+      fileName: file.fileName,
+      company: upload.company,
+      platform: upload.platform,
+      fileKind: file.fileKind,
+      saleMonth: state.batch.settlementMonth,
+      status: file.issues.length > 0 ? "failed" as const : "success" as const,
+      rowCount: file.rows.length,
+      issueCount: file.issues.length,
+    })),
+  };
+}
+
+function runPersistedRidibooksGroupedParse(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  base: PersistedGroupedSlotSnapshot,
+  file1: PersistedGroupedSlotSnapshot,
+  event?: PersistedGroupedSlotSnapshot,
+  mgCorrection?: PersistedGroupedSlotSnapshot,
+): BatchParseOrchestratorResult {
+  const result = parseRidibooksFileGroup(
+    {
+      batchId: state.batch.batchId,
+      company: upload.company,
+      platform: "ridibooks",
+      saleMonth: state.batch.settlementMonth,
+      sourceFileNames: [
+        ...base.files.map((file) => file.fileName),
+        ...file1.files.map((file) => file.fileName),
+        ...(event?.files.map((file) => file.fileName) ?? []),
+        ...(mgCorrection?.files.map((file) => file.fileName) ?? []),
+      ],
+      ...(event?.eventPeriod ? { eventPeriod: event.eventPeriod } : {}),
+    },
+    [
+      ...base.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "base" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })),
+      ...file1.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "file1" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })),
+      ...(event?.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "event" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })) ?? []),
+      ...(mgCorrection?.files.map((file) => ({
+        sourceFileName: file.fileName,
+        slot: "mgCorrection" as const,
+        rows: file.rows,
+        issues: file.issues,
+      })) ?? []),
+    ],
+  );
+
+  return {
+    rows: result.rows,
+    issues: result.issues,
+    fileResults: [...base.files, ...file1.files, ...(event?.files ?? []), ...(mgCorrection?.files ?? [])].map((file) => ({
       fileName: file.fileName,
       company: upload.company,
       platform: upload.platform,
@@ -1746,6 +2258,59 @@ function createSeriesCompletenessIssue(
     "시리즈 grouped live upload는 일반 3개 + 앱 3개가 모두 준비된 뒤에만 재계산합니다.",
     "missing_file",
   );
+}
+
+function createRidibooksCompletenessIssue(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  slotKey: BatchPlatformUploadSlotKey,
+  sourceFileName: string | undefined,
+  previousUpload: PlatformUploadCard,
+  baseSnapshot?: PersistedGroupedSlotSnapshot,
+  file1Snapshot?: PersistedGroupedSlotSnapshot,
+): ParseIssue {
+  const hadExistingMetadata = previousUpload.slots?.some((slot) => (
+    (slot.slotKey === "base" || slot.slotKey === "file1") && slot.fileCount > 0
+  )) ?? false;
+
+  const missingRuntimeRecovery = hadExistingMetadata
+    && ((baseSnapshot?.files.length ?? 0) === 0 || (file1Snapshot?.files.length ?? 0) === 0);
+
+  if (missingRuntimeRecovery) {
+    return createStageOnlyIssue(
+      state,
+      upload,
+      slotKey,
+      sourceFileName,
+      "현재 브라우저 persisted snapshot에는 리디북스 base/file1 입력이 모두 남아 있지 않아 재계산할 수 없습니다. 기본 정산과 file_1 보정 파일을 다시 업로드하세요.",
+      "parse_error",
+    );
+  }
+
+  return createStageOnlyIssue(
+    state,
+    upload,
+    slotKey,
+    sourceFileName,
+    slotKey === "event"
+      ? "리디북스 event 슬롯 live upload는 기본 정산(base)과 file_1 보정(file1)이 먼저 준비되어야 합니다."
+      : "리디북스 grouped live upload는 기본 정산(base)과 file_1 보정(file1)이 모두 준비된 뒤에만 재계산합니다.",
+    "missing_file",
+  );
+}
+
+function normalizeRidibooksEventPeriod(eventPeriod: RidibooksEventPeriod | undefined): RidibooksEventPeriod | undefined {
+  if (!eventPeriod) {
+    return undefined;
+  }
+
+  const startDate = eventPeriod.startDate.trim();
+  const endDate = eventPeriod.endDate.trim();
+  if (!startDate || !endDate) {
+    return undefined;
+  }
+
+  return { startDate, endDate };
 }
 
 function isStageOnlyIssueForUpload(issue: ParseIssue, upload: PlatformUploadCard): boolean {

@@ -113,6 +113,41 @@ function readNovelpiaSampleHtmlXls(): Uint8Array {
   );
 }
 
+function readRidibooksBaseSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/ridibooks/calculate_1.csv",
+    ),
+  );
+}
+
+function readRidibooksFile1SampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/ridibooks/calculate_1 (1).csv",
+    ),
+  );
+}
+
+function readRidibooksEventSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/ridibooks/calculate_date_tran_1.csv",
+    ),
+  );
+}
+
+function createTextUpload(name: string, content: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
+  const bytes = new TextEncoder().encode(content);
+  return {
+    name,
+    arrayBuffer: async () => bytes.slice().buffer as ArrayBuffer,
+  };
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -147,6 +182,36 @@ function createEmptySeriesUploadDraft() {
   state.batch.uploads = state.uploads;
   state.rows = state.rows.filter((row) => row.platform !== "series");
   state.issues = state.issues.filter((issue) => issue.platform !== "series");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
+function createEmptyRidibooksUploadDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "ridibooks"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "ridibooks");
+  state.issues = state.issues.filter((issue) => issue.platform !== "ridibooks");
   state.selectedRowId = state.rows[0]?.rowId ?? "";
   return state;
 }
@@ -237,6 +302,404 @@ describe("uploadMutation", () => {
       const enabledSlots = upload.slots?.filter((slot) => isLiveUploadSlotEnabled(upload, slot)) ?? [];
       expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["seriesGeneral", "seriesApp"]);
     }
+  });
+
+  it("enables live upload for the ridibooks grouped slots", () => {
+    const state = createSeedAppState();
+    const ridibooksUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-ridibooks");
+    expect(ridibooksUpload?.slots).toBeDefined();
+
+    const enabledSlots = ridibooksUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(ridibooksUpload!, slot));
+
+    expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["base", "file1", "event", "mgCorrection"]);
+  });
+
+  it("stages a ridibooks base upload until file1 is also present", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:00:00+09:00" },
+    );
+
+    expect(nextState.rows.filter((row) => row.platform === "ridibooks")).toEqual([]);
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "error",
+      fileCount: 1,
+      parsedRowCount: 0,
+      sourceFileNames: ["calculate_1.csv"],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "base",
+        status: "uploaded",
+        sourceFileNames: ["calculate_1.csv"],
+      }),
+      expect.objectContaining({
+        slotKey: "file1",
+        status: "empty",
+      }),
+    ]));
+    expect(nextState.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        company: "raon",
+        platform: "ridibooks",
+        issueType: "missing_file",
+        sourceFileName: "calculate_1.csv",
+        message: expect.stringContaining("base)과 file_1 보정(file1)이 모두 준비된 뒤"),
+      }),
+    ]));
+  });
+
+  it("reruns ridibooks grouped parsing when base, file1, and mgCorrection are uploaded", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+
+    const parseBatch = ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+      rows: files.some((file) => file.slot === "mgCorrection")
+        ? [{
+            rowId: "ridibooks-live-row-002",
+            company: "raon",
+            platform: "ridibooks",
+            saleMonth: "2026-06",
+            workTitle: "리디 MG 보정 반영",
+            mailerContentTitle: "리디 MG 보정 반영",
+            author: "서지후",
+            publisher: "라온북스",
+            grossSales: 22000,
+            settlementAmount: 8800,
+            sourceFileName: "calculate_1.csv",
+            sourceRowIndex: 9,
+            issues: [],
+          }]
+        : [{
+            rowId: "ridibooks-live-row-001",
+            company: "raon",
+            platform: "ridibooks",
+            saleMonth: "2026-06",
+            workTitle: "리디 기본 정산 초안",
+            mailerContentTitle: "리디 기본 정산 초안",
+            author: "서지후",
+            publisher: "라온북스",
+            grossSales: 20000,
+            settlementAmount: 8000,
+            sourceFileName: "calculate_1.csv",
+            sourceRowIndex: 8,
+            issues: [],
+          }],
+      issues: [],
+      fileResults: files.map((file) => ({
+        fileName: file.fileName,
+        company: "raon" as const,
+        platform: "ridibooks" as const,
+        fileKind: file.fileKind,
+        saleMonth: "2026-06",
+        status: "success" as const,
+        rowCount: 1,
+        issueCount: 0,
+      })),
+    });
+
+    const afterBase = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:10:00+09:00", parseBatch },
+    );
+
+    const afterFile1 = await applyLiveUploadMutation(
+      afterBase,
+      { upload: afterBase.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "file1" },
+      [createTextUpload("calculate_1 (1).csv", "work,sale\nfile1,1\n")],
+      { now: () => "2026-06-13T09:12:00+09:00", parseBatch },
+    );
+
+    expect(afterFile1.rows.filter((row) => row.platform === "ridibooks")).toEqual([
+      expect.objectContaining({ rowId: "ridibooks-live-row-001", workTitle: "리디 기본 정산 초안" }),
+    ]);
+
+    const afterMg = await applyLiveUploadMutation(
+      afterFile1,
+      { upload: afterFile1.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "mgCorrection" },
+      [{
+        name: "ridibooks-mg.xlsx",
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      }],
+      { now: () => "2026-06-13T09:15:00+09:00", parseBatch },
+    );
+
+    expect(afterMg.rows.filter((row) => row.platform === "ridibooks")).toEqual([
+      expect.objectContaining({ rowId: "ridibooks-live-row-002", workTitle: "리디 MG 보정 반영" }),
+    ]);
+    const nextUpload = afterMg.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 3,
+      parsedRowCount: 1,
+      issueCount: 0,
+      sourceFileNames: ["calculate_1.csv", "calculate_1 (1).csv", "ridibooks-mg.xlsx"],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slotKey: "base", status: "parsed", sourceFileNames: ["calculate_1.csv"] }),
+      expect.objectContaining({ slotKey: "file1", status: "parsed", sourceFileNames: ["calculate_1 (1).csv"] }),
+      expect.objectContaining({ slotKey: "mgCorrection", status: "parsed", sourceFileNames: ["ridibooks-mg.xlsx"] }),
+    ]));
+    expect(afterMg.issues.filter((issue) => issue.company === "raon" && issue.platform === "ridibooks")).toEqual([]);
+  });
+
+  it("keeps the committed ridibooks slice and surfaces a missing-field issue when eventPeriod is omitted", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+
+    const parseBatch = ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+      rows: [{
+        rowId: "ridibooks-live-row-001",
+        company: "raon",
+        platform: "ridibooks",
+        saleMonth: "2026-06",
+        workTitle: "리디 기본 정산 초안",
+        mailerContentTitle: "리디 기본 정산 초안",
+        author: "서지후",
+        publisher: "라온북스",
+        grossSales: 20000,
+        settlementAmount: 8000,
+        sourceFileName: files[0]?.fileName ?? "calculate_1.csv",
+        sourceRowIndex: 8,
+        issues: [],
+      }],
+      issues: [],
+      fileResults: files.map((file) => ({
+        fileName: file.fileName,
+        company: "raon" as const,
+        platform: "ridibooks" as const,
+        fileKind: file.fileKind,
+        saleMonth: "2026-06",
+        status: "success" as const,
+        rowCount: 1,
+        issueCount: 0,
+      })),
+    });
+
+    const afterBase = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:20:00+09:00", parseBatch },
+    );
+    const afterFile1 = await applyLiveUploadMutation(
+      afterBase,
+      { upload: afterBase.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "file1" },
+      [createTextUpload("calculate_1 (1).csv", "work,sale\nfile1,1\n")],
+      { now: () => "2026-06-13T09:21:00+09:00", parseBatch },
+    );
+    const previousRows = afterFile1.rows.filter((row) => row.platform === "ridibooks");
+
+    const afterEvent = await applyLiveUploadMutation(
+      afterFile1,
+      { upload: afterFile1.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "event" },
+      [createTextUpload("calculate_date_tran_1.csv", "work,event\nevent,1\n")],
+      { now: () => "2026-06-13T09:22:00+09:00", parseBatch },
+    );
+
+    expect(afterEvent.rows.filter((row) => row.platform === "ridibooks")).toEqual(previousRows);
+    const nextUpload = afterEvent.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "error",
+      fileCount: 3,
+      parsedRowCount: 1,
+      sourceFileNames: ["calculate_1.csv", "calculate_1 (1).csv", "calculate_date_tran_1.csv"],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slotKey: "event", status: "error", sourceFileNames: ["calculate_date_tran_1.csv"] }),
+    ]));
+    expect(afterEvent.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        company: "raon",
+        platform: "ridibooks",
+        issueType: "missing_field",
+        sourceFileName: "calculate_date_tran_1.csv",
+        message: expect.stringContaining("eventPeriod"),
+      }),
+    ]));
+  });
+
+  it("reruns ridibooks grouped parsing when event is uploaded with eventPeriod", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+
+    const parseBatch = ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => {
+      const eventInput = files.find((file) => file.slot === "event");
+      return {
+        rows: eventInput
+          ? [{
+              rowId: "ridibooks-live-row-003",
+              company: "raon",
+              platform: "ridibooks",
+              saleMonth: "2026-06",
+              workTitle: `리디 이벤트 반영 ${eventInput.eventPeriod?.startDate}-${eventInput.eventPeriod?.endDate}`,
+              mailerContentTitle: "리디 이벤트 반영",
+              author: "서지후",
+              publisher: "라온북스",
+              grossSales: 24000,
+              settlementAmount: 9600,
+              sourceFileName: eventInput.fileName,
+              sourceRowIndex: 10,
+              issues: [],
+            }]
+          : [{
+              rowId: "ridibooks-live-row-001",
+              company: "raon",
+              platform: "ridibooks",
+              saleMonth: "2026-06",
+              workTitle: "리디 기본 정산 초안",
+              mailerContentTitle: "리디 기본 정산 초안",
+              author: "서지후",
+              publisher: "라온북스",
+              grossSales: 20000,
+              settlementAmount: 8000,
+              sourceFileName: files[0]?.fileName ?? "calculate_1.csv",
+              sourceRowIndex: 8,
+              issues: [],
+            }],
+        issues: [],
+        fileResults: files.map((file) => ({
+          fileName: file.fileName,
+          company: "raon" as const,
+          platform: "ridibooks" as const,
+          fileKind: file.fileKind,
+          saleMonth: "2026-06",
+          status: "success" as const,
+          rowCount: 1,
+          issueCount: 0,
+        })),
+      };
+    };
+
+    const afterBase = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:30:00+09:00", parseBatch },
+    );
+    const afterFile1 = await applyLiveUploadMutation(
+      afterBase,
+      { upload: afterBase.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "file1" },
+      [createTextUpload("calculate_1 (1).csv", "work,sale\nfile1,1\n")],
+      { now: () => "2026-06-13T09:31:00+09:00", parseBatch },
+    );
+
+    const afterEvent = await applyLiveUploadMutation(
+      afterFile1,
+      {
+        upload: afterFile1.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!,
+        slotKey: "event",
+        eventPeriod: {
+          startDate: "2026-06-01",
+          endDate: "2026-06-30",
+        },
+      },
+      [createTextUpload("calculate_date_tran_1.csv", "work,event\nevent,1\n")],
+      { now: () => "2026-06-13T09:32:00+09:00", parseBatch },
+    );
+
+    expect(afterEvent.rows.filter((row) => row.platform === "ridibooks")).toEqual([
+      expect.objectContaining({
+        rowId: "ridibooks-live-row-003",
+        workTitle: "리디 이벤트 반영 2026-06-01-2026-06-30",
+      }),
+    ]);
+    const nextUpload = afterEvent.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 3,
+      parsedRowCount: 1,
+      issueCount: 0,
+      sourceFileNames: ["calculate_1.csv", "calculate_1 (1).csv", "calculate_date_tran_1.csv"],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slotKey: "event", status: "parsed", sourceFileNames: ["calculate_date_tran_1.csv"] }),
+    ]));
+    expect(afterEvent.issues.filter((issue) => issue.company === "raon" && issue.platform === "ridibooks")).toEqual([]);
+  });
+
+  it("resets stale optional ridibooks slot metadata when persisted sidecar snapshots are missing", async () => {
+    resetLiveUploadRuntimeState();
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+    expect(upload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slotKey: "event", status: "parsed", fileCount: 1 }),
+    ]));
+
+    const parseBatch = ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+      rows: [{
+        rowId: "ridibooks-live-row-recovery-001",
+        company: "raon",
+        platform: "ridibooks",
+        saleMonth: "2026-06",
+        workTitle: "리디 필수 슬롯 재계산",
+        mailerContentTitle: "리디 필수 슬롯 재계산",
+        author: "서지후",
+        publisher: "라온북스",
+        grossSales: 21000,
+        settlementAmount: 8400,
+        sourceFileName: files[0]?.fileName ?? "calculate_1.csv",
+        sourceRowIndex: 12,
+        issues: [],
+      }],
+      issues: [],
+      fileResults: files.map((file) => ({
+        fileName: file.fileName,
+        company: "raon" as const,
+        platform: "ridibooks" as const,
+        fileKind: file.fileKind,
+        saleMonth: "2026-06",
+        status: "success" as const,
+        rowCount: 1,
+        issueCount: 0,
+      })),
+    });
+
+    const afterBase = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:40:00+09:00", parseBatch },
+    );
+    const afterFile1 = await applyLiveUploadMutation(
+      afterBase,
+      { upload: afterBase.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "file1" },
+      [createTextUpload("calculate_1 (1).csv", "work,sale\nfile1,1\n")],
+      { now: () => "2026-06-13T09:41:00+09:00", parseBatch },
+    );
+
+    const nextUpload = afterFile1.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "event",
+        status: "empty",
+        fileCount: 0,
+        sourceFileNames: [],
+        issueCount: 0,
+        lastUploadedAt: undefined,
+      }),
+      expect.objectContaining({
+        slotKey: "mgCorrection",
+        status: "empty",
+        fileCount: 0,
+        sourceFileNames: [],
+        issueCount: 0,
+        lastUploadedAt: undefined,
+      }),
+    ]));
   });
 
   it("replaces the target upload slice with parsed misterblue rows and persisted metadata", async () => {

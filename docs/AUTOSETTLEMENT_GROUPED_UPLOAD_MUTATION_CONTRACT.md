@@ -17,7 +17,7 @@ It freezes the authority boundary first.
 
 ## 2. Current grouped-card scope
 
-This authority applies only to the following future grouped upload cards:
+This authority applies to the following grouped upload cards:
 
 1. `raon / munpia / upload-raon-munpia`
    - shape: slot-based grouped card
@@ -35,6 +35,20 @@ This authority applies only to the following future grouped upload cards:
    - required slot: `seriesApp`
    - parse authority: `docs/SERIES_OPERATING_SPEC.md`
    - fixture/expected-result authority: `docs/SERIES_PARSER_FIXTURE_PLAN.md`
+
+4. `raon / ridibooks / upload-raon-ridibooks`
+   - shape: 4-slot grouped card
+   - UI / parser slot keys: `base`, `file1`, `event`, `mgCorrection`
+   - required slots: `base`, `file1`
+   - optional slots: `event`, `mgCorrection`
+   - parse authority: `docs/RIDIBOOKS_GROUP_PARSER_CONTRACT.md`
+   - formula/row authority: `docs/RIDIBOOKS_CONTRACT.md`
+
+5. `raon / joara / upload-raon-joara`
+   - shape: 2-slot grouped card
+   - UI / parser slot keys: `settlementDetail`, `workSettlement`
+   - required slots: `settlementDetail`, `workSettlement`
+   - parse authority: `docs/JOARA_CONTRACT.md`
 
 All single-file live cards continue to use:
 - `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`
@@ -276,7 +290,7 @@ type GroupedUploadAcceptedFileKind = "csv" | "xlsx" | "html_xls";
 Expected UI slot keys:
 
 ```ts
-"settlement" | "authorCorrection" | "seriesGeneral" | "seriesApp"
+"settlement" | "authorCorrection" | "seriesGeneral" | "seriesApp" | "base" | "file1" | "event" | "mgCorrection" | "settlementDetail" | "workSettlement"
 ```
 
 Series parser/orchestrator input slot keys remain:
@@ -299,7 +313,7 @@ Still not authorized here:
 ## 8. Verification target for future implementation
 
 A future grouped-card implementation is only considered closed when all of the following succeed:
-- grouped slot UI tests for Munpia and Series rendering
+- grouped slot UI tests for Munpia, Series, Ridibooks, and Joara rendering
 - mutation helper tests for staged-slot vs committed-slice behavior
 - tests that prove partial slot uploads do not destructively replace committed rows/issues
 - Munpia tests for settlement replacement, correction replacement, and correction removal recompute behavior

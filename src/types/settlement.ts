@@ -45,7 +45,13 @@ export type BatchPlatformUploadSlotKey =
   | "settlement"
   | "authorCorrection"
   | "seriesGeneral"
-  | "seriesApp";
+  | "seriesApp"
+  | "base"
+  | "file1"
+  | "event"
+  | "mgCorrection"
+  | "settlementDetail"
+  | "workSettlement";
 
 export type BatchPlatformUploadSlot = {
   slotId: string;

@@ -256,6 +256,15 @@ MVP 필요성:
 - 카드 본문에는 최소한 슬롯명, required/optional 여부, 허용 파일 형식, 업로드 상태, 최근 파일명을 표시해야 한다.
 - 현재 mock/UI slice에서는 `BatchPlatformUpload.slots[]`를 통해 슬롯 상태를 표기한다.
 
+리디북스/조아라 grouped 카드 고정 규칙:
+
+- 리디북스 카드는 single-file 카드처럼 보이면 안 되고 `base` / `file1` / `event` / `mgCorrection` 슬롯을 구분해서 보여줘야 한다.
+- 리디북스에서 required 슬롯은 `base`, `file1`이고 optional 슬롯은 `event`, `mgCorrection`이다.
+- 조아라 카드는 single-file 카드처럼 보이면 안 되고 `settlementDetail` / `workSettlement` 슬롯을 구분해서 보여줘야 한다.
+- 조아라 두 슬롯은 모두 required다.
+- 두 플랫폼 모두 현재 slice에서는 grouped shape authority sync가 우선이며, live upload가 아직 없으면 슬롯 단위로 `실업로드 연결 예정` 상태를 드러내야 한다.
+- 두 플랫폼 모두 카드 본문에서 first filename만 보여주는 aggregate 요약에 의존하지 말고, 슬롯별 파일명과 required/optional 여부를 함께 보여줘야 한다.
+
 네이버/시리즈 샘플 기준 일반 매출용 파일과 앱 매출용 파일은 내부 컬럼 구조만으로 구분되지 않는다. 따라서 업로드 화면은 시리즈 파일을 `일반 매출용 3개`와 `앱 매출용 3개`의 슬롯 또는 파일 그룹으로 받는 구조를 전제로 한다.
 
 ### 5.4 처리 단계 스테퍼

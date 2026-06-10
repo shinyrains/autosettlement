@@ -10,8 +10,10 @@ import {
   isLiveUploadSlotEnabled,
   type LiveUploadTarget,
 } from "../state/uploadMutation";
-import type { BatchPlatformUploadSlot, Company } from "../types/settlement";
+import type { BatchPlatformUploadSlot, BatchPlatformUploadSlotKey, Company } from "../types/settlement";
 import { MiniMetric, StatusBadge } from "./ShellPrimitives";
+
+const RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
 
 type UploadSectionProps = {
   uploads: PlatformUploadCard[];
@@ -121,6 +123,7 @@ function UploadCard({
   const complete = upload.fileCount >= upload.requiredFileCount;
   const hasSlots = (upload.slots?.length ?? 0) > 0;
   const canCardUpload = !hasSlots && isUploadEnabled && onUploadFiles !== undefined;
+  const hasAnyLiveSlot = upload.slots?.some((slot) => isLiveUploadSlotEnabled(upload, slot)) ?? false;
   const liveUploadDescription = getLiveUploadDescription({ upload });
   const acceptAttribute = getLiveUploadAcceptAttribute({ upload }) ?? ".xlsx";
   return (
@@ -172,6 +175,9 @@ function UploadCard({
               onUploadFiles={onUploadFiles}
             />
           ))}
+          {!hasAnyLiveSlot ? (
+            <p className="text-xs text-slate-500">grouped 계약 정렬만 반영됨 · 실업로드 연결 예정</p>
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -212,7 +218,9 @@ function SlotUploadCard({
           description={description}
           onUploadFiles={onUploadFiles}
         />
-      ) : null}
+      ) : (
+        <p className="mt-2 text-xs text-slate-500">실업로드 연결 예정</p>
+      )}
     </div>
   );
 }
@@ -233,15 +241,57 @@ function FileUploadControl({
   const inputId = useId();
   const [isUploading, setIsUploading] = useState(false);
   const allowMultiple = target.slotKey === "seriesGeneral" || target.slotKey === "seriesApp";
+  const needsRidibooksEventPeriod = isRidibooksEventTarget(target);
+  const persistedEventPeriod = needsRidibooksEventPeriod
+    ? readPersistedRidibooksEventPeriod(target)
+    : undefined;
+  const [eventStartDate, setEventStartDate] = useState(() => persistedEventPeriod?.startDate ?? "");
+  const [eventEndDate, setEventEndDate] = useState(() => persistedEventPeriod?.endDate ?? "");
+  const hasRidibooksEventPeriod = !needsRidibooksEventPeriod || (eventStartDate.trim() !== "" && eventEndDate.trim() !== "");
+  const uploadTarget = needsRidibooksEventPeriod
+    ? {
+        ...target,
+        eventPeriod: {
+          startDate: eventStartDate,
+          endDate: eventEndDate,
+        },
+      }
+    : target;
 
   return (
     <div className="mt-3 space-y-2">
+      {needsRidibooksEventPeriod ? (
+        <div className="grid grid-cols-2 gap-2 rounded-md border border-line bg-ink-950/80 p-2">
+          <label className="space-y-1 text-xs text-slate-300">
+            <span>이벤트 시작일</span>
+            <input
+              data-testid={`${dataTestId}-event-start`}
+              type="date"
+              value={eventStartDate}
+              onChange={(event) => setEventStartDate(event.currentTarget.value)}
+              className="w-full rounded border border-line bg-ink-900 px-2 py-1 text-xs text-slate-100"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-slate-300">
+            <span>이벤트 종료일</span>
+            <input
+              data-testid={`${dataTestId}-event-end`}
+              type="date"
+              value={eventEndDate}
+              onChange={(event) => setEventEndDate(event.currentTarget.value)}
+              className="w-full rounded border border-line bg-ink-900 px-2 py-1 text-xs text-slate-100"
+            />
+          </label>
+          <p className="col-span-2 text-[11px] text-slate-400">event CSV 업로드 전 eventPeriod를 먼저 입력해야 live 재계산됩니다.</p>
+        </div>
+      ) : null}
       <input
         id={inputId}
         data-testid={dataTestId}
         type="file"
         accept={acceptAttribute}
         multiple={allowMultiple}
+        disabled={!hasRidibooksEventPeriod}
         className="hidden"
         onChange={async (event) => {
           const files = Array.from(event.currentTarget.files ?? []);
@@ -252,7 +302,7 @@ function FileUploadControl({
 
           setIsUploading(true);
           try {
-            await onUploadFiles(target, files);
+            await onUploadFiles(uploadTarget, files);
           } finally {
             setIsUploading(false);
             inputElement.value = "";
@@ -261,11 +311,57 @@ function FileUploadControl({
       />
       <label
         htmlFor={inputId}
-        className="inline-flex cursor-pointer items-center rounded-md border border-line bg-ink-950 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-ink-900"
+        className={[
+          "inline-flex items-center rounded-md border border-line bg-ink-950 px-3 py-2 text-xs font-semibold text-slate-200 transition",
+          hasRidibooksEventPeriod ? "cursor-pointer hover:bg-ink-900" : "cursor-not-allowed opacity-60",
+        ].join(" ")}
       >
         {isUploading ? "처리 중..." : "실파일 업로드"}
       </label>
       {description ? <p className="text-xs text-slate-400">현재 live path: {description}</p> : null}
     </div>
   );
+}
+
+function isRidibooksEventTarget(target: LiveUploadTarget): boolean {
+  return target.upload.platform === "ridibooks" && target.slotKey === "event";
+}
+
+type PersistedRidibooksEventPeriod = {
+  startDate: string;
+  endDate: string;
+};
+
+type PersistedRidibooksSlotSnapshot = {
+  eventPeriod?: PersistedRidibooksEventPeriod;
+};
+
+function readPersistedRidibooksEventPeriod(target: LiveUploadTarget): PersistedRidibooksEventPeriod | undefined {
+  const storage = typeof window === "undefined" ? undefined : window.localStorage;
+  if (!storage || !target.slotKey) {
+    return undefined;
+  }
+
+  const raw = storage.getItem(RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY);
+  if (!raw) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, PersistedRidibooksSlotSnapshot>;
+    const snapshot = parsed?.[createGroupedSnapshotKey(target.upload.batchId, target.upload.uploadId, target.slotKey)];
+    const startDate = snapshot?.eventPeriod?.startDate?.trim();
+    const endDate = snapshot?.eventPeriod?.endDate?.trim();
+    if (!startDate || !endDate) {
+      return undefined;
+    }
+
+    return { startDate, endDate };
+  } catch {
+    return undefined;
+  }
+}
+
+function createGroupedSnapshotKey(batchId: string, uploadId: string, slotKey: BatchPlatformUploadSlotKey): string {
+  return [batchId, uploadId, slotKey].join("\u001f");
 }

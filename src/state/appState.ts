@@ -11,6 +11,7 @@ import type { Batch, ParseIssue, SettlementRow } from "../types/settlement";
 export const APP_STATE_STORAGE_KEY = "autosettlement.active-batch.v1";
 const MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
 const SERIES_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.series-grouped-slot-snapshots.v1";
+const RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
 const APP_STATE_VERSION = 1 as const;
 
 export type AppDraftState = {
@@ -155,6 +156,7 @@ function getBrowserStorage(): Storage | undefined {
 function clearGroupedUploadSnapshotSidecar(storage: Storage): void {
   storage.removeItem(MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY);
   storage.removeItem(SERIES_GROUPED_SNAPSHOT_STORAGE_KEY);
+  storage.removeItem(RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY);
 }
 
 function clone<T>(value: T): T {
