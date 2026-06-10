@@ -28,7 +28,14 @@ type AppShellProps = {
 };
 
 export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
-  const { state, setSelectedRowId, setReviewDecisionStatus, resetState, replaceState } = usePersistedAppState();
+  const {
+    state,
+    setSelectedRowId,
+    setReviewDecisionStatus,
+    updateReviewRow,
+    resetState,
+    replaceState,
+  } = usePersistedAppState();
   const [reviewFilters, setReviewFilters] = useState(defaultReviewFilterState);
   const reviewOverview = useMemo(
     () => getReviewOverview(state.rows, state.issues, state.reviewDecisions),
@@ -106,6 +113,7 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
               confirmedRowCount={reviewOverview.confirmedRowCount}
               onConfirmRow={(rowId) => setReviewDecisionStatus(rowId, "confirmed")}
               onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
+              onSaveRowEdits={(rowId, fields) => updateReviewRow(rowId, fields)}
             />
             <ExportSection
               exportPackages={exportPackages}

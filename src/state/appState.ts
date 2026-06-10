@@ -105,6 +105,19 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
         reviewDecisions: upsertReviewDecisionStatus(currentState.reviewDecisions, rowId, status),
       }));
     },
+    updateReviewRow: (rowId: string, fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>) => {
+      setState((currentState) => normalizeAppDraftState({
+        ...currentState,
+        rows: currentState.rows.map((row) => (
+          row.rowId === rowId
+            ? {
+                ...row,
+                ...fields,
+              }
+            : row
+        )),
+      }));
+    },
     replaceState: (nextState: AppDraftState | ((currentState: AppDraftState) => AppDraftState)) => {
       setState((currentState) => normalizeAppDraftState(
         typeof nextState === "function" ? nextState(currentState) : nextState,

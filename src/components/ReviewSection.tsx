@@ -5,7 +5,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Layers3, Search } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   companyLabels,
   platformLabels,
@@ -30,6 +30,10 @@ type ReviewSectionProps = {
   confirmedRowCount: number;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
+  onSaveRowEdits: (
+    rowId: string,
+    fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>,
+  ) => void;
 };
 
 export function ReviewSection({
@@ -47,6 +51,7 @@ export function ReviewSection({
   confirmedRowCount,
   onConfirmRow,
   onResetRowConfirmation,
+  onSaveRowEdits,
 }: ReviewSectionProps) {
   const columnHelper = createColumnHelper<SettlementRow>();
   const columns = useMemo(
@@ -171,6 +176,7 @@ export function ReviewSection({
         selectedRowIssues={selectedRowIssues}
         onConfirmRow={onConfirmRow}
         onResetRowConfirmation={onResetRowConfirmation}
+        onSaveRowEdits={onSaveRowEdits}
       />
     </section>
   );
@@ -182,13 +188,37 @@ function ReviewDetail({
   selectedRowIssues,
   onConfirmRow,
   onResetRowConfirmation,
+  onSaveRowEdits,
 }: {
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
   selectedRowIssues: ParseIssue[];
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
+  onSaveRowEdits: (
+    rowId: string,
+    fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>,
+  ) => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftFields, setDraftFields] = useState({
+    mailerContentTitle: "",
+    author: "",
+    publisher: "",
+  });
+
+  useEffect(() => {
+    if (!selectedRow) {
+      return;
+    }
+
+    setDraftFields({
+      mailerContentTitle: selectedRow.mailerContentTitle,
+      author: selectedRow.author,
+      publisher: selectedRow.publisher ?? "",
+    });
+  }, [selectedRow]);
+
   if (!selectedRow) {
     return (
       <aside className="rounded-md border border-line bg-ink-850 p-5">
@@ -220,6 +250,13 @@ function ReviewDetail({
       <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 액션</p>
         <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700"
+            onClick={() => setIsEditing(true)}
+          >
+            검수 행 편집
+          </button>
           {selectedRowReviewStatus === "confirmed" ? (
             <button
               type="button"
@@ -238,6 +275,60 @@ function ReviewDetail({
             </button>
           )}
         </div>
+        {isEditing ? (
+          <div className="mt-4 space-y-3 rounded-md border border-line bg-ink-850 p-3">
+            <label className="block text-sm text-slate-300">
+              <span className="mb-1 block text-xs font-semibold text-slate-400">메일러 컨텐츠</span>
+              <input
+                aria-label="메일러 컨텐츠 편집"
+                className="w-full rounded-md border border-line bg-ink-900 px-3 py-2 text-sm text-slate-100 outline-none"
+                value={draftFields.mailerContentTitle}
+                onChange={(event) => setDraftFields((current) => ({ ...current, mailerContentTitle: event.target.value }))}
+              />
+            </label>
+            <label className="block text-sm text-slate-300">
+              <span className="mb-1 block text-xs font-semibold text-slate-400">작가</span>
+              <input
+                aria-label="작가 편집"
+                className="w-full rounded-md border border-line bg-ink-900 px-3 py-2 text-sm text-slate-100 outline-none"
+                value={draftFields.author}
+                onChange={(event) => setDraftFields((current) => ({ ...current, author: event.target.value }))}
+              />
+            </label>
+            <label className="block text-sm text-slate-300">
+              <span className="mb-1 block text-xs font-semibold text-slate-400">출판사</span>
+              <input
+                aria-label="출판사 편집"
+                className="w-full rounded-md border border-line bg-ink-900 px-3 py-2 text-sm text-slate-100 outline-none"
+                value={draftFields.publisher}
+                onChange={(event) => setDraftFields((current) => ({ ...current, publisher: event.target.value }))}
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+                onClick={() => onSaveRowEdits(selectedRow.rowId, draftFields)}
+              >
+                검수 편집 저장
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700"
+                onClick={() => {
+                  setDraftFields({
+                    mailerContentTitle: selectedRow.mailerContentTitle,
+                    author: selectedRow.author,
+                    publisher: selectedRow.publisher ?? "",
+                  });
+                  setIsEditing(false);
+                }}
+              >
+                편집 취소
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
       <div className="mt-6 border-t border-line pt-5">
         <p className="text-sm font-semibold text-slate-300">연결된 이슈</p>

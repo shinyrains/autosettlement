@@ -294,6 +294,33 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("edits the selected review row and persists the changed fields", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "검수 행 편집" }));
+    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "검은 별의 서점(app) [수정]" } });
+    fireEvent.change(screen.getByLabelText("작가 편집"), { target: { value: "한도윤 외 1명" } });
+    fireEvent.change(screen.getByLabelText("출판사 편집"), { target: { value: "라온 노벨" } });
+    fireEvent.click(screen.getByRole("button", { name: "검수 편집 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점(app) [수정]" })).toBeInTheDocument();
+      expect(screen.getByDisplayValue("검은 별의 서점(app) [수정]")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("한도윤 외 1명")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("라온 노벨")).toBeInTheDocument();
+
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const editedRow = parsedDraft.rows.find((row: { rowId: string }) => row.rowId === "row-002");
+      expect(editedRow).toEqual(expect.objectContaining({
+        mailerContentTitle: "검은 별의 서점(app) [수정]",
+        author: "한도윤 외 1명",
+        publisher: "라온 노벨",
+      }));
+    });
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     render(<App />);
 
