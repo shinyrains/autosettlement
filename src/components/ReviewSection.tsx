@@ -4,7 +4,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Layers3, Search } from "lucide-react";
+import { ArrowUpDown, Layers3, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   companyLabels,
@@ -130,6 +130,22 @@ export function ReviewSection({
                 { value: "with_issues", label: "이슈 포함 행만" },
               ]}
               onChange={(value) => onChangeFilters({ ...filters, issueMode: value as ReviewFilterState["issueMode"] })}
+            />
+            <SearchField
+              label="검수 검색"
+              value={filters.searchQuery}
+              onChange={(value) => onChangeFilters({ ...filters, searchQuery: value })}
+            />
+            <FilterSelect
+              icon={ArrowUpDown}
+              label="정렬"
+              value={filters.sortMode}
+              options={[
+                { value: "source", label: "원본 순서" },
+                { value: "settlement_desc", label: "정산금 높은 순" },
+                { value: "title", label: "메일러 제목순" },
+              ]}
+              onChange={(value) => onChangeFilters({ ...filters, sortMode: value as ReviewFilterState["sortMode"] })}
             />
           </div>
         </div>
@@ -378,6 +394,30 @@ function FilterSelect({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+function SearchField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-2 rounded-md border border-line bg-ink-800 px-3 py-2 text-slate-300">
+      <Search className="h-4 w-4 text-signal" />
+      <span className="sr-only">{label}</span>
+      <input
+        aria-label={label}
+        className="w-44 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
+        placeholder="작품/메일러/작가/출판사"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }

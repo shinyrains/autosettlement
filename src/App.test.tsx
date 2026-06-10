@@ -315,18 +315,27 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
   });
 
-  it("filters review rows through the actual app-shell controls", () => {
+  it("filters and sorts review rows through the actual app-shell controls", () => {
     render(<App />);
 
     fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
     expect(screen.queryByText("밤의 계산서")).not.toBeInTheDocument();
     expect(screen.getAllByText("달빛 회계법").length).toBeGreaterThan(0);
 
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "항구" } });
+    expect(screen.queryByText("달빛 회계법")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "파란 항구의 기록(app)" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "with_issues" } });
     expect(screen.queryByText("파란 항구의 기록(app)")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
     expect(screen.getByText("이슈 행")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "all" } });
+    fireEvent.change(screen.getByLabelText("정렬"), { target: { value: "settlement_desc" } });
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("파란 항구의 기록");
   });
 
   it("confirms the selected review row and persists the review decision", async () => {

@@ -224,10 +224,17 @@ describe("review selectors", () => {
     expect(getAvailablePlatforms(rows, issues)).toEqual(["guru_company", "kyobo", "series"]);
   });
 
-  it("filters review rows by company, platform, and issue mode", () => {
+  it("filters review rows by company, platform, issue mode, and search query", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, company: "sr" })).toEqual([rows[1], rows[2]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, platform: "guru_company" })).toEqual([rows[0]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, issueMode: "with_issues" })).toEqual([rows[2]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, searchQuery: "바람" })).toEqual([rows[2]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, searchQuery: "에스알" })).toEqual([rows[1], rows[2]]);
+  });
+
+  it("sorts review rows by settlement amount and title when requested", () => {
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "settlement_desc" })).toEqual([rows[2], rows[1], rows[0]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "title" })).toEqual([rows[0], rows[2], rows[1]]);
   });
 
   it("returns selected row fallback and overview counts", () => {

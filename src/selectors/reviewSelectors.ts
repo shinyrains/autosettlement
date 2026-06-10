@@ -45,11 +45,14 @@ export type IssueSummary = {
 export type ReviewCompanyFilter = Company | "all";
 export type ReviewPlatformFilter = Platform | "all";
 export type ReviewIssueFilter = "all" | "with_issues";
+export type ReviewSortMode = "source" | "settlement_desc" | "title";
 
 export type ReviewFilterState = {
   company: ReviewCompanyFilter;
   platform: ReviewPlatformFilter;
   issueMode: ReviewIssueFilter;
+  searchQuery: string;
+  sortMode: ReviewSortMode;
 };
 
 export type ReviewOverview = {
@@ -65,6 +68,8 @@ export const defaultReviewFilterState: ReviewFilterState = {
   company: "all",
   platform: "all",
   issueMode: "all",
+  searchQuery: "",
+  sortMode: "source",
 };
 
 const companyOrder: Company[] = ["raon", "sr"];
@@ -166,7 +171,9 @@ export function getFilteredReviewRows(
   rows: SettlementRow[],
   filters: ReviewFilterState,
 ): SettlementRow[] {
-  return rows.filter((row) => {
+  const normalizedQuery = filters.searchQuery.trim().toLocaleLowerCase("ko-KR");
+
+  const filteredRows = rows.filter((row) => {
     if (filters.company !== "all" && row.company !== filters.company) {
       return false;
     }
@@ -176,8 +183,18 @@ export function getFilteredReviewRows(
     if (filters.issueMode === "with_issues" && row.issues.length === 0) {
       return false;
     }
+    if (normalizedQuery.length > 0) {
+      const haystack = [row.workTitle, row.mailerContentTitle, row.author, row.publisher ?? ""]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR");
+      if (!haystack.includes(normalizedQuery)) {
+        return false;
+      }
+    }
     return true;
   });
+
+  return sortReviewRows(filteredRows, filters.sortMode);
 }
 
 export function getSelectedReviewRow(rows: SettlementRow[], selectedRowId: string): SettlementRow | undefined {
@@ -209,6 +226,35 @@ export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[], r
     platformCount: getAvailablePlatforms(rows, issues).length,
     confirmedRowCount: getConfirmedReviewRowCount(rows, reviewDecisions),
   };
+}
+
+function sortReviewRows(rows: SettlementRow[], sortMode: ReviewSortMode): SettlementRow[] {
+  const sortedRows = [...rows];
+
+  switch (sortMode) {
+    case "settlement_desc":
+      sortedRows.sort((left, right) => {
+        if (right.settlementAmount !== left.settlementAmount) {
+          return right.settlementAmount - left.settlementAmount;
+        }
+        return left.rowId.localeCompare(right.rowId, "ko-KR");
+      });
+      break;
+    case "title":
+      sortedRows.sort((left, right) => {
+        const titleOrder = left.mailerContentTitle.localeCompare(right.mailerContentTitle, "ko-KR");
+        if (titleOrder !== 0) {
+          return titleOrder;
+        }
+        return left.rowId.localeCompare(right.rowId, "ko-KR");
+      });
+      break;
+    case "source":
+    default:
+      break;
+  }
+
+  return sortedRows;
 }
 
 function getOrCreateCompanySummary(
