@@ -50,6 +50,15 @@ function readEpyrusSampleCsv(): Uint8Array {
   );
 }
 
+function readYes24SampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/yes24/B2C_List_260608_153729.xlsx",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -89,12 +98,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, and epyrus cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, and yes24 cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(4);
+    expect(enabledUploads).toHaveLength(5);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -115,6 +124,11 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "epyrus",
         uploadId: "upload-raon-epyrus",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "yes24",
+        uploadId: "upload-sr-yes24",
       }),
     ]));
   });
@@ -323,6 +337,52 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "epyrus")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed yes24 rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-sr-yes24");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "B2C_List_260608_153729.xlsx",
+        arrayBuffer: async () => {
+          const bytes = readYes24SampleWorkbook().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-10T00:30:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-sr-yes24");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 15,
+      issueCount: 0,
+      sourceFileNames: ["B2C_List_260608_153729.xlsx"],
+      lastUploadedAt: "2026-06-10T00:30:00+09:00",
+    }));
+
+    const yes24Rows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "yes24");
+    expect(yes24Rows).toHaveLength(15);
+    expect(yes24Rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "나 혼자 히든농장 01권",
+        mailerContentTitle: "나 혼자 히든농장 01권",
+        author: "한얼23",
+        publisher: "Arete",
+        grossSales: 0,
+        settlementAmount: 0,
+        sourceFileName: "B2C_List_260608_153729.xlsx",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "yes24")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 

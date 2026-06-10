@@ -54,6 +54,15 @@ function readEpyrusSampleCsv(): Uint8Array {
   );
 }
 
+function readYes24SampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/yes24/B2C_List_260608_153729.xlsx",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): File {
   const html = `<table><tr><td>${name}</td></tr></table>`;
   const bytes = new TextEncoder().encode(html).buffer;
@@ -298,6 +307,39 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("2026년04월정산내역_라온E＆M.csv")).toBeInTheDocument();
+  });
+
+  it("parses a real yes24 workbook through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-sr-yes24") as HTMLInputElement;
+    const bytes = readYes24SampleWorkbook().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "B2C_List_260608_153729.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-sr-yes24");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 15,
+        sourceFileNames: ["B2C_List_260608_153729.xlsx"],
+      }));
+    });
+
+    expect(screen.getByText("B2C_List_260608_153729.xlsx")).toBeInTheDocument();
   });
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {

@@ -96,6 +96,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["csv"],
     uiLabel: "에피루스 단일 CSV 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-sr-yes24",
+    company: "sr",
+    platform: "yes24",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "예스24 단일 XLSX 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [
