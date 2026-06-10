@@ -7,13 +7,15 @@ import {
 import {
   getLiveUploadAcceptAttribute,
   getLiveUploadDescription,
+  isLiveUploadSlotEnabled,
+  type LiveUploadTarget,
 } from "../state/uploadMutation";
-import type { Company } from "../types/settlement";
+import type { BatchPlatformUploadSlot, Company } from "../types/settlement";
 import { MiniMetric, StatusBadge } from "./ShellPrimitives";
 
 type UploadSectionProps = {
   uploads: PlatformUploadCard[];
-  onUploadFiles?: (upload: PlatformUploadCard, files: File[]) => Promise<void> | void;
+  onUploadFiles?: (target: LiveUploadTarget, files: File[]) => Promise<void> | void;
   isUploadEnabled?: (upload: PlatformUploadCard) => boolean;
 };
 
@@ -76,11 +78,9 @@ function UploadCard({
 }) {
   const complete = upload.fileCount >= upload.requiredFileCount;
   const hasSlots = (upload.slots?.length ?? 0) > 0;
-  const inputId = useId();
-  const [isUploading, setIsUploading] = useState(false);
-  const canUpload = isUploadEnabled && onUploadFiles !== undefined;
-  const liveUploadDescription = getLiveUploadDescription(upload);
-  const acceptAttribute = getLiveUploadAcceptAttribute(upload) ?? ".xlsx";
+  const canCardUpload = !hasSlots && isUploadEnabled && onUploadFiles !== undefined;
+  const liveUploadDescription = getLiveUploadDescription({ upload });
+  const acceptAttribute = getLiveUploadAcceptAttribute({ upload }) ?? ".xlsx";
   return (
     <article className="rounded-md border border-line bg-ink-800 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -101,40 +101,16 @@ function UploadCard({
         />
       </div>
       <p className="mt-3 truncate text-xs text-slate-400">{upload.sourceFileNames[0] ?? "파일 대기"}</p>
-      {canUpload ? (
-        <div className="mt-3 space-y-2">
-          <input
-            id={inputId}
-            data-testid={`upload-input-${upload.uploadId}`}
-            type="file"
-            accept={acceptAttribute}
-            className="hidden"
-            onChange={async (event) => {
-              const files = Array.from(event.currentTarget.files ?? []);
-              const inputElement = event.currentTarget;
-              if (files.length === 0 || !onUploadFiles) {
-                return;
-              }
-
-              setIsUploading(true);
-              try {
-                await onUploadFiles(upload, files);
-              } finally {
-                setIsUploading(false);
-                inputElement.value = "";
-              }
-            }}
-          />
-          <label
-            htmlFor={inputId}
-            className="inline-flex cursor-pointer items-center rounded-md border border-line bg-ink-950 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-ink-900"
-          >
-            {isUploading ? "처리 중..." : "실파일 업로드"}
-          </label>
-          <p className="text-xs text-slate-400">현재 live path: {liveUploadDescription}</p>
-        </div>
+      {canCardUpload ? (
+        <FileUploadControl
+          target={{ upload }}
+          dataTestId={`upload-input-${upload.uploadId}`}
+          acceptAttribute={acceptAttribute}
+          description={liveUploadDescription}
+          onUploadFiles={onUploadFiles}
+        />
       ) : null}
-      {!canUpload && !hasSlots ? (
+      {!canCardUpload && !hasSlots ? (
         <p className="mt-3 text-xs text-slate-500">실업로드 연결 예정</p>
       ) : null}
       {upload.requiredFileCount === 6 ? (
@@ -144,21 +120,105 @@ function UploadCard({
         <div className="mt-4 space-y-2 rounded-md border border-line bg-ink-950/70 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">슬롯 상태</p>
           {upload.slots?.map((slot) => (
-            <div key={slot.slotId} className="rounded-md border border-line bg-ink-900 px-3 py-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">{slot.label}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {slot.required ? "required" : "optional"} · {slot.acceptedFileKinds.join("/")}
-                  </p>
-                </div>
-                <StatusBadge status={slot.status} />
-              </div>
-              <p className="mt-2 truncate text-xs text-slate-400">{slot.sourceFileNames[0] ?? "파일 대기"}</p>
-            </div>
+            <SlotUploadCard
+              key={slot.slotId}
+              slot={slot}
+              upload={upload}
+              onUploadFiles={onUploadFiles}
+            />
           ))}
         </div>
       ) : null}
     </article>
+  );
+}
+
+function SlotUploadCard({
+  slot,
+  upload,
+  onUploadFiles,
+}: {
+  slot: BatchPlatformUploadSlot;
+  upload: PlatformUploadCard;
+  onUploadFiles?: UploadSectionProps["onUploadFiles"];
+}) {
+  const target: LiveUploadTarget = { upload, slotKey: slot.slotKey };
+  const canUpload = isLiveUploadSlotEnabled(upload, slot) && onUploadFiles !== undefined;
+  const acceptAttribute = getLiveUploadAcceptAttribute(target) ?? ".xlsx";
+  const description = getLiveUploadDescription(target);
+
+  return (
+    <div className="rounded-md border border-line bg-ink-900 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-white">{slot.label}</p>
+          <p className="mt-1 text-xs text-slate-400">
+            {slot.required ? "required" : "optional"} · {slot.acceptedFileKinds.join("/")}
+          </p>
+        </div>
+        <StatusBadge status={slot.status} />
+      </div>
+      <p className="mt-2 truncate text-xs text-slate-400">{slot.sourceFileNames[0] ?? "파일 대기"}</p>
+      {canUpload ? (
+        <FileUploadControl
+          target={target}
+          dataTestId={`upload-input-${slot.slotId}`}
+          acceptAttribute={acceptAttribute}
+          description={description}
+          onUploadFiles={onUploadFiles}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function FileUploadControl({
+  target,
+  dataTestId,
+  acceptAttribute,
+  description,
+  onUploadFiles,
+}: {
+  target: LiveUploadTarget;
+  dataTestId: string;
+  acceptAttribute: string;
+  description: string | undefined;
+  onUploadFiles?: UploadSectionProps["onUploadFiles"];
+}) {
+  const inputId = useId();
+  const [isUploading, setIsUploading] = useState(false);
+
+  return (
+    <div className="mt-3 space-y-2">
+      <input
+        id={inputId}
+        data-testid={dataTestId}
+        type="file"
+        accept={acceptAttribute}
+        className="hidden"
+        onChange={async (event) => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          const inputElement = event.currentTarget;
+          if (files.length === 0 || !onUploadFiles) {
+            return;
+          }
+
+          setIsUploading(true);
+          try {
+            await onUploadFiles(target, files);
+          } finally {
+            setIsUploading(false);
+            inputElement.value = "";
+          }
+        }}
+      />
+      <label
+        htmlFor={inputId}
+        className="inline-flex cursor-pointer items-center rounded-md border border-line bg-ink-950 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-ink-900"
+      >
+        {isUploading ? "처리 중..." : "실파일 업로드"}
+      </label>
+      {description ? <p className="text-xs text-slate-400">현재 live path: {description}</p> : null}
+    </div>
   );
 }

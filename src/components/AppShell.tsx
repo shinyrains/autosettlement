@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { createExportPackages } from "../exporters";
 import { usePersistedAppState } from "../state/appState";
-import { applyLiveUploadMutation, isLiveUploadEnabled } from "../state/uploadMutation";
+import {
+  applyLiveUploadMutation,
+  isLiveUploadEnabled,
+  type LiveUploadTarget,
+} from "../state/uploadMutation";
 import { BatchHeader } from "./BatchHeader";
 import { ExportSection } from "./ExportSection";
 import { ReviewSection } from "./ReviewSection";
@@ -10,7 +14,11 @@ import { StatusSection } from "./StatusSection";
 import { UploadSection } from "./UploadSection";
 import { WorkflowStrip } from "./WorkflowStrip";
 
-export function AppShell() {
+type AppShellProps = {
+  uploadMutationDependencies?: Parameters<typeof applyLiveUploadMutation>[3];
+};
+
+export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
   const { state, setSelectedRowId, resetState, replaceState } = usePersistedAppState();
   const selectedRow = state.rows.find((row) => row.rowId === state.selectedRowId) ?? state.rows[0];
   const selectedRowIssues = selectedRow
@@ -29,8 +37,8 @@ export function AppShell() {
     };
   }, [exportPackages.length, state.rows.length, state.uploads]);
 
-  const handleUploadFiles = async (upload: (typeof state.uploads)[number], files: File[]) => {
-    const nextState = await applyLiveUploadMutation(state, upload, files);
+  const handleUploadFiles = async (target: LiveUploadTarget, files: File[]) => {
+    const nextState = await applyLiveUploadMutation(state, target, files, uploadMutationDependencies);
     replaceState(nextState);
   };
 

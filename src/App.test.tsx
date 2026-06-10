@@ -3,13 +3,17 @@ import * as path from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import App from "./App";
+import { AppShell } from "./components/AppShell";
+import type { BatchParseOrchestratorInput, BatchParseOrchestratorResult } from "./orchestrators/batchParseOrchestrator";
 import {
   APP_STATE_STORAGE_KEY,
   createSeedAppState,
 } from "./state/appState";
+import { resetLiveUploadRuntimeState } from "./state/uploadMutation";
 
 afterEach(() => {
   cleanup();
+  resetLiveUploadRuntimeState();
   window.localStorage.removeItem(APP_STATE_STORAGE_KEY);
 });
 
@@ -173,5 +177,116 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("북큐브 상세매출 2026-5~2026-5 (1).xlsx")).toBeInTheDocument();
+  });
+
+  it("persists munpia grouped slot uploads through the browser shell", async () => {
+    render(
+      <AppShell
+        uploadMutationDependencies={{
+          now: () => "2026-06-11T09:30:00+09:00",
+          parseBatch: ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+            rows: files.some((file) => file.slot === "authorCorrection")
+              ? [{
+                  rowId: "munpia-app-shell-row-002",
+                  company: "raon",
+                  platform: "munpia",
+                  saleMonth: "2026-06",
+                  workTitle: "문피아 쉘 보정 반영",
+                  mailerContentTitle: "문피아 쉘 보정 반영",
+                  author: "서지후",
+                  grossSales: 15000,
+                  settlementAmount: 6000,
+                  sourceFileName: "munpia-shell.xlsx",
+                  sourceRowIndex: 9,
+                  issues: [],
+                }]
+              : [{
+                  rowId: "munpia-app-shell-row-001",
+                  company: "raon",
+                  platform: "munpia",
+                  saleMonth: "2026-06",
+                  workTitle: "문피아 쉘 정산 초안",
+                  mailerContentTitle: "문피아 쉘 정산 초안",
+                  author: "서지후",
+                  grossSales: 11000,
+                  settlementAmount: 4400,
+                  sourceFileName: "munpia-shell.xlsx",
+                  sourceRowIndex: 8,
+                  issues: [],
+                }],
+            issues: [],
+            fileResults: files.map((file) => ({
+              fileName: file.fileName,
+              company: "raon" as const,
+              platform: "munpia" as const,
+              fileKind: file.slot === "authorCorrection" ? "csv" as const : "xlsx" as const,
+              saleMonth: "2026-06",
+              status: "success" as const,
+              rowCount: 1,
+              issueCount: 0,
+            })),
+          }),
+        }}
+      />,
+    );
+
+    const settlementInput = screen.getByTestId("upload-input-upload-raon-munpia-settlement") as HTMLInputElement;
+    const settlementBytes = new Uint8Array([1, 2, 3]).buffer;
+    const settlementFile = new File(
+      [settlementBytes],
+      "munpia-shell.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(settlementFile, "arrayBuffer", {
+      value: async () => settlementBytes.slice(0),
+    });
+
+    fireEvent.change(settlementInput, { target: { files: [settlementFile] } });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-munpia");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 1,
+        sourceFileNames: ["munpia-shell.xlsx"],
+      }));
+    });
+
+    const correctionInput = screen.getByTestId("upload-input-upload-raon-munpia-author-correction") as HTMLInputElement;
+    const correctionBytes = new TextEncoder().encode("작품,작가\nA,B\n").buffer;
+    const correctionFile = new File([correctionBytes], "munpia-shell-correction.csv", { type: "text/csv" });
+    Object.defineProperty(correctionFile, "arrayBuffer", {
+      value: async () => correctionBytes.slice(0),
+    });
+
+    fireEvent.change(correctionInput, { target: { files: [correctionFile] } });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-munpia");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 2,
+        parsedRowCount: 1,
+        sourceFileNames: ["munpia-shell.xlsx", "munpia-shell-correction.csv"],
+      }));
+      expect(liveUpload.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          slotKey: "settlement",
+          status: "parsed",
+          sourceFileNames: ["munpia-shell.xlsx"],
+        }),
+        expect.objectContaining({
+          slotKey: "authorCorrection",
+          status: "parsed",
+          sourceFileNames: ["munpia-shell-correction.csv"],
+        }),
+      ]));
+      expect(persistedDraft.rows).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "munpia-app-shell-row-002", workTitle: "문피아 쉘 보정 반영" }),
+      ]));
+    });
   });
 });

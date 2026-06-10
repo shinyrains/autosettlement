@@ -9,6 +9,7 @@ import {
 import type { Batch, ParseIssue, SettlementRow } from "../types/settlement";
 
 export const APP_STATE_STORAGE_KEY = "autosettlement.active-batch.v1";
+const MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
 const APP_STATE_VERSION = 1 as const;
 
 export type AppDraftState = {
@@ -44,16 +45,19 @@ export function loadAppDraftState(storage: Storage | undefined = getBrowserStora
 
   const raw = storage.getItem(APP_STATE_STORAGE_KEY);
   if (!raw) {
+    clearGroupedUploadSnapshotSidecar(storage);
     return createSeedAppState();
   }
 
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isAppDraftStateShape(parsed)) {
+      clearGroupedUploadSnapshotSidecar(storage);
       return createSeedAppState();
     }
     return normalizeAppDraftState(parsed);
   } catch {
+    clearGroupedUploadSnapshotSidecar(storage);
     return createSeedAppState();
   }
 }
@@ -71,6 +75,9 @@ export function saveAppDraftState(
 
 export function clearAppDraftState(storage: Storage | undefined = getBrowserStorage()): void {
   storage?.removeItem(APP_STATE_STORAGE_KEY);
+  if (storage) {
+    clearGroupedUploadSnapshotSidecar(storage);
+  }
 }
 
 export function usePersistedAppState(storage: Storage | undefined = getBrowserStorage()) {
@@ -94,6 +101,9 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
       ));
     },
     resetState: () => {
+      if (storage) {
+        clearGroupedUploadSnapshotSidecar(storage);
+      }
       setState(createSeedAppState());
     },
   };
@@ -139,6 +149,10 @@ function getBrowserStorage(): Storage | undefined {
   }
 
   return window.localStorage;
+}
+
+function clearGroupedUploadSnapshotSidecar(storage: Storage): void {
+  storage.removeItem(MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY);
 }
 
 function clone<T>(value: T): T {
