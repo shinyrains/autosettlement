@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
 import type { ParseIssue, SettlementRow } from "../types/settlement";
 import {
+  getConfirmedReviewRowCount,
+  getReviewDecisionStatus,
   defaultReviewFilterState,
   getAvailableCompanies,
   getAvailablePlatforms,
@@ -15,6 +17,19 @@ import {
   getRowsByCompany,
   getSelectedReviewRow,
 } from "./reviewSelectors";
+
+const reviewDecisions = [
+  {
+    rowId: "row-sr-kyobo",
+    status: "confirmed" as const,
+    updatedAt: "2026-06-11T09:15:00.000Z",
+  },
+  {
+    rowId: "missing-row",
+    status: "confirmed" as const,
+    updatedAt: "2026-06-11T09:16:00.000Z",
+  },
+];
 
 const rows: SettlementRow[] = [
   {
@@ -218,12 +233,16 @@ describe("review selectors", () => {
   it("returns selected row fallback and overview counts", () => {
     expect(getSelectedReviewRow(rows, "row-sr-kyobo-2")).toEqual(rows[2]);
     expect(getSelectedReviewRow(rows, "missing-row")).toEqual(rows[0]);
-    expect(getReviewOverview(rows, issues)).toEqual({
+    expect(getReviewDecisionStatus(reviewDecisions, "row-sr-kyobo")).toBe("confirmed");
+    expect(getReviewDecisionStatus(reviewDecisions, "row-raon-guru")).toBe("pending");
+    expect(getConfirmedReviewRowCount(rows, reviewDecisions)).toBe(1);
+    expect(getReviewOverview(rows, issues, reviewDecisions)).toEqual({
       totalRows: 3,
       totalIssues: 2,
       rowsWithIssues: 1,
       companyCount: 2,
       platformCount: 3,
+      confirmedRowCount: 1,
     });
   });
 });

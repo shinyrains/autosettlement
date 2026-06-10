@@ -6,7 +6,7 @@ import {
   mockUploads,
   type PlatformUploadCard,
 } from "../data/mockSettlement";
-import type { Batch, ParseIssue, SettlementRow } from "../types/settlement";
+import type { Batch, ParseIssue, ReviewDecision, ReviewDecisionStatus, SettlementRow } from "../types/settlement";
 
 export const APP_STATE_STORAGE_KEY = "autosettlement.active-batch.v1";
 const MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
@@ -21,6 +21,7 @@ export type AppDraftState = {
   rows: SettlementRow[];
   issues: ParseIssue[];
   selectedRowId: string;
+  reviewDecisions: ReviewDecision[];
 };
 
 export function createSeedAppState(): AppDraftState {
@@ -37,6 +38,7 @@ export function createSeedAppState(): AppDraftState {
     rows,
     issues,
     selectedRowId: rows[1]?.rowId ?? rows[0]?.rowId ?? "",
+    reviewDecisions: [],
   });
 }
 
@@ -97,6 +99,12 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
         selectedRowId,
       }));
     },
+    setReviewDecisionStatus: (rowId: string, status: ReviewDecisionStatus) => {
+      setState((currentState) => normalizeAppDraftState({
+        ...currentState,
+        reviewDecisions: upsertReviewDecisionStatus(currentState.reviewDecisions, rowId, status),
+      }));
+    },
     replaceState: (nextState: AppDraftState | ((currentState: AppDraftState) => AppDraftState)) => {
       setState((currentState) => normalizeAppDraftState(
         typeof nextState === "function" ? nextState(currentState) : nextState,
@@ -128,6 +136,7 @@ function normalizeAppDraftState(state: AppDraftState): AppDraftState {
     rows,
     issues: clone(state.issues),
     selectedRowId,
+    reviewDecisions: normalizeReviewDecisions(state.reviewDecisions ?? [], rows),
   };
 }
 
@@ -142,7 +151,41 @@ function isAppDraftStateShape(value: unknown): value is AppDraftState {
     && Array.isArray(candidate.uploads)
     && Array.isArray(candidate.rows)
     && Array.isArray(candidate.issues)
-    && typeof candidate.selectedRowId === "string";
+    && typeof candidate.selectedRowId === "string"
+    && (candidate.reviewDecisions === undefined || Array.isArray(candidate.reviewDecisions));
+}
+
+function normalizeReviewDecisions(reviewDecisions: ReviewDecision[], rows: SettlementRow[]): ReviewDecision[] {
+  const rowIds = new Set(rows.map((row) => row.rowId));
+  const latestByRowId = new Map<string, ReviewDecision>();
+
+  reviewDecisions.forEach((decision) => {
+    if (!rowIds.has(decision.rowId)) {
+      return;
+    }
+
+    latestByRowId.set(decision.rowId, { ...decision });
+  });
+
+  return Array.from(latestByRowId.values());
+}
+
+function upsertReviewDecisionStatus(
+  reviewDecisions: ReviewDecision[],
+  rowId: string,
+  status: ReviewDecisionStatus,
+): ReviewDecision[] {
+  const nextUpdatedAt = new Date().toISOString();
+  const remainingDecisions = reviewDecisions.filter((decision) => decision.rowId !== rowId);
+
+  return [
+    ...remainingDecisions,
+    {
+      rowId,
+      status,
+      updatedAt: nextUpdatedAt,
+    },
+  ];
 }
 
 function getBrowserStorage(): Storage | undefined {

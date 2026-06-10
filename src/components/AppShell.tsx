@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { createExportPackages } from "../exporters";
 import {
+  getReviewDecisionStatus,
   defaultReviewFilterState,
   getAvailableCompanies,
   getAvailablePlatforms,
@@ -27,9 +28,12 @@ type AppShellProps = {
 };
 
 export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
-  const { state, setSelectedRowId, resetState, replaceState } = usePersistedAppState();
+  const { state, setSelectedRowId, setReviewDecisionStatus, resetState, replaceState } = usePersistedAppState();
   const [reviewFilters, setReviewFilters] = useState(defaultReviewFilterState);
-  const reviewOverview = useMemo(() => getReviewOverview(state.rows, state.issues), [state.rows, state.issues]);
+  const reviewOverview = useMemo(
+    () => getReviewOverview(state.rows, state.issues, state.reviewDecisions),
+    [state.rows, state.issues, state.reviewDecisions],
+  );
   const availableCompanies = useMemo(() => getAvailableCompanies(state.rows, state.issues), [state.rows, state.issues]);
   const availablePlatforms = useMemo(() => getAvailablePlatforms(state.rows, state.issues), [state.rows, state.issues]);
   const filteredRows = useMemo(() => getFilteredReviewRows(state.rows, reviewFilters), [state.rows, reviewFilters]);
@@ -40,6 +44,7 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
   const selectedRowIssues = selectedRow
     ? state.issues.filter((issue) => selectedRow.issues.includes(issue.issueId))
     : [];
+  const selectedRowReviewStatus = getReviewDecisionStatus(state.reviewDecisions, selectedRow?.rowId);
   const exportResult = useMemo(() => createExportPackages(state.rows), [state.rows]);
   const exportPackages = exportResult.packages;
 
@@ -94,9 +99,13 @@ export function AppShell({ uploadMutationDependencies }: AppShellProps = {}) {
               filters={reviewFilters}
               onChangeFilters={setReviewFilters}
               selectedRow={selectedRow}
+              selectedRowReviewStatus={selectedRowReviewStatus}
               selectedRowIssues={selectedRowIssues}
               selectedRowId={selectedRow?.rowId ?? state.selectedRowId}
               onSelectRow={setSelectedRowId}
+              confirmedRowCount={reviewOverview.confirmedRowCount}
+              onConfirmRow={(rowId) => setReviewDecisionStatus(rowId, "confirmed")}
+              onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
             />
             <ExportSection
               exportPackages={exportPackages}

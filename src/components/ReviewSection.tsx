@@ -10,7 +10,7 @@ import {
   companyLabels,
   platformLabels,
 } from "../data/mockSettlement";
-import type { Company, ParseIssue, Platform, SettlementRow } from "../types/settlement";
+import type { Company, ParseIssue, Platform, ReviewDecisionStatus, SettlementRow } from "../types/settlement";
 import type { ReviewFilterState } from "../selectors/reviewSelectors";
 import { DetailLine, Filter } from "./ShellPrimitives";
 import { moneyFormatter } from "./uiShellConfig";
@@ -23,9 +23,13 @@ type ReviewSectionProps = {
   filters: ReviewFilterState;
   onChangeFilters: (filters: ReviewFilterState) => void;
   selectedRow?: SettlementRow;
+  selectedRowReviewStatus: ReviewDecisionStatus;
   selectedRowIssues: ParseIssue[];
   selectedRowId: string;
   onSelectRow: (rowId: string) => void;
+  confirmedRowCount: number;
+  onConfirmRow: (rowId: string) => void;
+  onResetRowConfirmation: (rowId: string) => void;
 };
 
 export function ReviewSection({
@@ -36,9 +40,13 @@ export function ReviewSection({
   filters,
   onChangeFilters,
   selectedRow,
+  selectedRowReviewStatus,
   selectedRowIssues,
   selectedRowId,
   onSelectRow,
+  confirmedRowCount,
+  onConfirmRow,
+  onResetRowConfirmation,
 }: ReviewSectionProps) {
   const columnHelper = createColumnHelper<SettlementRow>();
   const columns = useMemo(
@@ -84,7 +92,7 @@ export function ReviewSection({
           <div>
             <h2 className="text-lg font-semibold tracking-normal">공통 정산 검수</h2>
             <p className="mt-1 text-sm text-slate-400">
-              현재 필터 결과 {rows.length}행 / 전체 {totalRowCount}행 · 이슈 연결 행 {filteredIssueRowCount}건
+              현재 필터 결과 {rows.length}행 / 전체 {totalRowCount}행 · 이슈 연결 행 {filteredIssueRowCount}건 · 검수 확정 {confirmedRowCount}건
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -157,12 +165,30 @@ export function ReviewSection({
           </table>
         </div>
       </div>
-      <ReviewDetail selectedRow={selectedRow} selectedRowIssues={selectedRowIssues} />
+      <ReviewDetail
+        selectedRow={selectedRow}
+        selectedRowReviewStatus={selectedRowReviewStatus}
+        selectedRowIssues={selectedRowIssues}
+        onConfirmRow={onConfirmRow}
+        onResetRowConfirmation={onResetRowConfirmation}
+      />
     </section>
   );
 }
 
-function ReviewDetail({ selectedRow, selectedRowIssues }: { selectedRow?: SettlementRow; selectedRowIssues: ParseIssue[] }) {
+function ReviewDetail({
+  selectedRow,
+  selectedRowReviewStatus,
+  selectedRowIssues,
+  onConfirmRow,
+  onResetRowConfirmation,
+}: {
+  selectedRow?: SettlementRow;
+  selectedRowReviewStatus: ReviewDecisionStatus;
+  selectedRowIssues: ParseIssue[];
+  onConfirmRow: (rowId: string) => void;
+  onResetRowConfirmation: (rowId: string) => void;
+}) {
   if (!selectedRow) {
     return (
       <aside className="rounded-md border border-line bg-ink-850 p-5">
@@ -176,12 +202,42 @@ function ReviewDetail({ selectedRow, selectedRowIssues }: { selectedRow?: Settle
   return (
     <aside className="rounded-md border border-line bg-ink-850 p-5">
       <p className="text-sm font-semibold text-signal">선택 행 상세</p>
-      <h3 className="mt-3 text-xl font-semibold tracking-normal">{selectedRow.mailerContentTitle}</h3>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <h3 className="text-xl font-semibold tracking-normal">{selectedRow.mailerContentTitle}</h3>
+        <span className={selectedRowReviewStatus === "confirmed"
+          ? "rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
+          : "rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-xs font-semibold text-amber"}
+        >
+          {selectedRowReviewStatus === "confirmed" ? "검수 확정" : "검수 대기"}
+        </span>
+      </div>
       <div className="mt-5 space-y-3 text-sm">
         <DetailLine label="회사" value={companyLabels[selectedRow.company]} />
         <DetailLine label="플랫폼" value={platformLabels[selectedRow.platform]} />
         <DetailLine label="원본" value={`${selectedRow.sourceFileName} · row ${selectedRow.sourceRowIndex}`} />
         <DetailLine label="정산금" value={moneyFormatter.format(selectedRow.settlementAmount)} />
+      </div>
+      <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 액션</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selectedRowReviewStatus === "confirmed" ? (
+            <button
+              type="button"
+              className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700"
+              onClick={() => onResetRowConfirmation(selectedRow.rowId)}
+            >
+              검수 확정 해제
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+              onClick={() => onConfirmRow(selectedRow.rowId)}
+            >
+              이 행 검수 확정
+            </button>
+          )}
+        </div>
       </div>
       <div className="mt-6 border-t border-line pt-5">
         <p className="text-sm font-semibold text-slate-300">연결된 이슈</p>

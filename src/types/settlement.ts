@@ -97,6 +97,14 @@ export type SettlementRow = {
   issues: string[];
 };
 
+export type ReviewDecisionStatus = "pending" | "confirmed";
+
+export type ReviewDecision = {
+  rowId: string;
+  status: ReviewDecisionStatus;
+  updatedAt: string;
+};
+
 export type ParseIssueSeverity = "info" | "warning" | "error";
 
 export type ParseIssueType =

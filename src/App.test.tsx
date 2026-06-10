@@ -268,8 +268,30 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "with_issues" } });
     expect(screen.queryByText("파란 항구의 기록(app)")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
-    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건")).toBeInTheDocument();
+    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
     expect(screen.getByText("이슈 행")).toBeInTheDocument();
+  });
+
+  it("confirms the selected review row and persists the review decision", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("검수 확정").length).toBeGreaterThan(0);
+      expect(screen.getByRole("button", { name: "검수 확정 해제" })).toBeInTheDocument();
+      expect(screen.getByText(/검수 확정 1건/)).toBeInTheDocument();
+
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual([
+        expect.objectContaining({
+          rowId: "row-002",
+          status: "confirmed",
+        }),
+      ]);
+    });
   });
 
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {

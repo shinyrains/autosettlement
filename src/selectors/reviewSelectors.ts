@@ -4,6 +4,8 @@ import type {
   ParseIssueSeverity,
   ParseIssueType,
   Platform,
+  ReviewDecision,
+  ReviewDecisionStatus,
   SettlementRow,
 } from "../types/settlement";
 import type {
@@ -56,6 +58,7 @@ export type ReviewOverview = {
   rowsWithIssues: number;
   companyCount: number;
   platformCount: number;
+  confirmedRowCount: number;
 };
 
 export const defaultReviewFilterState: ReviewFilterState = {
@@ -181,13 +184,30 @@ export function getSelectedReviewRow(rows: SettlementRow[], selectedRowId: strin
   return rows.find((row) => row.rowId === selectedRowId) ?? rows[0];
 }
 
-export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[]): ReviewOverview {
+export function getReviewDecisionStatus(
+  reviewDecisions: ReviewDecision[],
+  rowId: string | undefined,
+): ReviewDecisionStatus {
+  if (!rowId) {
+    return "pending";
+  }
+
+  return reviewDecisions.find((decision) => decision.rowId === rowId)?.status ?? "pending";
+}
+
+export function getConfirmedReviewRowCount(rows: SettlementRow[], reviewDecisions: ReviewDecision[]): number {
+  const rowIds = new Set(rows.map((row) => row.rowId));
+  return reviewDecisions.filter((decision) => decision.status === "confirmed" && rowIds.has(decision.rowId)).length;
+}
+
+export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[], reviewDecisions: ReviewDecision[] = []): ReviewOverview {
   return {
     totalRows: rows.length,
     totalIssues: issues.length,
     rowsWithIssues: rows.filter((row) => row.issues.length > 0).length,
     companyCount: getAvailableCompanies(rows, issues).length,
     platformCount: getAvailablePlatforms(rows, issues).length,
+    confirmedRowCount: getConfirmedReviewRowCount(rows, reviewDecisions),
   };
 }
 
