@@ -249,7 +249,7 @@ type Batch = {
 
 - 현재 브라우저 draft persistence authority는 `docs/AUTOSETTLEMENT_UPLOAD_PERSISTENCE_CONTRACT.md`를 따른다.
 - 현재 single-file live browser upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
-- 현재 live-wired single-file browser upload cards는 Misterblue / Panmurim / Bookcube XLSX, Epyrus CSV, Yes24 XLSX다.
+- 현재 live-wired single-file browser upload cards는 Misterblue / Panmurim / Bookcube XLSX, Epyrus / Aladin CSV, Yes24 XLSX다.
 - grouped/slot-based future mutation authority는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - 현재 slice에서는 raw uploaded file bytes를 `Batch` 안에 저장하지 않는다.
 - 현재 slice에서는 localStorage에 저장되는 것은 batch/upload/row/issue/selectedRow metadata snapshot뿐이다.

@@ -63,6 +63,15 @@ function readYes24SampleWorkbook(): Uint8Array {
   );
 }
 
+function readAladinSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/aladin/sales_19835_202605.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): File {
   const html = `<table><tr><td>${name}</td></tr></table>`;
   const bytes = new TextEncoder().encode(html).buffer;
@@ -340,6 +349,39 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("B2C_List_260608_153729.xlsx")).toBeInTheDocument();
+  });
+
+  it("parses a real aladin csv through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-sr-aladin") as HTMLInputElement;
+    const bytes = readAladinSampleCsv().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "sales_19835_202605.csv",
+      { type: "text/csv" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-sr-aladin");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 80,
+        sourceFileNames: ["sales_19835_202605.csv"],
+      }));
+    });
+
+    expect(screen.getByText("sales_19835_202605.csv")).toBeInTheDocument();
   });
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {

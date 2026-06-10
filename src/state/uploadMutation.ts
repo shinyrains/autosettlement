@@ -104,6 +104,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["xlsx"],
     uiLabel: "예스24 단일 XLSX 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-sr-aladin",
+    company: "sr",
+    platform: "aladin",
+    acceptedKinds: ["csv"],
+    uiLabel: "알라딘 단일 CSV 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [

@@ -59,6 +59,15 @@ function readYes24SampleWorkbook(): Uint8Array {
   );
 }
 
+function readAladinSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/aladin/sales_19835_202605.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -98,12 +107,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, and yes24 cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, and aladin cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(5);
+    expect(enabledUploads).toHaveLength(6);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -129,6 +138,11 @@ describe("uploadMutation", () => {
         company: "sr",
         platform: "yes24",
         uploadId: "upload-sr-yes24",
+      }),
+      expect.objectContaining({
+        company: "sr",
+        platform: "aladin",
+        uploadId: "upload-sr-aladin",
       }),
     ]));
   });
@@ -383,6 +397,52 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "yes24")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed aladin rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-sr-aladin");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "sales_19835_202605.csv",
+        arrayBuffer: async () => {
+          const bytes = readAladinSampleCsv().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-10T00:40:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-sr-aladin");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 80,
+      issueCount: 0,
+      sourceFileNames: ["sales_19835_202605.csv"],
+      lastUploadedAt: "2026-06-10T00:40:00+09:00",
+    }));
+
+    const aladinRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "aladin");
+    expect(aladinRows).toHaveLength(80);
+    expect(aladinRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "창천마신 10",
+        mailerContentTitle: "창천마신 10",
+        author: "김태현",
+        publisher: "라온E&M",
+        grossSales: 3200,
+        settlementAmount: 2240,
+        sourceFileName: "sales_19835_202605.csv",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "sr" && issue.platform === "aladin")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 
