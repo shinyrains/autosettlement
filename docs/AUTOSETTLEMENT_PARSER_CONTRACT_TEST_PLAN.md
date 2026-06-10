@@ -20,6 +20,8 @@
 - `docs/PANMURIM_FIXTURE_PLAN.md` (Panmurim sample-grounded fixture planning)
 - `docs/BOOKCUBE_CONTRACT.md` (Bookcube special-header XLSX authority)
 - `docs/BOOKCUBE_FIXTURE_PLAN.md` (Bookcube sample-grounded fixture planning)
+- `docs/KAKAO_PAGE_CONTRACT.md` (Kakao Page pre-implementation workbook authority)
+- `docs/KAKAO_PAGE_FIXTURE_PLAN.md` (Kakao Page sample-grounded fixture planning)
 - `docs/ONESTORE_CONTRACT.md` (Onestore mixed-company XLSX authority)
 - `docs/ONESTORE_FIXTURE_PLAN.md` (Onestore sample-grounded fixture planning)
 - `src/types/settlement.ts`
@@ -104,6 +106,19 @@ Bookcube current sample-grounded guardrails:
 - generic `xlsxAdapter` is not safe for the current Bookcube path because it would treat row 1 as the header.
 - current money authority is `판매액 -> grossSales`, `정산액 -> settlementAmount`.
 - `정산대상금액` is audit context only in the current repo slice.
+
+Kakao Page current authority anchor:
+
+- `docs/KAKAO_PAGE_CONTRACT.md`
+- `docs/KAKAO_PAGE_FIXTURE_PLAN.md`
+
+Kakao Page current sample-grounded guardrails:
+
+- audited Kakao Page workbook is one sheet with row 1 group header + row 2 base header + row 3+ data.
+- current repo slice authorizes only the normal workbook path.
+- current money authority is `총합계-원화 -> grossSales`, `공급가액 -> settlementAmount`.
+- `총합계-순매출` and per-channel `정산율(%)` columns are audit context only when `공급가액` exists.
+- MG workbook semantics must not be guessed from filename or rate columns.
 
 Onestore current authority anchor:
 

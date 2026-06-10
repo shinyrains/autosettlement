@@ -177,29 +177,27 @@ Still unresolved before wider implementation:
 
 ## 5. Kakao Page
 
-Input files:
+Current authority anchors:
 
-```text
-normal file
-MG file optional
-```
+- `docs/KAKAO_PAGE_CONTRACT.md`
+- `docs/KAKAO_PAGE_FIXTURE_PLAN.md`
 
-Transform rule:
+Current repo-slice decision:
 
-- Normal file and MG file use the same column extraction rules.
-- MG file is optional.
-- Both outputs must normalize into the common `SettlementRow` shape.
+- audited sample grounding currently authorizes one normal workbook only
+- no MG workbook evidence exists in the audited sample
+- MG merge semantics stay unresolved and out of scope for the current slice
 
 Why not Simple Extract:
 
-- Optional MG file can affect grouping, review, or output interpretation.
-- MG source must be explicit and must not be guessed.
+- future MG workbook support can affect grouping, review, or output interpretation
+- MG source must be explicit and must not be guessed
 
-Unresolved before implementation:
+Deferred beyond the current slice:
 
-- Whether MG rows replace normal rows or are added as separate rows.
-- Exact MG source fields and matching key.
-- `Platform` currently does not include `kakao_page`; type expansion must be reviewed before implementation.
+- whether MG rows replace normal rows or are added as separate rows
+- exact MG source fields and matching key
+- `Platform` type expansion + implementation wiring for `kakao_page`
 
 ## 6. Munpia
 
