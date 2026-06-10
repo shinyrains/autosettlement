@@ -247,18 +247,18 @@ Current judgment for browser live upload:
 - The current single-file live-upload authority assumes one upload card maps to one committed `(company, platform)` slice.
 - Current `BatchPlatformUpload` shape also carries a single `company` per upload card, so plain reuse would force an invalid one-card/one-company simplification.
 
-Current authority-safe future direction:
+Current authority-safe direction now implemented in this repo slice:
 
 - keep the existing parser/orchestrator output unchanged (`SettlementRow.company` remains row-level truth)
 - do **not** split the workbook into fake separate browser uploads by filename or manual company guess
-- freeze a future mixed-company upload-mutation contract before UI wiring (`docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`)
-- that future contract must define:
+- browser wiring now follows the mixed-company upload-mutation contract (`docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`)
+- implemented card semantics:
   - one Onestore workbook selection event
   - two committed replacement targets: `(sr, onestore)` and `(raon, onestore)` together
   - one aggregate upload-card metadata surface for the shared workbook
-  - safe failure semantics when only one company slice returns issues
+  - failure preserves the last committed Onestore slices while surfacing a new aggregate parse error
 
-Until that authority exists, Onestore remains parser/orchestrator-complete but browser-live-upload-blocked.
+Onestore is now parser/orchestrator-complete and browser-live-upload-enabled through the shared mixed-company card.
 
 ## 11. Forbidden behavior
 

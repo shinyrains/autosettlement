@@ -78,10 +78,10 @@ The following upload cards are live-wired in the current slice:
 All other upload cards remain non-live in this slice.
 They may render current status, but they do not mutate persisted draft state through a browser file selection yet.
 
-Explicit current exclusion:
-- Onestore is intentionally excluded even though its parser/orchestrator lane is closed.
+Explicit current exclusion from this single-file contract:
+- Onestore is excluded from this document even though its live browser wiring is now implemented.
 - Reason: one audited Onestore workbook fans out into both `sr` and `raon` rows, while this contract only authorizes one live upload card -> one committed `(company, platform)` replacement slice.
-- Onestore therefore needs a separate mixed-company upload-mutation authority before browser wiring: `docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`.
+- Onestore therefore follows the separate mixed-company upload-mutation authority: `docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`.
 
 ## 3. Entry event
 

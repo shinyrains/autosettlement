@@ -33,6 +33,20 @@ type SingleFileLiveUploadSpec = {
   uiLabel: string;
 };
 
+type MixedCompanyLiveUploadSpec = {
+  kind: "mixed";
+  uploadId: string;
+  company: AppDraftState["uploads"][number]["company"];
+  platform: Platform;
+  sharedCompanies: AppDraftState["uploads"][number]["company"][];
+  acceptedKinds: LiveUploadAcceptedKind[];
+  uiLabel: string;
+  replacementTargets: Array<{
+    company: AppDraftState["uploads"][number]["company"];
+    platform: Platform;
+  }>;
+};
+
 type SlotLiveUploadSpec = {
   kind: "slot";
   uploadId: string;
@@ -146,6 +160,22 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
 ];
 
+const MIXED_COMPANY_LIVE_UPLOAD_SPECS: MixedCompanyLiveUploadSpec[] = [
+  {
+    kind: "mixed",
+    uploadId: "upload-shared-onestore",
+    company: "raon",
+    platform: "onestore",
+    sharedCompanies: ["raon", "sr"],
+    acceptedKinds: ["xlsx"],
+    uiLabel: "원스토어 공유 XLSX 1-file (raon+sr 동시 반영)",
+    replacementTargets: [
+      { company: "raon", platform: "onestore" },
+      { company: "sr", platform: "onestore" },
+    ],
+  },
+];
+
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [
   {
     kind: "slot",
@@ -219,7 +249,7 @@ export function resetLiveUploadRuntimeState(options: { preservePersistedSnapshot
 }
 
 export function isLiveUploadEnabled(upload: PlatformUploadCard): boolean {
-  return getSingleFileLiveUploadSpec(upload) !== undefined;
+  return getSingleFileLiveUploadSpec(upload) !== undefined || getMixedCompanyLiveUploadSpec(upload) !== undefined;
 }
 
 export function isLiveUploadSlotEnabled(upload: PlatformUploadCard, slot: BatchPlatformUploadSlot): boolean {
@@ -249,6 +279,11 @@ export async function applyLiveUploadMutation(
     if (target.upload.platform === "series") {
       return applySeriesSlotUploadMutation(state, target, files, dependencies);
     }
+  }
+
+  const mixedSpec = getMixedCompanyLiveUploadSpec(target.upload);
+  if (mixedSpec) {
+    return applyMixedCompanyUploadMutation(state, target.upload, files, dependencies, mixedSpec);
   }
 
   return applySingleFileUploadMutation(state, target.upload, files, dependencies);
@@ -330,6 +365,75 @@ async function applySingleFileUploadMutation(
       upload,
       [file.name],
       uploadedAt,
+      createUploadIssue(state, upload, file.name, message),
+    );
+  }
+}
+
+async function applyMixedCompanyUploadMutation(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  files: BrowserUploadFile[],
+  dependencies: UploadMutationDependencies,
+  liveSpec: MixedCompanyLiveUploadSpec,
+): Promise<AppDraftState> {
+  const uploadedAt = dependencies.now?.() ?? new Date().toISOString();
+
+  if (files.length !== 1) {
+    return applyMixedCompanyFailureResult(
+      state,
+      upload,
+      [files[0]?.name].filter((value): value is string => Boolean(value)),
+      uploadedAt,
+      liveSpec,
+      createUploadIssue(state, upload, files[0]?.name, "현재 Onestore mixed-company live upload는 파일 1개만 허용합니다."),
+    );
+  }
+
+  const file = files[0];
+  const fileKind = inferFileKind(file.name);
+  if (!fileKind || !isAcceptedFileKind(liveSpec, fileKind)) {
+    return applyMixedCompanyFailureResult(
+      state,
+      upload,
+      [file.name],
+      uploadedAt,
+      liveSpec,
+      createUploadIssue(
+        state,
+        upload,
+        file.name,
+        `지원하지 않는 파일 확장자입니다. 현재 ${liveSpec.uiLabel} 경로는 ${formatAcceptedKinds(liveSpec.acceptedKinds)}만 허용됩니다.`,
+      ),
+    );
+  }
+
+  try {
+    const result = (dependencies.parseBatch ?? runBatchParseOrchestrator)({
+      batchId: state.batch.batchId,
+      files: [
+        {
+          company: upload.company,
+          platform: upload.platform,
+          fileKind,
+          fileName: file.name,
+          saleMonth: state.batch.settlementMonth,
+          content: new Uint8Array(await file.arrayBuffer()),
+        },
+      ],
+    });
+
+    return applySuccessfulMixedCompanyResult(state, upload, [file.name], uploadedAt, result, liveSpec);
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "알 수 없는 업로드 오류가 발생했습니다.";
+    return applyMixedCompanyFailureResult(
+      state,
+      upload,
+      [file.name],
+      uploadedAt,
+      liveSpec,
       createUploadIssue(state, upload, file.name, message),
     );
   }
@@ -650,7 +754,46 @@ function applySuccessfulResult(
     lastUploadedAt: uploadedAt,
   };
 
-  return mergeCommittedUploadResult(state, upload, nextUpload, rows, issues, uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
+}
+
+function applySuccessfulMixedCompanyResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  sourceFileNames: string[],
+  uploadedAt: string,
+  result: BatchParseOrchestratorResult,
+  spec: MixedCompanyLiveUploadSpec,
+): AppDraftState {
+  const rows = result.rows.filter((row) => matchesReplacementTarget(spec.replacementTargets, row.company, row.platform));
+  const issues = result.issues.filter((issue) => matchesReplacementTarget(spec.replacementTargets, issue.company, issue.platform));
+  const nextUpload: PlatformUploadCard = {
+    ...upload,
+    status: deriveUploadStatus(rowCountOrZero(rows), issues),
+    fileCount: sourceFileNames.length,
+    sourceFileNames,
+    parsedRowCount: rows.length,
+    issueCount: issues.length,
+    lastUploadedAt: uploadedAt,
+  };
+
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    spec.replacementTargets,
+  );
 }
 
 function applyFailureResult(
@@ -670,7 +813,47 @@ function applyFailureResult(
     lastUploadedAt: uploadedAt,
   };
 
-  return mergeCommittedUploadResult(state, upload, nextUpload, [], [issue], uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    [],
+    [issue],
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
+}
+
+function applyMixedCompanyFailureResult(
+  state: AppDraftState,
+  upload: PlatformUploadCard,
+  sourceFileNames: string[],
+  uploadedAt: string,
+  spec: MixedCompanyLiveUploadSpec,
+  issue: ParseIssue,
+): AppDraftState {
+  const preservedRowsForTargets = state.rows.filter((row) => matchesReplacementTarget(spec.replacementTargets, row.company, row.platform));
+  const preservedIssuesForTargets = state.issues.filter((candidate) => matchesReplacementTarget(spec.replacementTargets, candidate.company, candidate.platform));
+  const nextIssuesForTargets = [...preservedIssuesForTargets, issue];
+  const nextUpload: PlatformUploadCard = {
+    ...upload,
+    status: "error",
+    fileCount: sourceFileNames.length,
+    sourceFileNames,
+    parsedRowCount: preservedRowsForTargets.length,
+    issueCount: nextIssuesForTargets.length,
+    lastUploadedAt: uploadedAt,
+  };
+
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    preservedRowsForTargets,
+    nextIssuesForTargets,
+    uploadedAt,
+    spec.replacementTargets,
+  );
 }
 
 function applySuccessfulMunpiaGroupedResult(
@@ -688,7 +871,15 @@ function applySuccessfulMunpiaGroupedResult(
   const issues = result.issues.filter((issue) => issue.company === upload.company && issue.platform === upload.platform);
   const nextSlots = deriveCommittedMunpiaSlots(stagedSlots, issues, snapshots);
   const nextUpload = buildGroupedAggregateUpload(upload, nextSlots, rows.length, issues.length, deriveUploadStatus(rowCountOrZero(rows), issues), uploadedAt);
-  return mergeCommittedUploadResult(state, upload, nextUpload, rows, issues, uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
 }
 
 function applySuccessfulSeriesGroupedResult(
@@ -706,7 +897,15 @@ function applySuccessfulSeriesGroupedResult(
   const issues = result.issues.filter((issue) => issue.company === upload.company && issue.platform === upload.platform);
   const nextSlots = deriveCommittedSeriesSlots(stagedSlots, issues, snapshots);
   const nextUpload = buildGroupedAggregateUpload(upload, nextSlots, rows.length, issues.length, deriveUploadStatus(rowCountOrZero(rows), issues), uploadedAt);
-  return mergeCommittedUploadResult(state, upload, nextUpload, rows, issues, uploadedAt);
+  return mergeCommittedUploadResult(
+    state,
+    upload,
+    nextUpload,
+    rows,
+    issues,
+    uploadedAt,
+    [{ company: upload.company, platform: upload.platform }],
+  );
 }
 
 function applyStageOnlyMunpiaResult(
@@ -768,9 +967,10 @@ function mergeCommittedUploadResult(
   nextRowsForUpload: AppDraftState["rows"],
   nextIssuesForUpload: AppDraftState["issues"],
   uploadedAt: string,
+  replacementTargets: Array<{ company: PlatformUploadCard["company"]; platform: Platform }>,
 ): AppDraftState {
-  const preservedRows = state.rows.filter((row) => row.company !== upload.company || row.platform !== upload.platform);
-  const preservedIssues = state.issues.filter((issue) => issue.company !== upload.company || issue.platform !== upload.platform);
+  const preservedRows = state.rows.filter((row) => !matchesReplacementTarget(replacementTargets, row.company, row.platform));
+  const preservedIssues = state.issues.filter((issue) => !matchesReplacementTarget(replacementTargets, issue.company, issue.platform));
   const uploads = state.uploads.map((currentUpload) => currentUpload.uploadId === upload.uploadId ? nextUpload : currentUpload);
   const rows = [...preservedRows, ...nextRowsForUpload];
   const issues = [...preservedIssues, ...nextIssuesForUpload];
@@ -1390,6 +1590,14 @@ function rowCountOrZero(rows: AppDraftState["rows"]): number {
   return rows.length;
 }
 
+function matchesReplacementTarget(
+  targets: Array<{ company: PlatformUploadCard["company"]; platform: Platform }>,
+  company: PlatformUploadCard["company"],
+  platform: Platform,
+): boolean {
+  return targets.some((target) => target.company === company && target.platform === platform);
+}
+
 function inferFileKind(fileName: string): FileKind | null {
   const normalizedFileName = fileName.toLowerCase();
   if (normalizedFileName.endsWith(".csv")) {
@@ -1407,10 +1615,10 @@ function inferFileKind(fileName: string): FileKind | null {
   return null;
 }
 
-function getLiveUploadSpec(target: LiveUploadTarget): SingleFileLiveUploadSpec | SlotLiveUploadSpec | undefined {
+function getLiveUploadSpec(target: LiveUploadTarget): SingleFileLiveUploadSpec | MixedCompanyLiveUploadSpec | SlotLiveUploadSpec | undefined {
   return target.slotKey
     ? getSlotLiveUploadSpec(target.upload, target.slotKey)
-    : getSingleFileLiveUploadSpec(target.upload);
+    : getSingleFileLiveUploadSpec(target.upload) ?? getMixedCompanyLiveUploadSpec(target.upload);
 }
 
 function getSingleFileLiveUploadSpec(upload: PlatformUploadCard): SingleFileLiveUploadSpec | undefined {
@@ -1420,6 +1628,18 @@ function getSingleFileLiveUploadSpec(upload: PlatformUploadCard): SingleFileLive
     && spec.platform === upload.platform
     && upload.requiredFileCount === 1
     && (upload.slots?.length ?? 0) === 0
+  ));
+}
+
+function getMixedCompanyLiveUploadSpec(upload: PlatformUploadCard): MixedCompanyLiveUploadSpec | undefined {
+  return MIXED_COMPANY_LIVE_UPLOAD_SPECS.find((spec) => (
+    spec.uploadId === upload.uploadId
+    && spec.company === upload.company
+    && spec.platform === upload.platform
+    && upload.requiredFileCount === 1
+    && (upload.slots?.length ?? 0) === 0
+    && spec.sharedCompanies.length === (upload.sharedCompanies?.length ?? 0)
+    && spec.sharedCompanies.every((company) => upload.sharedCompanies?.includes(company))
   ));
 }
 
@@ -1436,7 +1656,7 @@ function getSlotLiveUploadSpec(
   ));
 }
 
-function isAcceptedFileKind(spec: SingleFileLiveUploadSpec | SlotLiveUploadSpec, fileKind: FileKind): boolean {
+function isAcceptedFileKind(spec: SingleFileLiveUploadSpec | MixedCompanyLiveUploadSpec | SlotLiveUploadSpec, fileKind: FileKind): boolean {
   if (fileKind === "html_xls") {
     return spec.acceptedKinds.includes("xls");
   }
@@ -1449,7 +1669,7 @@ function formatAcceptedKinds(acceptedKinds: LiveUploadAcceptedKind[]): string {
 }
 
 function formatApprovedSingleFileLiveUploadCards(): string {
-  return SINGLE_FILE_LIVE_UPLOAD_SPECS.map((spec) => spec.uiLabel).join(", ");
+  return [...SINGLE_FILE_LIVE_UPLOAD_SPECS, ...MIXED_COMPANY_LIVE_UPLOAD_SPECS].map((spec) => spec.uiLabel).join(", ");
 }
 
 function createUploadIssue(

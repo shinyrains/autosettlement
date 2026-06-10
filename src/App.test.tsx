@@ -99,6 +99,15 @@ function readMootoonSampleWorkbook(): Uint8Array {
   );
 }
 
+function readOnestoreSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/onestore/정산내역_20260608_163327.xlsx",
+    ),
+  );
+}
+
 function readNovelpiaSampleHtmlXls(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -561,6 +570,46 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("일별 정산.xls")).toBeInTheDocument();
+  });
+
+  it("parses a real Onestore workbook through the shared live upload card and persists both company slices", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-shared-onestore") as HTMLInputElement;
+    const bytes = readOnestoreSampleWorkbook().slice();
+    const fileBytes = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const file = new File(
+      [fileBytes],
+      "정산내역_20260608_163327.xlsx",
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-shared-onestore");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 13209,
+        sourceFileNames: ["정산내역_20260608_163327.xlsx"],
+      }));
+      expect(parsedDraft.rows.some((row: { platform: string; company: string; workTitle: string; settlementAmount: number }) => (
+        row.platform === "onestore"
+        && row.company === "sr"
+        && row.workTitle === "레이드 커맨더 4권"
+        && row.settlementAmount === 2016
+      ))).toBe(true);
+      expect(parsedDraft.rows.some((row: { platform: string; company: string }) => row.platform === "onestore" && row.company === "raon")).toBe(true);
+    });
+
+    expect(screen.getByText("정산내역_20260608_163327.xlsx")).toBeInTheDocument();
   });
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {

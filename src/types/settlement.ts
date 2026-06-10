@@ -72,6 +72,7 @@ export type BatchPlatformUpload = {
   issueCount: number;
   lastUploadedAt?: string;
   slots?: BatchPlatformUploadSlot[];
+  sharedCompanies?: Company[];
 };
 
 export type SettlementRow = {

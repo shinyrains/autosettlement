@@ -1,6 +1,6 @@
 # AutoSettlement Mixed-Company Upload Mutation Contract
 
-Status: authority-frozen for future mixed-company browser upload cards before real UI wiring.
+Status: implemented authority for current mixed-company browser upload cards in this repo slice.
 
 ## 1. Purpose
 

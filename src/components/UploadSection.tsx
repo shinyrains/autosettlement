@@ -20,10 +20,52 @@ type UploadSectionProps = {
 };
 
 export function UploadSection({ uploads, onUploadFiles, isUploadEnabled }: UploadSectionProps) {
+  const sharedUploads = uploads.filter((upload) => (upload.sharedCompanies?.length ?? 0) > 1);
   return (
-    <section id="step-1" className="grid grid-cols-2 gap-5">
-      <CompanyUploadGroup company="raon" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
-      <CompanyUploadGroup company="sr" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
+    <section id="step-1" className="space-y-5">
+      {sharedUploads.length > 0 ? (
+        <SharedUploadGroup uploads={sharedUploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
+      ) : null}
+      <div className="grid grid-cols-2 gap-5">
+        <CompanyUploadGroup company="raon" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
+        <CompanyUploadGroup company="sr" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
+      </div>
+    </section>
+  );
+}
+
+function SharedUploadGroup({
+  uploads,
+  onUploadFiles,
+  isUploadEnabled,
+}: {
+  uploads: PlatformUploadCard[];
+  onUploadFiles?: UploadSectionProps["onUploadFiles"];
+  isUploadEnabled?: UploadSectionProps["isUploadEnabled"];
+}) {
+  const readyCount = uploads.filter((upload) => upload.status === "parsed").length;
+  return (
+    <section className="rounded-md border border-line bg-ink-850">
+      <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <div className="flex items-center gap-3">
+          <Building2 className="h-5 w-5 text-signal" />
+          <div>
+            <h2 className="text-lg font-semibold tracking-normal">공유 업로드 영역</h2>
+            <p className="text-sm text-slate-400">여러 회사 slice를 동시에 교체하는 공용 카드</p>
+          </div>
+        </div>
+        <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">{readyCount}/{uploads.length}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 p-4">
+        {uploads.map((upload) => (
+          <UploadCard
+            key={upload.uploadId}
+            upload={upload}
+            onUploadFiles={onUploadFiles}
+            isUploadEnabled={isUploadEnabled?.(upload) ?? false}
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -39,7 +81,7 @@ function CompanyUploadGroup({
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
   isUploadEnabled?: UploadSectionProps["isUploadEnabled"];
 }) {
-  const uploads = allUploads.filter((upload) => upload.company === company);
+  const uploads = allUploads.filter((upload) => upload.company === company && (upload.sharedCompanies?.length ?? 0) <= 1);
   const readyCount = uploads.filter((upload) => upload.status === "parsed").length;
   return (
     <section className="rounded-md border border-line bg-ink-850">
@@ -87,6 +129,9 @@ function UploadCard({
         <div>
           <p className="text-base font-semibold text-white">{upload.platformLabel}</p>
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{upload.category}</p>
+          {upload.sharedCompanies && upload.sharedCompanies.length > 1 ? (
+            <p className="mt-1 text-xs text-slate-400">공유 대상: {upload.sharedCompanies.map((company) => companyLabels[company]).join(" + ")}</p>
+          ) : null}
         </div>
         <StatusBadge status={upload.status} />
       </div>

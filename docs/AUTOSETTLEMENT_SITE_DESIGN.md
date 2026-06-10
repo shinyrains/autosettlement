@@ -138,10 +138,10 @@ MVP 필요성:
 - raw uploaded file binary는 현재 MVP shell persistence 범위에 포함되지 않는다.
 - 현재 single-file live upload mutation authority는 `docs/AUTOSETTLEMENT_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
 - grouped/slot-based future mutation authority는 `docs/AUTOSETTLEMENT_GROUPED_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
-- mixed-company future mutation authority는 `docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
-- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`, `raon / panmurim / upload-raon-panmurim`, `raon / bookcube / upload-raon-bookcube`, `raon / epyrus / upload-raon-epyrus`, `sr / yes24 / upload-sr-yes24`, `sr / aladin / upload-sr-aladin`, `raon / guru_company / upload-raon-guru-company`, `sr / kyobo / upload-sr-kyobo`, `raon / mootoon / upload-raon-mootoon`, `raon / novelpia / upload-raon-novelpia` 단일 1-file 경로다.
-- Onestore는 parser/orchestrator lane은 닫혀 있지만, 하나의 workbook이 `sr` + `raon` 두 회사 slice로 fan-out되므로 현재 single-card live upload authority에는 포함되지 않는다.
-- 따라서 Onestore UI wiring은 mixed-company upload mutation authority가 별도로 닫히기 전까지 blocked다.
+- mixed-company live upload mutation authority는 `docs/AUTOSETTLEMENT_MIXED_COMPANY_UPLOAD_MUTATION_CONTRACT.md`를 따른다.
+- 현재 live-wired browser upload path는 `sr / misterblue / upload-sr-misterblue`, `raon / panmurim / upload-raon-panmurim`, `raon / bookcube / upload-raon-bookcube`, `raon / epyrus / upload-raon-epyrus`, `sr / yes24 / upload-sr-yes24`, `sr / aladin / upload-sr-aladin`, `raon / guru_company / upload-raon-guru-company`, `sr / kyobo / upload-sr-kyobo`, `raon / mootoon / upload-raon-mootoon`, `raon / novelpia / upload-raon-novelpia` 단일 1-file 경로와 `shared / onestore / upload-shared-onestore` mixed-company 1-file 경로다.
+- Onestore는 parser/orchestrator lane뿐 아니라 shared mixed-company live upload card까지 닫혔다.
+- current Onestore browser card는 하나의 workbook 선택으로 `(sr, onestore)` + `(raon, onestore)` committed slice를 함께 교체한다.
 
 MVP 필요성:
 핵심

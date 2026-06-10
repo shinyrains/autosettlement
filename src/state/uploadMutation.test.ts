@@ -95,6 +95,15 @@ function readMootoonSampleWorkbook(): Uint8Array {
   );
 }
 
+function readOnestoreSampleWorkbook(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/onestore/정산내역_20260608_163327.xlsx",
+    ),
+  );
+}
+
 function readNovelpiaSampleHtmlXls(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -143,12 +152,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, mootoon, and novelpia cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, mootoon, novelpia, and shared onestore cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(10);
+    expect(enabledUploads).toHaveLength(11);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -199,6 +208,12 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "novelpia",
         uploadId: "upload-raon-novelpia",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "onestore",
+        uploadId: "upload-shared-onestore",
+        sharedCompanies: ["raon", "sr"],
       }),
     ]));
   });
@@ -679,6 +694,90 @@ describe("uploadMutation", () => {
 
     expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "novelpia")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces both Onestore company slices through the shared live upload card", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-shared-onestore");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "정산내역_20260608_163327.xlsx",
+        arrayBuffer: async () => {
+          const bytes = readOnestoreSampleWorkbook().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-12T11:00:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-shared-onestore");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 13209,
+      issueCount: 0,
+      sourceFileNames: ["정산내역_20260608_163327.xlsx"],
+      lastUploadedAt: "2026-06-12T11:00:00+09:00",
+    }));
+
+    const onestoreRows = nextState.rows.filter((row) => row.platform === "onestore");
+    expect(onestoreRows).toHaveLength(13209);
+    expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더 4권" && row.settlementAmount === 2016)).toBe(true);
+    expect(onestoreRows.some((row) => row.company === "raon")).toBe(true);
+    expect(nextState.issues.filter((issue) => issue.platform === "onestore")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("preserves committed Onestore rows when the shared live upload fails validation", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-shared-onestore");
+    expect(upload).toBeDefined();
+
+    const parsedState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "정산내역_20260608_163327.xlsx",
+        arrayBuffer: async () => {
+          const bytes = readOnestoreSampleWorkbook().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-12T11:01:00+09:00" },
+    );
+
+    const failedState = await applyLiveUploadMutation(
+      parsedState,
+      { upload: parsedState.uploads.find((item) => item.uploadId === "upload-shared-onestore")! },
+      [{
+        name: "bad.csv",
+        arrayBuffer: async () => new ArrayBuffer(0),
+      }],
+      { now: () => "2026-06-12T11:02:00+09:00" },
+    );
+
+    expect(failedState.rows.filter((row) => row.platform === "onestore")).toEqual(parsedState.rows.filter((row) => row.platform === "onestore"));
+    const nextUpload = failedState.uploads.find((item) => item.uploadId === "upload-shared-onestore");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "error",
+      fileCount: 1,
+      parsedRowCount: 13209,
+      sourceFileNames: ["bad.csv"],
+      lastUploadedAt: "2026-06-12T11:02:00+09:00",
+    }));
+    expect(failedState.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        company: "raon",
+        platform: "onestore",
+        issueType: "parse_error",
+        sourceFileName: "bad.csv",
+        message: expect.stringContaining(".xlsx만 허용"),
+      }),
+    ]));
   });
 
   it("preserves the committed munpia slice and appends a staged issue when authorCorrection is uploaded before settlement", async () => {
