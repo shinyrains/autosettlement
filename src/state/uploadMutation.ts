@@ -88,6 +88,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
     acceptedKinds: ["xlsx"],
     uiLabel: "북큐브 단일 XLSX 1-file",
   },
+  {
+    kind: "single",
+    uploadId: "upload-raon-epyrus",
+    company: "raon",
+    platform: "epyrus",
+    acceptedKinds: ["csv"],
+    uiLabel: "에피루스 단일 CSV 1-file",
+  },
 ];
 
 const SLOT_LIVE_UPLOAD_SPECS: SlotLiveUploadSpec[] = [

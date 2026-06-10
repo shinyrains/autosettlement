@@ -45,6 +45,15 @@ function readBookcubeSampleWorkbook(): Uint8Array {
   );
 }
 
+function readEpyrusSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/epyrus/2026년04월정산내역_라온E＆M.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): File {
   const html = `<table><tr><td>${name}</td></tr></table>`;
   const bytes = new TextEncoder().encode(html).buffer;
@@ -256,6 +265,39 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("북큐브 상세매출 2026-5~2026-5 (1).xlsx")).toBeInTheDocument();
+  });
+
+  it("parses a real epyrus csv through the live upload card and persists the new draft", async () => {
+    render(<App />);
+
+    const input = screen.getByTestId("upload-input-upload-raon-epyrus") as HTMLInputElement;
+    const bytes = readEpyrusSampleCsv().slice();
+    const fileBytes = bytes.buffer as ArrayBuffer;
+    const file = new File(
+      [fileBytes],
+      "2026년04월정산내역_라온E＆M.csv",
+      { type: "text/csv" },
+    );
+    Object.defineProperty(file, "arrayBuffer", {
+      value: async () => fileBytes.slice(0),
+    });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-epyrus");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 1,
+        parsedRowCount: 151,
+        sourceFileNames: ["2026년04월정산내역_라온E＆M.csv"],
+      }));
+    });
+
+    expect(screen.getByText("2026년04월정산내역_라온E＆M.csv")).toBeInTheDocument();
   });
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {

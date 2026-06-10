@@ -41,6 +41,15 @@ function readBookcubeSampleWorkbook(): Uint8Array {
   );
 }
 
+function readEpyrusSampleCsv(): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/epyrus/2026년04월정산내역_라온E＆M.csv",
+    ),
+  );
+}
+
 function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
   const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
   return {
@@ -80,12 +89,12 @@ function createEmptySeriesUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, and bookcube cards", () => {
+  it("enables live upload only for the current misterblue, panmurim, bookcube, and epyrus cards", () => {
     const state = createSeedAppState();
 
     const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(3);
+    expect(enabledUploads).toHaveLength(4);
     expect(enabledUploads).toEqual(expect.arrayContaining([
       expect.objectContaining({
         company: "sr",
@@ -101,6 +110,11 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "bookcube",
         uploadId: "upload-raon-bookcube",
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "epyrus",
+        uploadId: "upload-raon-epyrus",
       }),
     ]));
   });
@@ -263,6 +277,52 @@ describe("uploadMutation", () => {
     ]));
 
     expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "bookcube")).toEqual([]);
+    expect(nextState.batch.uploads).toEqual(nextState.uploads);
+  });
+
+  it("replaces the target upload slice with parsed epyrus rows and persisted metadata", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-epyrus");
+    expect(upload).toBeDefined();
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload! },
+      [{
+        name: "2026년04월정산내역_라온E＆M.csv",
+        arrayBuffer: async () => {
+          const bytes = readEpyrusSampleCsv().slice();
+          return bytes.buffer as ArrayBuffer;
+        },
+      }],
+      { now: () => "2026-06-10T00:20:00+09:00" },
+    );
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-epyrus");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 1,
+      parsedRowCount: 151,
+      issueCount: 0,
+      sourceFileNames: ["2026년04월정산내역_라온E＆M.csv"],
+      lastUploadedAt: "2026-06-10T00:20:00+09:00",
+    }));
+
+    const epyrusRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "epyrus");
+    expect(epyrusRows).toHaveLength(151);
+    expect(epyrusRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workTitle: "그의 비밀 2",
+        mailerContentTitle: "그의 비밀 2",
+        author: "시커먼스",
+        publisher: "라온E＆M",
+        grossSales: 2720,
+        settlementAmount: 1904,
+        sourceFileName: "2026년04월정산내역_라온E＆M.csv",
+      }),
+    ]));
+
+    expect(nextState.issues.filter((issue) => issue.company === "raon" && issue.platform === "epyrus")).toEqual([]);
     expect(nextState.batch.uploads).toEqual(nextState.uploads);
   });
 
