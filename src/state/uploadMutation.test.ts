@@ -41,6 +41,44 @@ function readBookcubeSampleWorkbook(): Uint8Array {
   );
 }
 
+function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
+  const bytes = new TextEncoder().encode(`<table><tr><td>${name}</td></tr></table>`);
+  return {
+    name,
+    arrayBuffer: async () => bytes.buffer.slice(0),
+  };
+}
+
+function createEmptySeriesUploadDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "series"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "series");
+  state.issues = state.issues.filter((issue) => issue.platform !== "series");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
 describe("uploadMutation", () => {
   it("enables live upload only for the current misterblue, panmurim, and bookcube cards", () => {
     const state = createSeedAppState();
@@ -75,6 +113,17 @@ describe("uploadMutation", () => {
     const enabledSlots = munpiaUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(munpiaUpload!, slot));
 
     expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlement", "authorCorrection"]);
+  });
+
+  it("enables live upload for the series general/app slots on both series cards", () => {
+    const state = createSeedAppState();
+    const seriesUploads = state.uploads.filter((upload) => upload.platform === "series");
+
+    expect(seriesUploads).toHaveLength(2);
+    for (const upload of seriesUploads) {
+      const enabledSlots = upload.slots?.filter((slot) => isLiveUploadSlotEnabled(upload, slot)) ?? [];
+      expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["seriesGeneral", "seriesApp"]);
+    }
   });
 
   it("replaces the target upload slice with parsed misterblue rows and persisted metadata", async () => {
@@ -401,5 +450,160 @@ describe("uploadMutation", () => {
         message: expect.stringContaining(".xlsx만 허용"),
       }),
     ]));
+  });
+
+  it("stages a series general slot upload until all 3+3 files are ready", async () => {
+    const state = createSeedAppState();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-series");
+    expect(upload).toBeDefined();
+    const previousRows = state.rows.filter((row) => row.company === "raon" && row.platform === "series");
+
+    const nextState = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "seriesGeneral" },
+      [
+        createSeriesHtmlFile("series-general-new-1.xls"),
+        createSeriesHtmlFile("series-general-new-2.xls"),
+        createSeriesHtmlFile("series-general-new-3.xls"),
+      ],
+      { now: () => "2026-06-12T09:00:00+09:00" },
+    );
+
+    const nextRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "series");
+    expect(nextRows).toEqual(previousRows);
+
+    const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-series");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "error",
+      fileCount: 5,
+      parsedRowCount: previousRows.length,
+      sourceFileNames: [
+        "series-general-new-1.xls",
+        "series-general-new-2.xls",
+        "series-general-new-3.xls",
+        "series-app-1.xls",
+        "series-app-2.xls",
+      ],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "seriesGeneral",
+        status: "uploaded",
+        sourceFileNames: ["series-general-new-1.xls", "series-general-new-2.xls", "series-general-new-3.xls"],
+      }),
+    ]));
+    expect(nextState.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        company: "raon",
+        platform: "series",
+        issueType: "parse_error",
+        message: expect.stringContaining("시리즈 3+3 입력이 모두 남아 있지 않아 재계산할 수 없습니다"),
+      }),
+    ]));
+  });
+
+  it("reruns series grouped parsing when both 3-file slots are uploaded", async () => {
+    const state = createEmptySeriesUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-series");
+    expect(upload).toBeDefined();
+
+    const parseBatch = ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+      rows: files.some((file) => file.slot === "app")
+        ? [{
+            rowId: "series-live-row-002",
+            company: "raon",
+            platform: "series",
+            saleMonth: "2026-06",
+            workTitle: "시리즈 앱 반영",
+            mailerContentTitle: "시리즈 앱 반영",
+            author: "서지후",
+            grossSales: 21000,
+            settlementAmount: 8400,
+            sourceFileName: "series-general-parse-1.xls",
+            sourceRowIndex: 12,
+            issues: [],
+          }]
+        : [{
+            rowId: "series-live-row-001",
+            company: "raon",
+            platform: "series",
+            saleMonth: "2026-06",
+            workTitle: "시리즈 일반 초안",
+            mailerContentTitle: "시리즈 일반 초안",
+            author: "서지후",
+            grossSales: 20000,
+            settlementAmount: 8000,
+            sourceFileName: "series-general-parse-1.xls",
+            sourceRowIndex: 11,
+            issues: [],
+          }],
+      issues: [],
+      fileResults: files.map((file) => ({
+        fileName: file.fileName,
+        company: "raon" as const,
+        platform: "series" as const,
+        fileKind: "html_xls" as const,
+        saleMonth: "2026-06",
+        status: "success" as const,
+        rowCount: 1,
+        issueCount: 0,
+      })),
+    });
+
+    const afterGeneral = await applyLiveUploadMutation(
+      state,
+      { upload: state.uploads.find((item) => item.uploadId === "upload-raon-series")!, slotKey: "seriesGeneral" },
+      [
+        createSeriesHtmlFile("series-general-parse-1.xls"),
+        createSeriesHtmlFile("series-general-parse-2.xls"),
+        createSeriesHtmlFile("series-general-parse-3.xls"),
+      ],
+      { now: () => "2026-06-12T09:10:00+09:00", parseBatch },
+    );
+
+    const afterApp = await applyLiveUploadMutation(
+      afterGeneral,
+      { upload: afterGeneral.uploads.find((item) => item.uploadId === "upload-raon-series")!, slotKey: "seriesApp" },
+      [
+        createSeriesHtmlFile("series-app-parse-1.xls"),
+        createSeriesHtmlFile("series-app-parse-2.xls"),
+        createSeriesHtmlFile("series-app-parse-3.xls"),
+      ],
+      { now: () => "2026-06-12T09:12:00+09:00", parseBatch },
+    );
+
+    const seriesRows = afterApp.rows.filter((row) => row.company === "raon" && row.platform === "series");
+    expect(seriesRows).toEqual([
+      expect.objectContaining({ rowId: "series-live-row-002", workTitle: "시리즈 앱 반영" }),
+    ]);
+
+    const nextUpload = afterApp.uploads.find((item) => item.uploadId === "upload-raon-series");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 6,
+      parsedRowCount: 1,
+      issueCount: 0,
+      sourceFileNames: [
+        "series-general-parse-1.xls",
+        "series-general-parse-2.xls",
+        "series-general-parse-3.xls",
+        "series-app-parse-1.xls",
+        "series-app-parse-2.xls",
+        "series-app-parse-3.xls",
+      ],
+    }));
+    expect(nextUpload?.slots).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        slotKey: "seriesGeneral",
+        status: "parsed",
+        fileCount: 3,
+      }),
+      expect.objectContaining({
+        slotKey: "seriesApp",
+        status: "parsed",
+        fileCount: 3,
+      }),
+    ]));
+    expect(afterApp.issues.filter((issue) => issue.company === "raon" && issue.platform === "series")).toEqual([]);
   });
 });

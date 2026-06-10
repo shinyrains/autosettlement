@@ -52,7 +52,7 @@ export type BatchPlatformUploadSlot = {
   slotKey: BatchPlatformUploadSlotKey;
   label: string;
   required: boolean;
-  acceptedFileKinds: Array<"csv" | "xlsx">;
+  acceptedFileKinds: Array<"csv" | "xlsx" | "html_xls">;
   status: BatchPlatformUploadStatus;
   fileCount: number;
   sourceFileNames: string[];

@@ -5,7 +5,7 @@ import { isLiveUploadEnabled } from "../state/uploadMutation";
 import { UploadSection } from "./UploadSection";
 
 describe("UploadSection", () => {
-  it("renders munpia slot-based upload state and the current live upload cards", () => {
+  it("renders munpia and series slot-based upload state plus the current live upload cards", () => {
     render(
       <UploadSection
         uploads={mockUploads}
@@ -15,15 +15,19 @@ describe("UploadSection", () => {
     );
 
     expect(screen.getByText("문피아")).toBeInTheDocument();
-    expect(screen.getByText("슬롯 상태")).toBeInTheDocument();
+    expect(screen.getAllByText("슬롯 상태").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText("정산 파일")).toBeInTheDocument();
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
+    expect(screen.getAllByText("일반 매출 3개").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("앱 매출 3개").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("required · xlsx")).toBeInTheDocument();
-    expect(screen.getByText("optional · csv/xlsx")).toBeInTheDocument();
+    expect(screen.getAllByText("required · html_xls").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText("munpia-author-correction.csv")).toBeInTheDocument();
-    expect(screen.getAllByText("실파일 업로드")).toHaveLength(5);
+    expect(screen.getAllByText("실파일 업로드")).toHaveLength(9);
     expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getAllByText("현재 live path: 시리즈 일반 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("현재 live path: 시리즈 앱 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("현재 live path: 미스터블루 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 판무림 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 북큐브 단일 XLSX 1-file")).toBeInTheDocument();

@@ -187,6 +187,7 @@ function FileUploadControl({
 }) {
   const inputId = useId();
   const [isUploading, setIsUploading] = useState(false);
+  const allowMultiple = target.slotKey === "seriesGeneral" || target.slotKey === "seriesApp";
 
   return (
     <div className="mt-3 space-y-2">
@@ -195,6 +196,7 @@ function FileUploadControl({
         data-testid={dataTestId}
         type="file"
         accept={acceptAttribute}
+        multiple={allowMultiple}
         className="hidden"
         onChange={async (event) => {
           const files = Array.from(event.currentTarget.files ?? []);

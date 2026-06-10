@@ -8,6 +8,7 @@ import type { BatchParseOrchestratorInput, BatchParseOrchestratorResult } from "
 import {
   APP_STATE_STORAGE_KEY,
   createSeedAppState,
+  saveAppDraftState,
 } from "./state/appState";
 import { resetLiveUploadRuntimeState } from "./state/uploadMutation";
 
@@ -42,6 +43,46 @@ function readBookcubeSampleWorkbook(): Uint8Array {
       "tmp/platform-samples/bookcube/북큐브 상세매출 2026-5~2026-5 (1).xlsx",
     ),
   );
+}
+
+function createSeriesHtmlFile(name: string): File {
+  const html = `<table><tr><td>${name}</td></tr></table>`;
+  const bytes = new TextEncoder().encode(html).buffer;
+  const file = new File([bytes], name, { type: "application/vnd.ms-excel" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => bytes.slice(0),
+  });
+  return file;
+}
+
+function createEmptySeriesDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => (
+    upload.platform === "series"
+      ? {
+          ...upload,
+          status: "empty" as const,
+          fileCount: 0,
+          sourceFileNames: [],
+          parsedRowCount: 0,
+          issueCount: 0,
+          lastUploadedAt: undefined,
+          slots: upload.slots?.map((slot) => ({
+            ...slot,
+            status: "empty" as const,
+            fileCount: 0,
+            sourceFileNames: [],
+            issueCount: 0,
+            lastUploadedAt: undefined,
+          })),
+        }
+      : upload
+  ));
+  state.batch.uploads = state.uploads;
+  state.rows = state.rows.filter((row) => row.platform !== "series");
+  state.issues = state.issues.filter((issue) => issue.platform !== "series");
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
 }
 
 describe("AutoSettlement UI shell", () => {
@@ -286,6 +327,133 @@ describe("AutoSettlement UI shell", () => {
       ]));
       expect(persistedDraft.rows).toEqual(expect.arrayContaining([
         expect.objectContaining({ rowId: "munpia-app-shell-row-002", workTitle: "문피아 쉘 보정 반영" }),
+      ]));
+    });
+  });
+
+  it("persists series grouped 3+3 uploads through the browser shell", async () => {
+    saveAppDraftState(createEmptySeriesDraft(), window.localStorage);
+
+    render(
+      <AppShell
+        uploadMutationDependencies={{
+          now: () => "2026-06-12T10:00:00+09:00",
+          parseBatch: ({ files }: BatchParseOrchestratorInput): BatchParseOrchestratorResult => ({
+            rows: files.some((file) => file.slot === "app")
+              ? [{
+                  rowId: "series-app-shell-row-002",
+                  company: "raon",
+                  platform: "series",
+                  saleMonth: "2026-06",
+                  workTitle: "시리즈 3+3 반영",
+                  mailerContentTitle: "시리즈 3+3 반영",
+                  author: "서지후",
+                  grossSales: 32000,
+                  settlementAmount: 12800,
+                  sourceFileName: "series-general-shell-1.xls",
+                  sourceRowIndex: 14,
+                  issues: [],
+                }]
+              : [{
+                  rowId: "series-app-shell-row-001",
+                  company: "raon",
+                  platform: "series",
+                  saleMonth: "2026-06",
+                  workTitle: "시리즈 일반 초안",
+                  mailerContentTitle: "시리즈 일반 초안",
+                  author: "서지후",
+                  grossSales: 30000,
+                  settlementAmount: 12000,
+                  sourceFileName: "series-general-shell-1.xls",
+                  sourceRowIndex: 13,
+                  issues: [],
+                }],
+            issues: [],
+            fileResults: files.map((file) => ({
+              fileName: file.fileName,
+              company: "raon" as const,
+              platform: "series" as const,
+              fileKind: "html_xls" as const,
+              saleMonth: "2026-06",
+              status: "success" as const,
+              rowCount: 1,
+              issueCount: 0,
+            })),
+          }),
+        }}
+      />,
+    );
+
+    const generalInput = screen.getByTestId("upload-input-upload-raon-series-general") as HTMLInputElement;
+    const appInput = screen.getByTestId("upload-input-upload-raon-series-app") as HTMLInputElement;
+
+    fireEvent.change(generalInput, {
+      target: {
+        files: [
+          createSeriesHtmlFile("series-general-shell-1.xls"),
+          createSeriesHtmlFile("series-general-shell-2.xls"),
+          createSeriesHtmlFile("series-general-shell-3.xls"),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-series");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "error",
+        fileCount: 3,
+        parsedRowCount: 0,
+        issueCount: 1,
+        sourceFileNames: [
+          "series-general-shell-1.xls",
+          "series-general-shell-2.xls",
+          "series-general-shell-3.xls",
+        ],
+      }));
+    });
+
+    fireEvent.change(appInput, {
+      target: {
+        files: [
+          createSeriesHtmlFile("series-app-shell-1.xls"),
+          createSeriesHtmlFile("series-app-shell-2.xls"),
+          createSeriesHtmlFile("series-app-shell-3.xls"),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      const persistedDraft = JSON.parse(window.localStorage.getItem(APP_STATE_STORAGE_KEY)!);
+      const liveUpload = persistedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-raon-series");
+      expect(liveUpload).toEqual(expect.objectContaining({
+        status: "parsed",
+        fileCount: 6,
+        parsedRowCount: 1,
+        issueCount: 0,
+        sourceFileNames: [
+          "series-general-shell-1.xls",
+          "series-general-shell-2.xls",
+          "series-general-shell-3.xls",
+          "series-app-shell-1.xls",
+          "series-app-shell-2.xls",
+          "series-app-shell-3.xls",
+        ],
+      }));
+      expect(liveUpload.slots).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          slotKey: "seriesGeneral",
+          status: "parsed",
+          fileCount: 3,
+        }),
+        expect.objectContaining({
+          slotKey: "seriesApp",
+          status: "parsed",
+          fileCount: 3,
+        }),
+      ]));
+      expect(persistedDraft.rows).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "series-app-shell-row-002", workTitle: "시리즈 3+3 반영" }),
       ]));
     });
   });
