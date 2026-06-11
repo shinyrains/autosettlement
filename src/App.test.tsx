@@ -656,6 +656,12 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByText("이슈 미확정 1행")).toBeInTheDocument();
     expect(screen.getByText("고액 미확정 2행")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "고액 미확정 다음 행으로 이동" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    });
+
     fireEvent.click(screen.getByRole("button", { name: "이슈 미확정 첫 행 열기" }));
 
     await waitFor(() => {

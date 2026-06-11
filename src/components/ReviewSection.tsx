@@ -440,6 +440,7 @@ function ReviewDetail({
       </div>
       <ReviewQueueSummary
         queue={reviewActionQueue}
+        selectedRowId={selectedRow.rowId}
         onOpenQueuedRow={onOpenQueuedRow}
         onConfirmQueuedRows={onConfirmQueuedRows}
         onResetQueuedRows={onResetQueuedRows}
@@ -633,11 +634,13 @@ function ReviewDetail({
 
 function ReviewQueueSummary({
   queue,
+  selectedRowId,
   onOpenQueuedRow,
   onConfirmQueuedRows,
   onResetQueuedRows,
 }: {
   queue: ReviewActionQueue;
+  selectedRowId: string;
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
   onResetQueuedRows: (rowIds: string[]) => void;
@@ -656,6 +659,8 @@ function ReviewQueueSummary({
           nextRow={queue.activePending.nextRow}
           rowIds={queue.activePending.rowIds}
           actionLabel="보류 제외 미확정 첫 행 열기"
+          nextActionLabel="보류 제외 미확정 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="보류 제외 미확정 모두 확정"
           bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -667,6 +672,8 @@ function ReviewQueueSummary({
           nextRow={queue.confirmed.nextRow}
           rowIds={queue.confirmed.rowIds}
           actionLabel="확정 첫 행 열기"
+          nextActionLabel="확정 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="확정 모두 대기로 전환"
           bulkActionTone="neutral"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -679,6 +686,8 @@ function ReviewQueueSummary({
           rowIds={queue.held.rowIds}
           notePreview={queue.held.notePreview}
           actionLabel="보류 첫 행 열기"
+          nextActionLabel="보류 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="보류 모두 대기로 전환"
           bulkActionTone="neutral"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -744,6 +753,8 @@ function ReviewQueueSummary({
           nextRow={queue.pendingIssue.nextRow}
           rowIds={queue.pendingIssue.rowIds}
           actionLabel="이슈 미확정 첫 행 열기"
+          nextActionLabel="이슈 미확정 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="이슈 미확정 모두 확정"
           bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -755,6 +766,8 @@ function ReviewQueueSummary({
           nextRow={queue.highValuePending.nextRow}
           rowIds={queue.highValuePending.rowIds}
           actionLabel="고액 미확정 첫 행 열기"
+          nextActionLabel="고액 미확정 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="고액 미확정 모두 확정"
           bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -766,6 +779,8 @@ function ReviewQueueSummary({
           nextRow={queue.pending.nextRow}
           rowIds={queue.pending.rowIds}
           actionLabel="전체 미확정 첫 행 열기"
+          nextActionLabel="전체 미확정 다음 행으로 이동"
+          selectedRowId={selectedRowId}
           bulkActionLabel="전체 미확정 모두 확정"
           bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
@@ -776,6 +791,14 @@ function ReviewQueueSummary({
   );
 }
 
+function getNextQueuedRowId(rowIds: string[], selectedRowId: string): string | undefined {
+  const selectedIndex = rowIds.indexOf(selectedRowId);
+  if (selectedIndex < 0 || selectedIndex + 1 >= rowIds.length) {
+    return undefined;
+  }
+  return rowIds[selectedIndex + 1];
+}
+
 function ReviewQueueCard({
   label,
   count,
@@ -783,6 +806,8 @@ function ReviewQueueCard({
   rowIds,
   notePreview,
   actionLabel,
+  nextActionLabel,
+  selectedRowId,
   bulkActionLabel,
   bulkActionTone,
   onOpenQueuedRow,
@@ -794,11 +819,14 @@ function ReviewQueueCard({
   rowIds: string[];
   notePreview?: string;
   actionLabel: string;
+  nextActionLabel: string;
+  selectedRowId: string;
   bulkActionLabel: string;
   bulkActionTone: "confirm" | "neutral";
   onOpenQueuedRow: (rowId: string) => void;
   onApplyQueuedRows: (rowIds: string[]) => void;
 }) {
+  const nextQueuedRowId = getNextQueuedRowId(rowIds, selectedRowId);
   const bulkActionClassName = bulkActionTone === "confirm"
     ? "rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
     : "rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50";
@@ -827,6 +855,18 @@ function ReviewQueueCard({
             }}
           >
             {actionLabel}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!nextQueuedRowId}
+            onClick={() => {
+              if (nextQueuedRowId) {
+                onOpenQueuedRow(nextQueuedRowId);
+              }
+            }}
+          >
+            {nextActionLabel}
           </button>
           <button
             type="button"
