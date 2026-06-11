@@ -492,6 +492,37 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("bulk-confirms and resets the current filtered review rows", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    fireEvent.click(screen.getByRole("button", { name: "현재 필터 결과 모두 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/검수 확정 2건/)).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-004", status: "confirmed" }),
+        expect.objectContaining({ rowId: "row-005", status: "confirmed" }),
+      ]));
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "현재 필터 결과 확정 해제" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/검수 확정 0건/)).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-004", status: "pending" }),
+        expect.objectContaining({ rowId: "row-005", status: "pending" }),
+      ]));
+    });
+  });
+
   it("edits the selected review row and persists the changed fields", async () => {
     renderActiveBatchApp();
 

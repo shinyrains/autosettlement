@@ -30,6 +30,8 @@ type ReviewSectionProps = {
   confirmedRowCount: number;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
+  onConfirmRows: (rowIds: string[]) => void;
+  onResetRowsConfirmation: (rowIds: string[]) => void;
   onSaveRowEdits: (
     rowId: string,
     fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>,
@@ -51,6 +53,8 @@ export function ReviewSection({
   confirmedRowCount,
   onConfirmRow,
   onResetRowConfirmation,
+  onConfirmRows,
+  onResetRowsConfirmation,
   onSaveRowEdits,
 }: ReviewSectionProps) {
   const columnHelper = createColumnHelper<SettlementRow>();
@@ -89,6 +93,8 @@ export function ReviewSection({
     getCoreRowModel: getCoreRowModel(),
   });
   const filteredIssueRowCount = rows.filter((row) => row.issues.length > 0).length;
+  const filteredRowIds = rows.map((row) => row.rowId);
+  const isBulkActionDisabled = filteredRowIds.length === 0;
 
   return (
     <section id="step-3" className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
@@ -100,7 +106,7 @@ export function ReviewSection({
               현재 필터 결과 {rows.length}행 / 전체 {totalRowCount}행 · 이슈 연결 행 {filteredIssueRowCount}건 · 검수 확정 {confirmedRowCount}건
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
             <FilterSelect
               icon={Filter}
               label="회사 필터"
@@ -147,6 +153,22 @@ export function ReviewSection({
               ]}
               onChange={(value) => onChangeFilters({ ...filters, sortMode: value as ReviewFilterState["sortMode"] })}
             />
+            <button
+              type="button"
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isBulkActionDisabled}
+              onClick={() => onConfirmRows(filteredRowIds)}
+            >
+              현재 필터 결과 모두 확정
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isBulkActionDisabled}
+              onClick={() => onResetRowsConfirmation(filteredRowIds)}
+            >
+              현재 필터 결과 확정 해제
+            </button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -358,7 +380,7 @@ function ReviewDetail({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">연결된 issue 없음</p>
+          <p className="mt-3 text-sm text-slate-500">연결된 이슈 없음</p>
         )}
       </div>
     </aside>

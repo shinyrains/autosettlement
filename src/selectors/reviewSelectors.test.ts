@@ -273,6 +273,17 @@ describe("review selectors", () => {
     });
   });
 
+  it("counts confirmed review rows by row occurrences when duplicate rowIds are present", () => {
+    const duplicatedRows = [rows[0], rows[1], { ...rows[1] }];
+
+    expect(getConfirmedReviewRowCount(duplicatedRows, reviewDecisions)).toBe(2);
+    expect(getReviewExportReadiness(duplicatedRows, [], reviewDecisions, readyExportResult)).toEqual(expect.objectContaining({
+      confirmedRowCount: 2,
+      pendingReviewCount: 1,
+      blockers: ["review_incomplete"],
+    }));
+  });
+
   it("derives review-to-export readiness from issues, confirmations, and exporter validation", () => {
     expect(getReviewExportReadiness(rows, issues, reviewDecisions, readyExportResult)).toEqual({
       batchStatus: "reviewing",

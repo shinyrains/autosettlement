@@ -34,6 +34,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
     state,
     setSelectedRowId,
     setReviewDecisionStatus,
+    setReviewDecisionStatuses,
     updateReviewRow,
     resetState,
     replaceState,
@@ -125,6 +126,8 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               confirmedRowCount={reviewOverview.confirmedRowCount}
               onConfirmRow={(rowId) => setReviewDecisionStatus(rowId, "confirmed")}
               onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
+              onConfirmRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
+              onResetRowsConfirmation={(rowIds) => setReviewDecisionStatuses(rowIds, "pending")}
               onSaveRowEdits={(rowId, fields) => updateReviewRow(rowId, fields)}
             />
             <ExportSection

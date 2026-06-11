@@ -113,6 +113,12 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
         reviewDecisions: upsertReviewDecisionStatus(currentState.reviewDecisions, rowId, status),
       }));
     },
+    setReviewDecisionStatuses: (rowIds: string[], status: ReviewDecisionStatus) => {
+      setState((currentState) => normalizeAppDraftState({
+        ...currentState,
+        reviewDecisions: upsertReviewDecisionStatuses(currentState.reviewDecisions, rowIds, status),
+      }));
+    },
     updateReviewRow: (rowId: string, fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>) => {
       setState((currentState) => normalizeAppDraftState({
         ...currentState,
@@ -196,16 +202,26 @@ function upsertReviewDecisionStatus(
   rowId: string,
   status: ReviewDecisionStatus,
 ): ReviewDecision[] {
+  return upsertReviewDecisionStatuses(reviewDecisions, [rowId], status);
+}
+
+function upsertReviewDecisionStatuses(
+  reviewDecisions: ReviewDecision[],
+  rowIds: string[],
+  status: ReviewDecisionStatus,
+): ReviewDecision[] {
   const nextUpdatedAt = new Date().toISOString();
-  const remainingDecisions = reviewDecisions.filter((decision) => decision.rowId !== rowId);
+  const targetRowIds = Array.from(new Set(rowIds));
+  const targetRowIdSet = new Set(targetRowIds);
+  const remainingDecisions = reviewDecisions.filter((decision) => !targetRowIdSet.has(decision.rowId));
 
   return [
     ...remainingDecisions,
-    {
+    ...targetRowIds.map((rowId) => ({
       rowId,
       status,
       updatedAt: nextUpdatedAt,
-    },
+    })),
   ];
 }
 

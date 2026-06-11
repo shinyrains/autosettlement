@@ -229,8 +229,13 @@ export function getReviewDecisionStatus(
 }
 
 export function getConfirmedReviewRowCount(rows: SettlementRow[], reviewDecisions: ReviewDecision[]): number {
-  const rowIds = new Set(rows.map((row) => row.rowId));
-  return reviewDecisions.filter((decision) => decision.status === "confirmed" && rowIds.has(decision.rowId)).length;
+  const confirmedRowIds = new Set(
+    reviewDecisions
+      .filter((decision) => decision.status === "confirmed")
+      .map((decision) => decision.rowId),
+  );
+
+  return rows.filter((row) => confirmedRowIds.has(row.rowId)).length;
 }
 
 export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[], reviewDecisions: ReviewDecision[] = []): ReviewOverview {
