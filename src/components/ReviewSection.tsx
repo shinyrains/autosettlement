@@ -30,6 +30,7 @@ type ReviewSectionProps = {
   confirmedRowCount: number;
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
+  onConfirmQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   onConfirmRows: (rowIds: string[]) => void;
@@ -59,6 +60,7 @@ export function ReviewSection({
   confirmedRowCount,
   reviewActionQueue,
   onOpenQueuedRow,
+  onConfirmQueuedRows,
   onConfirmRow,
   onResetRowConfirmation,
   onConfirmRows,
@@ -237,6 +239,7 @@ export function ReviewSection({
         selectedRowIssues={selectedRowIssues}
         reviewActionQueue={reviewActionQueue}
         onOpenQueuedRow={onOpenQueuedRow}
+        onConfirmQueuedRows={onConfirmQueuedRows}
         onConfirmRow={onConfirmRow}
         onResetRowConfirmation={onResetRowConfirmation}
         hasNextPendingRow={hasNextPendingRow}
@@ -255,6 +258,7 @@ function ReviewDetail({
   selectedRowIssues,
   reviewActionQueue,
   onOpenQueuedRow,
+  onConfirmQueuedRows,
   onConfirmRow,
   onResetRowConfirmation,
   hasNextPendingRow,
@@ -268,6 +272,7 @@ function ReviewDetail({
   selectedRowIssues: ParseIssue[];
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
+  onConfirmQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   hasNextPendingRow: boolean;
@@ -326,7 +331,11 @@ function ReviewDetail({
         <DetailLine label="원본" value={`${selectedRow.sourceFileName} · row ${selectedRow.sourceRowIndex}`} />
         <DetailLine label="정산금" value={moneyFormatter.format(selectedRow.settlementAmount)} />
       </div>
-      <ReviewQueueSummary queue={reviewActionQueue} onOpenQueuedRow={onOpenQueuedRow} />
+      <ReviewQueueSummary
+        queue={reviewActionQueue}
+        onOpenQueuedRow={onOpenQueuedRow}
+        onConfirmQueuedRows={onConfirmQueuedRows}
+      />
       <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 액션</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -448,9 +457,11 @@ function ReviewDetail({
 function ReviewQueueSummary({
   queue,
   onOpenQueuedRow,
+  onConfirmQueuedRows,
 }: {
   queue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
+  onConfirmQueuedRows: (rowIds: string[]) => void;
 }) {
   return (
     <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
@@ -463,22 +474,31 @@ function ReviewQueueSummary({
           label="이슈 미확정"
           count={queue.pendingIssue.count}
           nextRow={queue.pendingIssue.nextRow}
+          rowIds={queue.pendingIssue.rowIds}
           actionLabel="이슈 미확정 첫 행 열기"
+          bulkConfirmLabel="이슈 미확정 모두 확정"
           onOpenQueuedRow={onOpenQueuedRow}
+          onConfirmQueuedRows={onConfirmQueuedRows}
         />
         <ReviewQueueCard
           label="고액 미확정"
           count={queue.highValuePending.count}
           nextRow={queue.highValuePending.nextRow}
+          rowIds={queue.highValuePending.rowIds}
           actionLabel="고액 미확정 첫 행 열기"
+          bulkConfirmLabel="고액 미확정 모두 확정"
           onOpenQueuedRow={onOpenQueuedRow}
+          onConfirmQueuedRows={onConfirmQueuedRows}
         />
         <ReviewQueueCard
           label="전체 미확정"
           count={queue.pending.count}
           nextRow={queue.pending.nextRow}
+          rowIds={queue.pending.rowIds}
           actionLabel="전체 미확정 첫 행 열기"
+          bulkConfirmLabel="전체 미확정 모두 확정"
           onOpenQueuedRow={onOpenQueuedRow}
+          onConfirmQueuedRows={onConfirmQueuedRows}
         />
       </div>
     </div>
@@ -489,14 +509,20 @@ function ReviewQueueCard({
   label,
   count,
   nextRow,
+  rowIds,
   actionLabel,
+  bulkConfirmLabel,
   onOpenQueuedRow,
+  onConfirmQueuedRows,
 }: {
   label: string;
   count: number;
   nextRow?: SettlementRow;
+  rowIds: string[];
   actionLabel: string;
+  bulkConfirmLabel: string;
   onOpenQueuedRow: (rowId: string) => void;
+  onConfirmQueuedRows: (rowIds: string[]) => void;
 }) {
   return (
     <div className="rounded-md border border-line bg-ink-850 p-3">
@@ -507,18 +533,28 @@ function ReviewQueueCard({
             {nextRow ? `${companyLabels[nextRow.company]} · ${platformLabels[nextRow.platform]} · ${nextRow.mailerContentTitle}` : "대상 행 없음"}
           </p>
         </div>
-        <button
-          type="button"
-          className="shrink-0 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!nextRow}
-          onClick={() => {
-            if (nextRow) {
-              onOpenQueuedRow(nextRow.rowId);
-            }
-          }}
-        >
-          {actionLabel}
-        </button>
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <button
+            type="button"
+            className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!nextRow}
+            onClick={() => {
+              if (nextRow) {
+                onOpenQueuedRow(nextRow.rowId);
+              }
+            }}
+          >
+            {actionLabel}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={rowIds.length === 0}
+            onClick={() => onConfirmQueuedRows(rowIds)}
+          >
+            {bulkConfirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

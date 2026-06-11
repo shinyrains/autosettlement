@@ -607,6 +607,39 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("bulk-confirms pending rows from the current filtered review queue", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    expect(screen.getByText("이슈 미확정 1행")).toBeInTheDocument();
+    expect(screen.getByText("고액 미확정 2행")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "이슈 미확정 모두 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("이슈 미확정 0행")).toBeInTheDocument();
+      expect(screen.getByText("전체 미확정 1행")).toBeInTheDocument();
+      expect(screen.getByText(/검수 확정 1건/)).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-005", status: "confirmed" }),
+      ]));
+      expect(parsedDraft.reviewDecisions).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-004", status: "confirmed" }),
+      ]));
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "고액 미확정 모두 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("고액 미확정 0행")).toBeInTheDocument();
+      expect(screen.getByText("전체 미확정 0행")).toBeInTheDocument();
+      expect(screen.getByText(/검수 확정 2건/)).toBeInTheDocument();
+    });
+  });
+
   it("edits the selected review row and persists the changed fields", async () => {
     renderActiveBatchApp();
 

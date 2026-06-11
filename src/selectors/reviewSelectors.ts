@@ -71,6 +71,7 @@ export type ReviewOverview = {
 export type ReviewActionQueueItem = {
   count: number;
   nextRow?: SettlementRow;
+  rowIds: string[];
 };
 
 export type ReviewActionQueue = {
@@ -260,14 +261,17 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
     pendingIssue: {
       count: pendingIssueRows.length,
       nextRow: pendingIssueRows[0],
+      rowIds: pendingIssueRows.map((row) => row.rowId),
     },
     highValuePending: {
       count: highValuePendingRows.length,
       nextRow: highValuePendingRows[0],
+      rowIds: highValuePendingRows.map((row) => row.rowId),
     },
     pending: {
       count: pendingRows.length,
       nextRow: pendingRows[0],
+      rowIds: pendingRows.map((row) => row.rowId),
     },
   };
 }

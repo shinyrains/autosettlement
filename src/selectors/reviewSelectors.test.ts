@@ -265,14 +265,17 @@ describe("review selectors", () => {
       pendingIssue: {
         count: 1,
         nextRow: rows[2],
+        rowIds: ["row-sr-kyobo-2"],
       },
       highValuePending: {
         count: 2,
         nextRow: rows[2],
+        rowIds: ["row-sr-kyobo-2", "row-raon-guru"],
       },
       pending: {
         count: 2,
         nextRow: rows[0],
+        rowIds: ["row-raon-guru", "row-sr-kyobo-2"],
       },
     });
 
@@ -280,14 +283,17 @@ describe("review selectors", () => {
       pendingIssue: {
         count: 0,
         nextRow: undefined,
+        rowIds: [],
       },
       highValuePending: {
         count: 1,
         nextRow: rows[0],
+        rowIds: ["row-raon-guru"],
       },
       pending: {
         count: 1,
         nextRow: rows[0],
+        rowIds: ["row-raon-guru"],
       },
     });
   });

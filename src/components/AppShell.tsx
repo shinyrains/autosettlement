@@ -146,6 +146,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               confirmedRowCount={reviewOverview.confirmedRowCount}
               reviewActionQueue={reviewActionQueue}
               onOpenQueuedRow={(rowId) => setSelectedRowId(rowId)}
+              onConfirmQueuedRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
               onConfirmRow={(rowId) => setReviewDecisionStatus(rowId, "confirmed")}
               onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
               onConfirmRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
