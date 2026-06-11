@@ -68,6 +68,17 @@ export type ReviewOverview = {
   confirmedRowCount: number;
 };
 
+export type ReviewActionQueueItem = {
+  count: number;
+  nextRow?: SettlementRow;
+};
+
+export type ReviewActionQueue = {
+  pendingIssue: ReviewActionQueueItem;
+  highValuePending: ReviewActionQueueItem;
+  pending: ReviewActionQueueItem;
+};
+
 export type ReviewExportBlocker = "missing_rows" | "unresolved_issues" | "review_incomplete" | "export_validation";
 
 export type ReviewExportStage = "reviewing" | "export_validation" | "ready_for_export";
@@ -233,6 +244,32 @@ export function getReviewDecisionStatus(
   }
 
   return reviewDecisions.find((decision) => decision.rowId === rowId)?.status ?? "pending";
+}
+
+export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: ReviewDecision[] = []): ReviewActionQueue {
+  const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
+  const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
+  const highValuePendingRows = [...pendingRows].sort((left, right) => {
+    if (right.settlementAmount !== left.settlementAmount) {
+      return right.settlementAmount - left.settlementAmount;
+    }
+    return left.rowId.localeCompare(right.rowId, "ko-KR");
+  });
+
+  return {
+    pendingIssue: {
+      count: pendingIssueRows.length,
+      nextRow: pendingIssueRows[0],
+    },
+    highValuePending: {
+      count: highValuePendingRows.length,
+      nextRow: highValuePendingRows[0],
+    },
+    pending: {
+      count: pendingRows.length,
+      nextRow: pendingRows[0],
+    },
+  };
 }
 
 export function getConfirmedReviewRowCount(rows: SettlementRow[], reviewDecisions: ReviewDecision[]): number {

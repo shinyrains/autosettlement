@@ -11,7 +11,7 @@ import {
   platformLabels,
 } from "../data/mockSettlement";
 import type { Company, ParseIssue, Platform, ReviewDecisionStatus, SettlementRow } from "../types/settlement";
-import type { ReviewFilterState } from "../selectors/reviewSelectors";
+import type { ReviewActionQueue, ReviewFilterState } from "../selectors/reviewSelectors";
 import { DetailLine, Filter } from "./ShellPrimitives";
 import { moneyFormatter } from "./uiShellConfig";
 
@@ -28,6 +28,8 @@ type ReviewSectionProps = {
   selectedRowId: string;
   onSelectRow: (rowId: string) => void;
   confirmedRowCount: number;
+  reviewActionQueue: ReviewActionQueue;
+  onOpenQueuedRow: (rowId: string) => void;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   onConfirmRows: (rowIds: string[]) => void;
@@ -55,6 +57,8 @@ export function ReviewSection({
   selectedRowId,
   onSelectRow,
   confirmedRowCount,
+  reviewActionQueue,
+  onOpenQueuedRow,
   onConfirmRow,
   onResetRowConfirmation,
   onConfirmRows,
@@ -231,6 +235,8 @@ export function ReviewSection({
         selectedRow={selectedRow}
         selectedRowReviewStatus={selectedRowReviewStatus}
         selectedRowIssues={selectedRowIssues}
+        reviewActionQueue={reviewActionQueue}
+        onOpenQueuedRow={onOpenQueuedRow}
         onConfirmRow={onConfirmRow}
         onResetRowConfirmation={onResetRowConfirmation}
         hasNextPendingRow={hasNextPendingRow}
@@ -247,6 +253,8 @@ function ReviewDetail({
   selectedRow,
   selectedRowReviewStatus,
   selectedRowIssues,
+  reviewActionQueue,
+  onOpenQueuedRow,
   onConfirmRow,
   onResetRowConfirmation,
   hasNextPendingRow,
@@ -258,6 +266,8 @@ function ReviewDetail({
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
   selectedRowIssues: ParseIssue[];
+  reviewActionQueue: ReviewActionQueue;
+  onOpenQueuedRow: (rowId: string) => void;
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   hasNextPendingRow: boolean;
@@ -316,6 +326,7 @@ function ReviewDetail({
         <DetailLine label="원본" value={`${selectedRow.sourceFileName} · row ${selectedRow.sourceRowIndex}`} />
         <DetailLine label="정산금" value={moneyFormatter.format(selectedRow.settlementAmount)} />
       </div>
+      <ReviewQueueSummary queue={reviewActionQueue} onOpenQueuedRow={onOpenQueuedRow} />
       <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 액션</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -431,6 +442,85 @@ function ReviewDetail({
         )}
       </div>
     </aside>
+  );
+}
+
+function ReviewQueueSummary({
+  queue,
+  onOpenQueuedRow,
+}: {
+  queue: ReviewActionQueue;
+  onOpenQueuedRow: (rowId: string) => void;
+}) {
+  return (
+    <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 큐</p>
+        <p className="text-xs text-slate-500">현재 필터 기준</p>
+      </div>
+      <div className="mt-3 space-y-2">
+        <ReviewQueueCard
+          label="이슈 미확정"
+          count={queue.pendingIssue.count}
+          nextRow={queue.pendingIssue.nextRow}
+          actionLabel="이슈 미확정 첫 행 열기"
+          onOpenQueuedRow={onOpenQueuedRow}
+        />
+        <ReviewQueueCard
+          label="고액 미확정"
+          count={queue.highValuePending.count}
+          nextRow={queue.highValuePending.nextRow}
+          actionLabel="고액 미확정 첫 행 열기"
+          onOpenQueuedRow={onOpenQueuedRow}
+        />
+        <ReviewQueueCard
+          label="전체 미확정"
+          count={queue.pending.count}
+          nextRow={queue.pending.nextRow}
+          actionLabel="전체 미확정 첫 행 열기"
+          onOpenQueuedRow={onOpenQueuedRow}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ReviewQueueCard({
+  label,
+  count,
+  nextRow,
+  actionLabel,
+  onOpenQueuedRow,
+}: {
+  label: string;
+  count: number;
+  nextRow?: SettlementRow;
+  actionLabel: string;
+  onOpenQueuedRow: (rowId: string) => void;
+}) {
+  return (
+    <div className="rounded-md border border-line bg-ink-850 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-200">{label} {count}행</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {nextRow ? `${companyLabels[nextRow.company]} · ${platformLabels[nextRow.platform]} · ${nextRow.mailerContentTitle}` : "대상 행 없음"}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!nextRow}
+          onClick={() => {
+            if (nextRow) {
+              onOpenQueuedRow(nextRow.rowId);
+            }
+          }}
+        >
+          {actionLabel}
+        </button>
+      </div>
+    </div>
   );
 }
 

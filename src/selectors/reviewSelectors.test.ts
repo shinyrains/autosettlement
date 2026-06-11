@@ -14,6 +14,7 @@ import {
   getIssueSummary,
   getIssuesByFile,
   getPlatformSummary,
+  getReviewActionQueue,
   getReviewExportReadiness,
   getReviewExportStage,
   getReviewOverview,
@@ -257,6 +258,38 @@ describe("review selectors", () => {
   it("sorts review rows by settlement amount and title when requested", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "settlement_desc" })).toEqual([rows[2], rows[1], rows[0]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "title" })).toEqual([rows[0], rows[2], rows[1]]);
+  });
+
+  it("builds a filtered review action queue for issue, high-value, and remaining pending rows", () => {
+    expect(getReviewActionQueue(rows, reviewDecisions)).toEqual({
+      pendingIssue: {
+        count: 1,
+        nextRow: rows[2],
+      },
+      highValuePending: {
+        count: 2,
+        nextRow: rows[2],
+      },
+      pending: {
+        count: 2,
+        nextRow: rows[0],
+      },
+    });
+
+    expect(getReviewActionQueue(rows.slice(0, 2), reviewDecisions)).toEqual({
+      pendingIssue: {
+        count: 0,
+        nextRow: undefined,
+      },
+      highValuePending: {
+        count: 1,
+        nextRow: rows[0],
+      },
+      pending: {
+        count: 1,
+        nextRow: rows[0],
+      },
+    });
   });
 
   it("returns selected row fallback, overview counts, and legacy decision helpers", () => {

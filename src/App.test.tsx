@@ -575,6 +575,38 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("shows a filtered review queue and opens priority pending rows", async () => {
+    renderActiveBatchApp();
+
+    expect(screen.getByText("검수 큐")).toBeInTheDocument();
+    expect(screen.getByText("이슈 미확정 3행")).toBeInTheDocument();
+    expect(screen.getByText("고액 미확정 5행")).toBeInTheDocument();
+    expect(screen.getByText("전체 미확정 5행")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "고액 미확정 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("고액 미확정 4행")).toBeInTheDocument();
+      expect(screen.getByText("전체 미확정 4행")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+
+    expect(screen.getByText("이슈 미확정 1행")).toBeInTheDocument();
+    expect(screen.getByText("고액 미확정 2행")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "이슈 미확정 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    });
+  });
+
   it("edits the selected review row and persists the changed fields", async () => {
     renderActiveBatchApp();
 
