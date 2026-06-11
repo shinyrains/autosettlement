@@ -85,6 +85,7 @@ export type ReviewHoldReasonGroup = {
 export type ReviewActionQueue = {
   held: ReviewActionQueueItem;
   holdReasonGroups: ReviewHoldReasonGroup[];
+  activePending: ReviewActionQueueItem;
   pendingIssue: ReviewActionQueueItem;
   highValuePending: ReviewActionQueueItem;
   pending: ReviewActionQueueItem;
@@ -260,6 +261,7 @@ export function getReviewDecisionStatus(
 export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: ReviewDecision[] = []): ReviewActionQueue {
   const reviewDecisionByRowId = new Map(reviewDecisions.map((decision) => [decision.rowId, decision]));
   const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
+  const activePendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "pending");
   const heldRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "held");
   const holdReasonGroups = getHoldReasonGroups(heldRows, reviewDecisionByRowId);
   const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
@@ -278,6 +280,11 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
       notePreview: heldRows[0] ? reviewDecisionByRowId.get(heldRows[0].rowId)?.note : undefined,
     },
     holdReasonGroups,
+    activePending: {
+      count: activePendingRows.length,
+      nextRow: activePendingRows[0],
+      rowIds: activePendingRows.map((row) => row.rowId),
+    },
     pendingIssue: {
       count: pendingIssueRows.length,
       nextRow: pendingIssueRows[0],
@@ -372,10 +379,7 @@ function getHoldReasonGroups(
   const groupsByNote = new Map<string, SettlementRow[]>();
 
   heldRows.forEach((row) => {
-    const note = reviewDecisionByRowId.get(row.rowId)?.note?.trim();
-    if (!note) {
-      return;
-    }
+    const note = reviewDecisionByRowId.get(row.rowId)?.note?.trim() || "사유 없음";
     const groupRows = groupsByNote.get(note) ?? [];
     groupRows.push(row);
     groupsByNote.set(note, groupRows);

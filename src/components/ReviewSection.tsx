@@ -578,8 +578,19 @@ function ReviewQueueSummary({
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 큐</p>
         <p className="text-xs text-slate-500">현재 필터 기준</p>
       </div>
-      <p className="mt-1 text-xs text-slate-500">아래 미확정 큐는 검수 보류 행을 포함합니다.</p>
+      <p className="mt-1 text-xs text-slate-500">아래 이슈/고액/전체 미확정 큐는 검수 보류 행을 포함합니다.</p>
       <div className="mt-3 space-y-2">
+        <ReviewQueueCard
+          label="보류 제외 미확정"
+          count={queue.activePending.count}
+          nextRow={queue.activePending.nextRow}
+          rowIds={queue.activePending.rowIds}
+          actionLabel="보류 제외 미확정 첫 행 열기"
+          bulkActionLabel="보류 제외 미확정 모두 확정"
+          bulkActionTone="confirm"
+          onOpenQueuedRow={onOpenQueuedRow}
+          onApplyQueuedRows={onConfirmQueuedRows}
+        />
         <ReviewQueueCard
           label="보류"
           count={queue.held.count}

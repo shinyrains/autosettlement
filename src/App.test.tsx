@@ -782,6 +782,21 @@ describe("AutoSettlement UI shell", () => {
 
     await waitFor(() => {
       expect(screen.getByText("원천 파일 행/금액 확인 필요 1행")).toBeInTheDocument();
+      expect(screen.getByText("보류 제외 미확정 3행")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 제외 미확정 모두 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("보류 제외 미확정 0행")).toBeInTheDocument();
+      expect(screen.getByText("원천 파일 행/금액 확인 필요 1행")).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-001", status: "confirmed" }),
+        expect.objectContaining({ rowId: "row-003", status: "held", note: "원천 파일 행/금액 확인 필요" }),
+      ]));
     });
 
     fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 그룹 첫 행 열기" }));
@@ -822,7 +837,33 @@ describe("AutoSettlement UI shell", () => {
       expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 모두 확정` })).toHaveTextContent("사유 그룹 모두 확정");
       expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 첫 행 열기` })).toHaveTextContent("사유 그룹 첫 행 열기");
       expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 대기로 전환` })).toHaveTextContent("사유 그룹 대기로 전환");
-      expect(screen.getByText("아래 미확정 큐는 검수 보류 행을 포함합니다.")).toBeInTheDocument();
+      expect(screen.getByText("아래 이슈/고액/전체 미확정 큐는 검수 보류 행을 포함합니다.")).toBeInTheDocument();
+    });
+  });
+
+  it("surfaces legacy held rows without saved hold reasons as a recoverable group", async () => {
+    const draft = createSeedAppState();
+    draft.reviewDecisions = [{ rowId: "row-002", status: "held", updatedAt: "2026-06-11T10:00:00.000Z" }];
+    draft.selectedRowId = "row-002";
+    saveAppDraftState(draft, window.localStorage);
+    renderActiveBatchApp();
+
+    await waitFor(() => {
+      expect(screen.getByText("사유 없음 1행")).toBeInTheDocument();
+      expect(screen.getByText("저장된 보류 사유 없음")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "사유 없음 사유 그룹 대기로 전환" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("사유 없음 1행")).not.toBeInTheDocument();
+      expect(screen.getByText("보류 0행")).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-002", status: "pending" }),
+      ]));
     });
   });
 

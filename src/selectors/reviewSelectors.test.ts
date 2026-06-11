@@ -264,7 +264,7 @@ describe("review selectors", () => {
     const queueDecisions = [
       ...reviewDecisions,
       { rowId: "row-raon-guru", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:17:00.000Z" },
-      { rowId: "row-sr-kyobo-2", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:18:00.000Z" },
+      { rowId: "row-sr-kyobo-2", status: "held" as const, updatedAt: "2026-06-11T09:18:00.000Z" },
     ];
 
     expect(getReviewActionQueue(rows, queueDecisions)).toEqual({
@@ -276,12 +276,23 @@ describe("review selectors", () => {
       },
       holdReasonGroups: [
         {
+          note: "사유 없음",
+          count: 1,
+          nextRow: rows[2],
+          rowIds: ["row-sr-kyobo-2"],
+        },
+        {
           note: "출판사 확인",
-          count: 2,
+          count: 1,
           nextRow: rows[0],
-          rowIds: ["row-raon-guru", "row-sr-kyobo-2"],
+          rowIds: ["row-raon-guru"],
         },
       ],
+      activePending: {
+        count: 0,
+        nextRow: undefined,
+        rowIds: [],
+      },
       pendingIssue: {
         count: 1,
         nextRow: rows[2],
@@ -314,6 +325,11 @@ describe("review selectors", () => {
           rowIds: ["row-raon-guru"],
         },
       ],
+      activePending: {
+        count: 0,
+        nextRow: undefined,
+        rowIds: [],
+      },
       pendingIssue: {
         count: 0,
         nextRow: undefined,
