@@ -784,13 +784,13 @@ describe("AutoSettlement UI shell", () => {
       expect(screen.getByText("원천 파일 행/금액 확인 필요 1행")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 첫 행 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 그룹 첫 행 열기" }));
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 모두 확정" }));
+    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 그룹 모두 확정" }));
 
     await waitFor(() => {
       expect(screen.queryByText("앱/웹 중복 정산 확인 1행")).not.toBeInTheDocument();
@@ -802,6 +802,27 @@ describe("AutoSettlement UI shell", () => {
         expect.objectContaining({ rowId: "row-002", status: "confirmed", note: "앱/웹 중복 정산 확인" }),
         expect.objectContaining({ rowId: "row-003", status: "held", note: "원천 파일 행/금액 확인 필요" }),
       ]));
+    });
+  });
+
+  it("keeps long hold reasons readable while preserving full reason actions", async () => {
+    const longReason = "정산 담당자 확인이 필요한 아주 긴 보류 사유입니다. 앱/웹 중복과 계약 조건을 함께 확인해야 합니다.";
+    const shortenedReason = "정산 담당자 확인이 필요한 아주 긴 보류 사유...";
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.change(screen.getByLabelText("검수 보류 사유"), { target: { value: longReason } });
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("보류 사유가 긴 경우 축약 표시되며 전체 사유는 도움말과 상세 영역에서 확인할 수 있습니다.")).toBeInTheDocument();
+      expect(screen.getByText(`${shortenedReason} 1행`)).toHaveAttribute("title", longReason);
+      expect(screen.getByText(`보류 사유: ${shortenedReason}`)).toHaveAttribute("title", longReason);
+      expect(screen.queryByRole("button", { name: `${longReason} 사유 모두 확정` })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 모두 확정` })).toHaveTextContent("사유 그룹 모두 확정");
+      expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 첫 행 열기` })).toHaveTextContent("사유 그룹 첫 행 열기");
+      expect(screen.getByRole("button", { name: `${longReason} 사유 그룹 대기로 전환` })).toHaveTextContent("사유 그룹 대기로 전환");
+      expect(screen.getByText("아래 미확정 큐는 검수 보류 행을 포함합니다.")).toBeInTheDocument();
     });
   });
 
