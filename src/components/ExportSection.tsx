@@ -39,6 +39,7 @@ export function ExportSection({
   const isBlocked = effectiveReadiness.exportStatus === "blocked";
   const blockerMessages = getBlockerMessages(effectiveReadiness);
   const readyExportCountValue = readyExports ?? effectiveReadiness.readyExportCount;
+  const readinessSummaryLabel = isBlocked ? "대기 중" : "준비 완료";
 
   return (
     <section id="step-4" className="rounded-md border border-line bg-ink-850">
@@ -53,6 +54,12 @@ export function ExportSection({
         <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">
           {readyExportCountValue}/4 준비
         </span>
+      </div>
+      <div className="m-5 rounded-md border border-line bg-ink-800 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">출력 준비 상태</p>
+        <p className={isBlocked ? "mt-1 text-sm font-semibold text-amber" : "mt-1 text-sm font-semibold text-mint"}>
+          {readinessSummaryLabel} · 확정 {effectiveReadiness.confirmedRowCount}행 · 대기 {effectiveReadiness.pendingReviewCount}행 · 이슈 {effectiveReadiness.unresolvedIssueCount}건 · 출력 {readyExportCountValue}종
+        </p>
       </div>
       {isBlocked ? (
         <div className="m-5 rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-amber">
