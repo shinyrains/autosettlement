@@ -40,6 +40,14 @@ const reviewDecisionStatusLabels: Record<ReviewDecisionStatus, string> = {
   confirmed: "확정",
 };
 
+type LatestUploadChange = {
+  uploadedAt: string;
+  companyLabel: string;
+  platformLabel: string;
+  slotLabel?: string;
+  fileName?: string;
+};
+
 function formatBatchHistoryTimestamp(timestamp?: string): string {
   if (!timestamp) {
     return "기록 없음";
@@ -60,6 +68,58 @@ function getLatestReviewDecisionSummary(draftState: AppDraftState): string {
   }
 
   return `${reviewDecisionStatusLabels[latestDecision.status]} · ${formatBatchHistoryTimestamp(latestDecision.updatedAt)}`;
+}
+
+function getLastItem<T>(items: T[]): T | undefined {
+  return items.length > 0 ? items[items.length - 1] : undefined;
+}
+
+function getLatestUploadChange(draftState: AppDraftState): LatestUploadChange | undefined {
+  const changes: LatestUploadChange[] = draftState.uploads.flatMap((upload) => {
+    const uploadChange: LatestUploadChange[] = upload.lastUploadedAt
+      ? [{
+          uploadedAt: upload.lastUploadedAt,
+          companyLabel: upload.sharedCompanies?.length ? "공유" : platformCompanyLabel(upload.company),
+          platformLabel: upload.platformLabel,
+          fileName: getLastItem(upload.sourceFileNames),
+        }]
+      : [];
+
+    const slotChanges: LatestUploadChange[] = (upload.slots ?? []).flatMap((slot) => (
+      slot.lastUploadedAt
+        ? [{
+            uploadedAt: slot.lastUploadedAt,
+            companyLabel: upload.sharedCompanies?.length ? "공유" : platformCompanyLabel(upload.company),
+            platformLabel: upload.platformLabel,
+            slotLabel: slot.label,
+            fileName: getLastItem(slot.sourceFileNames),
+          }]
+        : []
+    ));
+
+    return [...uploadChange, ...slotChanges];
+  });
+
+  return changes.sort((left, right) => {
+    const timeDifference = Date.parse(right.uploadedAt) - Date.parse(left.uploadedAt);
+    if (timeDifference !== 0) {
+      return timeDifference;
+    }
+    return Number(Boolean(right.slotLabel)) - Number(Boolean(left.slotLabel));
+  })[0];
+}
+
+function platformCompanyLabel(company: AppDraftState["uploads"][number]["company"]): string {
+  return company === "raon" ? "라온이앤엠" : "에스알이앤엠";
+}
+
+function formatLatestUploadChange(change?: LatestUploadChange): string {
+  if (!change) {
+    return "기록 없음";
+  }
+  return [change.companyLabel, change.platformLabel, change.slotLabel, change.fileName]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
 }
 
 function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined {
@@ -193,6 +253,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
     exportStage: getReviewExportStage(readiness),
   });
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
+  const latestUploadChange = getLatestUploadChange(draftState);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
   const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
@@ -256,6 +317,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   <p>최근 업로드: {formatBatchHistoryTimestamp(latestUploadTimestamp)}</p>
                   <p>최근 검수: {latestReviewDecisionSummary}</p>
                 </div>
+                <p className="mt-3 text-sm text-slate-400">최근 업로드 변경: {formatLatestUploadChange(latestUploadChange)}</p>
               </div>
             </div>
 
