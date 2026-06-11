@@ -495,17 +495,17 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     expect(screen.getByText("선택 행 큐 위치")).toBeInTheDocument();
-    expect(screen.getByText("보류 제외 미확정 큐 대상")).toBeInTheDocument();
-    expect(screen.getByText("이슈 미확정 큐 대상")).toBeInTheDocument();
-    expect(screen.getByText("고액 미확정 큐 대상")).toBeInTheDocument();
-    expect(screen.getByText("전체 미확정 큐 대상")).toBeInTheDocument();
+    expect(screen.getByText("보류 제외 미확정 큐 2번째 대상")).toBeInTheDocument();
+    expect(screen.getByText("이슈 미확정 큐 1번째 대상")).toBeInTheDocument();
+    expect(screen.getByText("고액 미확정 큐 4번째 대상")).toBeInTheDocument();
+    expect(screen.getByText("전체 미확정 큐 2번째 대상")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
 
     await waitFor(() => {
       expect(screen.getAllByText("검수 확정").length).toBeGreaterThan(0);
       expect(screen.getByRole("button", { name: "검수 확정 해제" })).toBeInTheDocument();
-      expect(screen.getByText("확정 큐 대상")).toBeInTheDocument();
+      expect(screen.getByText("확정 큐 1번째 대상")).toBeInTheDocument();
       expect(screen.getByText(/검수 확정 1건/)).toBeInTheDocument();
 
       const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);

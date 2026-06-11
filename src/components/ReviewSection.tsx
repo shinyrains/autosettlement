@@ -38,19 +38,36 @@ function formatReviewDecisionUpdatedAt(updatedAt?: string): string {
   return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
 }
 
-function getSelectedRowQueueLabels(row: SettlementRow, status: ReviewDecisionStatus): string[] {
+function formatQueueRank(queue: ReviewActionQueue["pending"], rowId: string): string | undefined {
+  const index = queue.rowIds.indexOf(rowId);
+  return index >= 0 ? `${index + 1}번째` : undefined;
+}
+
+function formatQueueTargetLabel(label: string, rank?: string): string {
+  return rank ? `${label} 큐 ${rank} 대상` : `${label} 큐 대상`;
+}
+
+function getSelectedRowQueueLabels(
+  row: SettlementRow,
+  status: ReviewDecisionStatus,
+  queue: ReviewActionQueue,
+): string[] {
   if (status === "confirmed") {
-    return ["확정 큐 대상"];
+    return [formatQueueTargetLabel("확정", formatQueueRank(queue.confirmed, row.rowId))];
   }
   if (status === "held") {
-    return ["보류 큐 대상", "고액 미확정 큐 대상", "전체 미확정 큐 대상"];
+    return [
+      formatQueueTargetLabel("보류", formatQueueRank(queue.held, row.rowId)),
+      formatQueueTargetLabel("고액 미확정", formatQueueRank(queue.highValuePending, row.rowId)),
+      formatQueueTargetLabel("전체 미확정", formatQueueRank(queue.pending, row.rowId)),
+    ];
   }
 
   return [
-    "보류 제외 미확정 큐 대상",
-    ...(row.issues.length > 0 ? ["이슈 미확정 큐 대상"] : []),
-    "고액 미확정 큐 대상",
-    "전체 미확정 큐 대상",
+    formatQueueTargetLabel("보류 제외 미확정", formatQueueRank(queue.activePending, row.rowId)),
+    ...(row.issues.length > 0 ? [formatQueueTargetLabel("이슈 미확정", formatQueueRank(queue.pendingIssue, row.rowId))] : []),
+    formatQueueTargetLabel("고액 미확정", formatQueueRank(queue.highValuePending, row.rowId)),
+    formatQueueTargetLabel("전체 미확정", formatQueueRank(queue.pending, row.rowId)),
   ];
 }
 
@@ -383,7 +400,7 @@ function ReviewDetail({
     );
   }
 
-  const selectedRowQueueLabels = getSelectedRowQueueLabels(selectedRow, selectedRowReviewStatus);
+  const selectedRowQueueLabels = getSelectedRowQueueLabels(selectedRow, selectedRowReviewStatus, reviewActionQueue);
 
   return (
     <aside className="rounded-md border border-line bg-ink-850 p-5">
