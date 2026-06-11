@@ -293,6 +293,11 @@ describe("review selectors", () => {
         nextRow: undefined,
         rowIds: [],
       },
+      confirmed: {
+        count: 1,
+        nextRow: rows[1],
+        rowIds: ["row-sr-kyobo"],
+      },
       pendingIssue: {
         count: 1,
         nextRow: rows[2],
@@ -329,6 +334,11 @@ describe("review selectors", () => {
         count: 0,
         nextRow: undefined,
         rowIds: [],
+      },
+      confirmed: {
+        count: 1,
+        nextRow: rows[1],
+        rowIds: ["row-sr-kyobo"],
       },
       pendingIssue: {
         count: 0,

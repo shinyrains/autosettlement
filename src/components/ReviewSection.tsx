@@ -619,6 +619,17 @@ function ReviewQueueSummary({
           onApplyQueuedRows={onConfirmQueuedRows}
         />
         <ReviewQueueCard
+          label="확정"
+          count={queue.confirmed.count}
+          nextRow={queue.confirmed.nextRow}
+          rowIds={queue.confirmed.rowIds}
+          actionLabel="확정 첫 행 열기"
+          bulkActionLabel="확정 모두 대기로 전환"
+          bulkActionTone="neutral"
+          onOpenQueuedRow={onOpenQueuedRow}
+          onApplyQueuedRows={onResetQueuedRows}
+        />
+        <ReviewQueueCard
           label="보류"
           count={queue.held.count}
           nextRow={queue.held.nextRow}

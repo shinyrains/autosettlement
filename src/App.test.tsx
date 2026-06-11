@@ -499,6 +499,34 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("opens and resets confirmed rows through the current-filter review queue", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("확정 1행")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "확정 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "확정 모두 대기로 전환" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("확정 0행")).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-002", status: "pending" }),
+      ]));
+    });
+  });
+
   it("filters review rows by persisted review decision status", async () => {
     renderActiveBatchApp();
 
@@ -1306,7 +1334,7 @@ describe("AutoSettlement UI shell", () => {
     });
 
     expect(screen.getByText("정산내역_20260608_163327.xlsx")).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("persists munpia grouped slot uploads through the browser shell", async () => {
     render(

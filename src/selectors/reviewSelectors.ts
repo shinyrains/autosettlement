@@ -86,6 +86,7 @@ export type ReviewActionQueue = {
   held: ReviewActionQueueItem;
   holdReasonGroups: ReviewHoldReasonGroup[];
   activePending: ReviewActionQueueItem;
+  confirmed: ReviewActionQueueItem;
   pendingIssue: ReviewActionQueueItem;
   highValuePending: ReviewActionQueueItem;
   pending: ReviewActionQueueItem;
@@ -262,6 +263,7 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
   const reviewDecisionByRowId = new Map(reviewDecisions.map((decision) => [decision.rowId, decision]));
   const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
   const activePendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "pending");
+  const confirmedRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "confirmed");
   const heldRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "held");
   const holdReasonGroups = getHoldReasonGroups(heldRows, reviewDecisionByRowId);
   const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
@@ -284,6 +286,11 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
       count: activePendingRows.length,
       nextRow: activePendingRows[0],
       rowIds: activePendingRows.map((row) => row.rowId),
+    },
+    confirmed: {
+      count: confirmedRows.length,
+      nextRow: confirmedRows[0],
+      rowIds: confirmedRows.map((row) => row.rowId),
     },
     pendingIssue: {
       count: pendingIssueRows.length,
