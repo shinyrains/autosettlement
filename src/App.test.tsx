@@ -707,6 +707,45 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("opens held rows from the review queue and releases the current filtered holds", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.change(screen.getByLabelText("검수 보류 사유"), { target: { value: "앱/웹 중복 정산 확인" } });
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("보류 1행")).toBeInTheDocument();
+      expect(screen.getByText("검수 보류")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "고액 미확정 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+      expect(screen.getByText("앱/웹 중복 정산 확인")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 모두 대기로 전환" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("보류 0행")).toBeInTheDocument();
+      expect(screen.getAllByText("검수 대기").length).toBeGreaterThan(0);
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-002", status: "pending", note: "앱/웹 중복 정산 확인" }),
+      ]));
+    });
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     renderActiveBatchApp();
 

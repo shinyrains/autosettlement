@@ -32,6 +32,7 @@ type ReviewSectionProps = {
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
+  onResetQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
   onHoldRow: (rowId: string, note: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
@@ -64,6 +65,7 @@ export function ReviewSection({
   reviewActionQueue,
   onOpenQueuedRow,
   onConfirmQueuedRows,
+  onResetQueuedRows,
   onConfirmRow,
   onHoldRow,
   onResetRowConfirmation,
@@ -246,6 +248,7 @@ export function ReviewSection({
         reviewActionQueue={reviewActionQueue}
         onOpenQueuedRow={onOpenQueuedRow}
         onConfirmQueuedRows={onConfirmQueuedRows}
+        onResetQueuedRows={onResetQueuedRows}
         onConfirmRow={onConfirmRow}
         onHoldRow={onHoldRow}
         onResetRowConfirmation={onResetRowConfirmation}
@@ -267,6 +270,7 @@ function ReviewDetail({
   reviewActionQueue,
   onOpenQueuedRow,
   onConfirmQueuedRows,
+  onResetQueuedRows,
   onConfirmRow,
   onHoldRow,
   onResetRowConfirmation,
@@ -283,6 +287,7 @@ function ReviewDetail({
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
+  onResetQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
   onHoldRow: (rowId: string, note: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
@@ -351,6 +356,7 @@ function ReviewDetail({
         queue={reviewActionQueue}
         onOpenQueuedRow={onOpenQueuedRow}
         onConfirmQueuedRows={onConfirmQueuedRows}
+        onResetQueuedRows={onResetQueuedRows}
       />
       <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 액션</p>
@@ -524,10 +530,12 @@ function ReviewQueueSummary({
   queue,
   onOpenQueuedRow,
   onConfirmQueuedRows,
+  onResetQueuedRows,
 }: {
   queue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
+  onResetQueuedRows: (rowIds: string[]) => void;
 }) {
   return (
     <div className="mt-6 rounded-md border border-line bg-ink-800 p-3">
@@ -537,14 +545,26 @@ function ReviewQueueSummary({
       </div>
       <div className="mt-3 space-y-2">
         <ReviewQueueCard
+          label="보류"
+          count={queue.held.count}
+          nextRow={queue.held.nextRow}
+          rowIds={queue.held.rowIds}
+          actionLabel="보류 첫 행 열기"
+          bulkActionLabel="보류 모두 대기로 전환"
+          bulkActionTone="neutral"
+          onOpenQueuedRow={onOpenQueuedRow}
+          onApplyQueuedRows={onResetQueuedRows}
+        />
+        <ReviewQueueCard
           label="이슈 미확정"
           count={queue.pendingIssue.count}
           nextRow={queue.pendingIssue.nextRow}
           rowIds={queue.pendingIssue.rowIds}
           actionLabel="이슈 미확정 첫 행 열기"
-          bulkConfirmLabel="이슈 미확정 모두 확정"
+          bulkActionLabel="이슈 미확정 모두 확정"
+          bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
-          onConfirmQueuedRows={onConfirmQueuedRows}
+          onApplyQueuedRows={onConfirmQueuedRows}
         />
         <ReviewQueueCard
           label="고액 미확정"
@@ -552,9 +572,10 @@ function ReviewQueueSummary({
           nextRow={queue.highValuePending.nextRow}
           rowIds={queue.highValuePending.rowIds}
           actionLabel="고액 미확정 첫 행 열기"
-          bulkConfirmLabel="고액 미확정 모두 확정"
+          bulkActionLabel="고액 미확정 모두 확정"
+          bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
-          onConfirmQueuedRows={onConfirmQueuedRows}
+          onApplyQueuedRows={onConfirmQueuedRows}
         />
         <ReviewQueueCard
           label="전체 미확정"
@@ -562,9 +583,10 @@ function ReviewQueueSummary({
           nextRow={queue.pending.nextRow}
           rowIds={queue.pending.rowIds}
           actionLabel="전체 미확정 첫 행 열기"
-          bulkConfirmLabel="전체 미확정 모두 확정"
+          bulkActionLabel="전체 미확정 모두 확정"
+          bulkActionTone="confirm"
           onOpenQueuedRow={onOpenQueuedRow}
-          onConfirmQueuedRows={onConfirmQueuedRows}
+          onApplyQueuedRows={onConfirmQueuedRows}
         />
       </div>
     </div>
@@ -577,19 +599,25 @@ function ReviewQueueCard({
   nextRow,
   rowIds,
   actionLabel,
-  bulkConfirmLabel,
+  bulkActionLabel,
+  bulkActionTone,
   onOpenQueuedRow,
-  onConfirmQueuedRows,
+  onApplyQueuedRows,
 }: {
   label: string;
   count: number;
   nextRow?: SettlementRow;
   rowIds: string[];
   actionLabel: string;
-  bulkConfirmLabel: string;
+  bulkActionLabel: string;
+  bulkActionTone: "confirm" | "neutral";
   onOpenQueuedRow: (rowId: string) => void;
-  onConfirmQueuedRows: (rowIds: string[]) => void;
+  onApplyQueuedRows: (rowIds: string[]) => void;
 }) {
+  const bulkActionClassName = bulkActionTone === "confirm"
+    ? "rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+    : "rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50";
+
   return (
     <div className="rounded-md border border-line bg-ink-850 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -614,11 +642,11 @@ function ReviewQueueCard({
           </button>
           <button
             type="button"
-            className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className={bulkActionClassName}
             disabled={rowIds.length === 0}
-            onClick={() => onConfirmQueuedRows(rowIds)}
+            onClick={() => onApplyQueuedRows(rowIds)}
           >
-            {bulkConfirmLabel}
+            {bulkActionLabel}
           </button>
         </div>
       </div>

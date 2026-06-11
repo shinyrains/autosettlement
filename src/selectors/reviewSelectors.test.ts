@@ -260,8 +260,18 @@ describe("review selectors", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "title" })).toEqual([rows[0], rows[2], rows[1]]);
   });
 
-  it("builds a filtered review action queue for issue, high-value, and remaining pending rows", () => {
-    expect(getReviewActionQueue(rows, reviewDecisions)).toEqual({
+  it("builds a filtered review action queue for held, issue, high-value, and remaining pending rows", () => {
+    const queueDecisions = [
+      ...reviewDecisions,
+      { rowId: "row-sr-kyobo-2", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:17:00.000Z" },
+    ];
+
+    expect(getReviewActionQueue(rows, queueDecisions)).toEqual({
+      held: {
+        count: 1,
+        nextRow: rows[2],
+        rowIds: ["row-sr-kyobo-2"],
+      },
       pendingIssue: {
         count: 1,
         nextRow: rows[2],
@@ -279,7 +289,12 @@ describe("review selectors", () => {
       },
     });
 
-    expect(getReviewActionQueue(rows.slice(0, 2), reviewDecisions)).toEqual({
+    expect(getReviewActionQueue(rows.slice(0, 2), queueDecisions)).toEqual({
+      held: {
+        count: 0,
+        nextRow: undefined,
+        rowIds: [],
+      },
       pendingIssue: {
         count: 0,
         nextRow: undefined,

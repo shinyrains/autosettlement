@@ -75,6 +75,7 @@ export type ReviewActionQueueItem = {
 };
 
 export type ReviewActionQueue = {
+  held: ReviewActionQueueItem;
   pendingIssue: ReviewActionQueueItem;
   highValuePending: ReviewActionQueueItem;
   pending: ReviewActionQueueItem;
@@ -249,6 +250,7 @@ export function getReviewDecisionStatus(
 
 export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: ReviewDecision[] = []): ReviewActionQueue {
   const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
+  const heldRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "held");
   const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
   const highValuePendingRows = [...pendingRows].sort((left, right) => {
     if (right.settlementAmount !== left.settlementAmount) {
@@ -258,6 +260,11 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
   });
 
   return {
+    held: {
+      count: heldRows.length,
+      nextRow: heldRows[0],
+      rowIds: heldRows.map((row) => row.rowId),
+    },
     pendingIssue: {
       count: pendingIssueRows.length,
       nextRow: pendingIssueRows[0],
