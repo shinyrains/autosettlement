@@ -26,6 +26,23 @@ const statusClasses: Record<BatchSummaryStatus, string> = {
   completed: "border-violet-400/30 bg-violet-500/10 text-violet-200",
 };
 
+function formatBatchHistoryTimestamp(timestamp?: string): string {
+  if (!timestamp) {
+    return "기록 없음";
+  }
+
+  const [datePart, timePart = ""] = timestamp.split("T");
+  const timeWithoutSeconds = timePart.slice(0, 5);
+  return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
+}
+
+function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined {
+  return draftState.uploads
+    .flatMap((upload) => [upload.lastUploadedAt, ...(upload.slots ?? []).map((slot) => slot.lastUploadedAt)])
+    .filter((timestamp): timestamp is string => Boolean(timestamp))
+    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+}
+
 export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: BatchListPageProps) {
   if (!draftState) {
     return (
@@ -71,6 +88,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
     requiredFiles,
     exportStage: getReviewExportStage(readiness),
   });
+  const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
 
   return (
     <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
@@ -117,6 +135,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <SummaryCard label="이슈" value={`${draftState.issues.length}`} helper="오류/누락/매칭 실패" />
                 <SummaryCard label="출력" value={`${readiness.readyExportCount}/4`} helper="검수 완료 후 다운로드 가능" />
               </dl>
+              <div className="mt-6 rounded-xl border border-line bg-ink-850 p-4">
+                <p className="text-sm font-semibold text-slate-200">배치 진행 내역</p>
+                <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-3">
+                  <p>생성: {formatBatchHistoryTimestamp(draftState.batch.createdAt)}</p>
+                  <p>최근 수정: {formatBatchHistoryTimestamp(draftState.batch.updatedAt)}</p>
+                  <p>최근 업로드: {formatBatchHistoryTimestamp(latestUploadTimestamp)}</p>
+                </div>
+              </div>
             </div>
 
             <aside className="rounded-xl border border-line bg-ink-850 p-5">

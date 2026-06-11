@@ -333,6 +333,10 @@ describe("AutoSettlement UI shell", () => {
     render(<App />);
 
     expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
+    expect(screen.getByText("배치 진행 내역")).toBeInTheDocument();
+    expect(screen.getByText("생성: 2026-06-08 09:20")).toBeInTheDocument();
+    expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
+    expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
