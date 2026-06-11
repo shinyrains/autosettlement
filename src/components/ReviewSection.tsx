@@ -401,6 +401,9 @@ function ReviewDetail({
   }
 
   const selectedRowQueueLabels = getSelectedRowQueueLabels(selectedRow, selectedRowReviewStatus, reviewActionQueue);
+  const selectedHoldReasonGroup = selectedRowReviewStatus === "held"
+    ? reviewActionQueue.holdReasonGroups.find((group) => group.rowIds.includes(selectedRow.rowId))
+    : undefined;
 
   return (
     <aside className="rounded-md border border-line bg-ink-850 p-5">
@@ -557,6 +560,11 @@ function ReviewDetail({
           ) : (
             <p className="mt-2 text-sm text-slate-500">저장된 보류 사유 없음</p>
           )}
+          {selectedHoldReasonGroup ? (
+            <p className="mt-2 text-sm text-orange-200">
+              현재 보류 그룹: {selectedHoldReasonGroup.note} · {selectedHoldReasonGroup.count}행 · {selectedHoldReasonGroup.rowIds.includes(selectedRow.rowId) ? "그룹 액션 대상" : "그룹 액션 제외"}
+            </p>
+          ) : null}
           {isEditingHoldReason ? (
             <div className="mt-3 space-y-3">
               <div className="flex flex-wrap gap-2">
