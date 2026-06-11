@@ -8,11 +8,13 @@ export function StatusSection({
   issues,
   companyCount,
   rowsWithIssues,
+  onOpenIssueRow,
 }: {
   rows: number;
   issues: ParseIssue[];
   companyCount: number;
   rowsWithIssues: number;
+  onOpenIssueRow: (rowId: string) => void;
 }) {
   return (
     <section id="step-2" className="grid grid-cols-[1fr_1.35fr] gap-5">
@@ -23,7 +25,7 @@ export function StatusSection({
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <KpiCard label="정규화 행" value={`${rows}`} />
-          <KpiCard label="ParseIssue" value={`${issues.length}`} tone="warn" />
+          <KpiCard label="파싱 이슈" value={`${issues.length}`} tone="warn" />
           <KpiCard label="회사" value={`${companyCount}`} />
           <KpiCard label="이슈 행" value={`${rowsWithIssues}`} tone={rowsWithIssues > 0 ? "warn" : "default"} />
         </div>
@@ -38,7 +40,7 @@ export function StatusSection({
           ))}
         </div>
       </div>
-      <IssuePanel issues={issues} />
+      <IssuePanel issues={issues} onOpenIssueRow={onOpenIssueRow} />
     </section>
   );
 }

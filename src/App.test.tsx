@@ -374,6 +374,21 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getAllByRole("row")[1]).toHaveTextContent("파란 항구의 기록");
   });
 
+  it("opens a linked parse issue in review and resets the active review filters", () => {
+    renderActiveBatchApp();
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "달빛" } });
+    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "검수에서 열기" })[1]);
+
+    expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+    expect(screen.getByLabelText("회사 필터")).toHaveValue("all");
+    expect(screen.getByLabelText("검수 검색")).toHaveValue("");
+    expect(screen.getByText("현재 필터 결과 5행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
+  });
+
   it("confirms the selected review row and persists the review decision", async () => {
     renderActiveBatchApp();
 

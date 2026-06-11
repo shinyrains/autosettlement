@@ -99,6 +99,10 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               rows={totals.rows}
               companyCount={reviewOverview.companyCount}
               rowsWithIssues={reviewOverview.rowsWithIssues}
+              onOpenIssueRow={(rowId) => {
+                setReviewFilters(defaultReviewFilterState);
+                setSelectedRowId(rowId);
+              }}
             />
             <ReviewSection
               rows={filteredRows}
