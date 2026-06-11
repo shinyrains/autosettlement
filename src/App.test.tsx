@@ -488,6 +488,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("선택 행 큐 위치")).toBeInTheDocument();
     expect(screen.getByText("보류 제외 미확정 큐 대상")).toBeInTheDocument();
     expect(screen.getByText("이슈 미확정 큐 대상")).toBeInTheDocument();
+    expect(screen.getByText("고액 미확정 큐 대상")).toBeInTheDocument();
     expect(screen.getByText("전체 미확정 큐 대상")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));

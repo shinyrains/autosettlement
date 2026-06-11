@@ -43,12 +43,13 @@ function getSelectedRowQueueLabels(row: SettlementRow, status: ReviewDecisionSta
     return ["확정 큐 대상"];
   }
   if (status === "held") {
-    return ["보류 큐 대상", "전체 미확정 큐 대상"];
+    return ["보류 큐 대상", "고액 미확정 큐 대상", "전체 미확정 큐 대상"];
   }
 
   return [
     "보류 제외 미확정 큐 대상",
     ...(row.issues.length > 0 ? ["이슈 미확정 큐 대상"] : []),
+    "고액 미확정 큐 대상",
     "전체 미확정 큐 대상",
   ];
 }
