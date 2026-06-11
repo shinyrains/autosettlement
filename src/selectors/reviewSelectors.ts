@@ -72,6 +72,7 @@ export type ReviewActionQueueItem = {
   count: number;
   nextRow?: SettlementRow;
   rowIds: string[];
+  notePreview?: string;
 };
 
 export type ReviewActionQueue = {
@@ -249,6 +250,7 @@ export function getReviewDecisionStatus(
 }
 
 export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: ReviewDecision[] = []): ReviewActionQueue {
+  const reviewDecisionByRowId = new Map(reviewDecisions.map((decision) => [decision.rowId, decision]));
   const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
   const heldRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "held");
   const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
@@ -264,6 +266,7 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
       count: heldRows.length,
       nextRow: heldRows[0],
       rowIds: heldRows.map((row) => row.rowId),
+      notePreview: heldRows[0] ? reviewDecisionByRowId.get(heldRows[0].rowId)?.note : undefined,
     },
     pendingIssue: {
       count: pendingIssueRows.length,

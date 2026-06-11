@@ -308,6 +308,7 @@ function ReviewDetail({
     publisher: "",
   });
   const [draftHoldReason, setDraftHoldReason] = useState("");
+  const canSaveHoldReason = draftHoldReason.trim().length > 0;
 
   useEffect(() => {
     if (!selectedRow) {
@@ -484,8 +485,12 @@ function ReviewDetail({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="rounded-md border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-200 transition hover:bg-orange-500/20"
+                  className="rounded-md border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-200 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!canSaveHoldReason}
                   onClick={() => {
+                    if (!canSaveHoldReason) {
+                      return;
+                    }
                     onHoldRow(selectedRow.rowId, draftHoldReason.trim());
                     setIsEditingHoldReason(false);
                   }}
@@ -503,6 +508,9 @@ function ReviewDetail({
                   보류 사유 취소
                 </button>
               </div>
+              {!canSaveHoldReason ? (
+                <p className="text-xs text-orange-200">보류 사유를 입력해야 보류로 전환할 수 있습니다.</p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -549,6 +557,7 @@ function ReviewQueueSummary({
           count={queue.held.count}
           nextRow={queue.held.nextRow}
           rowIds={queue.held.rowIds}
+          notePreview={queue.held.notePreview}
           actionLabel="보류 첫 행 열기"
           bulkActionLabel="보류 모두 대기로 전환"
           bulkActionTone="neutral"
@@ -598,6 +607,7 @@ function ReviewQueueCard({
   count,
   nextRow,
   rowIds,
+  notePreview,
   actionLabel,
   bulkActionLabel,
   bulkActionTone,
@@ -608,6 +618,7 @@ function ReviewQueueCard({
   count: number;
   nextRow?: SettlementRow;
   rowIds: string[];
+  notePreview?: string;
   actionLabel: string;
   bulkActionLabel: string;
   bulkActionTone: "confirm" | "neutral";
@@ -626,6 +637,9 @@ function ReviewQueueCard({
           <p className="mt-1 text-xs text-slate-500">
             {nextRow ? `${companyLabels[nextRow.company]} · ${platformLabels[nextRow.platform]} · ${nextRow.mailerContentTitle}` : "대상 행 없음"}
           </p>
+          {notePreview ? (
+            <p className="mt-1 text-xs text-orange-200">보류 사유: {notePreview}</p>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">
           <button

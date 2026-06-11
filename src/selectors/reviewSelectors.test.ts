@@ -271,6 +271,7 @@ describe("review selectors", () => {
         count: 1,
         nextRow: rows[2],
         rowIds: ["row-sr-kyobo-2"],
+        notePreview: "출판사 확인",
       },
       pendingIssue: {
         count: 1,
@@ -294,6 +295,7 @@ describe("review selectors", () => {
         count: 0,
         nextRow: undefined,
         rowIds: [],
+        notePreview: undefined,
       },
       pendingIssue: {
         count: 0,

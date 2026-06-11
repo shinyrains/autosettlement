@@ -716,6 +716,7 @@ describe("AutoSettlement UI shell", () => {
 
     await waitFor(() => {
       expect(screen.getByText("보류 1행")).toBeInTheDocument();
+      expect(screen.getByText("보류 사유: 앱/웹 중복 정산 확인")).toBeInTheDocument();
       expect(screen.getByText("검수 보류")).toBeInTheDocument();
     });
 
@@ -744,6 +745,16 @@ describe("AutoSettlement UI shell", () => {
         expect.objectContaining({ rowId: "row-002", status: "pending", note: "앱/웹 중복 정산 확인" }),
       ]));
     });
+  });
+
+  it("keeps empty hold reasons from creating held review decisions", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+
+    expect(screen.getByRole("button", { name: "보류 사유 저장" })).toBeDisabled();
+    expect(screen.getByText("보류 사유를 입력해야 보류로 전환할 수 있습니다.")).toBeInTheDocument();
+    expect(screen.getByText("보류 0행")).toBeInTheDocument();
   });
 
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
