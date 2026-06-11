@@ -32,6 +32,10 @@ type ReviewSectionProps = {
   onResetRowConfirmation: (rowId: string) => void;
   onConfirmRows: (rowIds: string[]) => void;
   onResetRowsConfirmation: (rowIds: string[]) => void;
+  hasNextPendingRow: boolean;
+  hasNextIssueRow: boolean;
+  onSelectNextPendingRow: () => void;
+  onSelectNextIssueRow: () => void;
   onSaveRowEdits: (
     rowId: string,
     fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>,
@@ -55,6 +59,10 @@ export function ReviewSection({
   onResetRowConfirmation,
   onConfirmRows,
   onResetRowsConfirmation,
+  hasNextPendingRow,
+  hasNextIssueRow,
+  onSelectNextPendingRow,
+  onSelectNextIssueRow,
   onSaveRowEdits,
 }: ReviewSectionProps) {
   const columnHelper = createColumnHelper<SettlementRow>();
@@ -214,6 +222,10 @@ export function ReviewSection({
         selectedRowIssues={selectedRowIssues}
         onConfirmRow={onConfirmRow}
         onResetRowConfirmation={onResetRowConfirmation}
+        hasNextPendingRow={hasNextPendingRow}
+        hasNextIssueRow={hasNextIssueRow}
+        onSelectNextPendingRow={onSelectNextPendingRow}
+        onSelectNextIssueRow={onSelectNextIssueRow}
         onSaveRowEdits={onSaveRowEdits}
       />
     </section>
@@ -226,6 +238,10 @@ function ReviewDetail({
   selectedRowIssues,
   onConfirmRow,
   onResetRowConfirmation,
+  hasNextPendingRow,
+  hasNextIssueRow,
+  onSelectNextPendingRow,
+  onSelectNextIssueRow,
   onSaveRowEdits,
 }: {
   selectedRow?: SettlementRow;
@@ -233,6 +249,10 @@ function ReviewDetail({
   selectedRowIssues: ParseIssue[];
   onConfirmRow: (rowId: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
+  hasNextPendingRow: boolean;
+  hasNextIssueRow: boolean;
+  onSelectNextPendingRow: () => void;
+  onSelectNextIssueRow: () => void;
   onSaveRowEdits: (
     rowId: string,
     fields: Partial<Pick<SettlementRow, "mailerContentTitle" | "author" | "publisher">>,
@@ -312,6 +332,22 @@ function ReviewDetail({
               이 행 검수 확정
             </button>
           )}
+          <button
+            type="button"
+            className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasNextPendingRow}
+            onClick={onSelectNextPendingRow}
+          >
+            다음 미확정 행으로 이동
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasNextIssueRow}
+            onClick={onSelectNextIssueRow}
+          >
+            다음 이슈 행으로 이동
+          </button>
         </div>
         {isEditing ? (
           <div className="mt-4 space-y-3 rounded-md border border-line bg-ink-850 p-3">

@@ -523,6 +523,36 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("moves from the selected row to the next pending or issue-linked review row", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "다음 이슈 행으로 이동" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    });
+  });
+
+  it("moves from the visible fallback row when the stored selection is outside the active filter", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    expect(screen.getByRole("heading", { name: "파란 항구의 기록(앱)" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    });
+  });
+
   it("edits the selected review row and persists the changed fields", async () => {
     renderActiveBatchApp();
 

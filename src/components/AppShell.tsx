@@ -16,6 +16,7 @@ import {
   isLiveUploadEnabled,
   type LiveUploadTarget,
 } from "../state/uploadMutation";
+import type { SettlementRow } from "../types/settlement";
 import { BatchHeader } from "./BatchHeader";
 import { ExportSection } from "./ExportSection";
 import { ReviewSection } from "./ReviewSection";
@@ -55,6 +56,17 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
     ? state.issues.filter((issue) => selectedRow.issues.includes(issue.issueId))
     : [];
   const selectedRowReviewStatus = getReviewDecisionStatus(state.reviewDecisions, selectedRow?.rowId);
+  const effectiveSelectedRowId = selectedRow?.rowId ?? state.selectedRowId;
+  const nextPendingReviewRow = useMemo(
+    () => getNextFilteredReviewRow(filteredRows, effectiveSelectedRowId, (row) => (
+      getReviewDecisionStatus(state.reviewDecisions, row.rowId) !== "confirmed"
+    )),
+    [effectiveSelectedRowId, filteredRows, state.reviewDecisions],
+  );
+  const nextIssueReviewRow = useMemo(
+    () => getNextFilteredReviewRow(filteredRows, effectiveSelectedRowId, (row) => row.issues.length > 0),
+    [effectiveSelectedRowId, filteredRows],
+  );
   const exportResult = useMemo(() => createExportPackages(state.rows), [state.rows]);
   const exportPackages = exportResult.packages;
   const exportReadiness = useMemo(
@@ -128,6 +140,18 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
               onConfirmRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
               onResetRowsConfirmation={(rowIds) => setReviewDecisionStatuses(rowIds, "pending")}
+              hasNextPendingRow={!!nextPendingReviewRow}
+              hasNextIssueRow={!!nextIssueReviewRow}
+              onSelectNextPendingRow={() => {
+                if (nextPendingReviewRow) {
+                  setSelectedRowId(nextPendingReviewRow.rowId);
+                }
+              }}
+              onSelectNextIssueRow={() => {
+                if (nextIssueReviewRow) {
+                  setSelectedRowId(nextIssueReviewRow.rowId);
+                }
+              }}
               onSaveRowEdits={(rowId, fields) => updateReviewRow(rowId, fields)}
             />
             <ExportSection
@@ -141,4 +165,26 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
       </div>
     </main>
   );
+}
+
+function getNextFilteredReviewRow(
+  rows: SettlementRow[],
+  selectedRowId: string,
+  predicate: (row: SettlementRow) => boolean,
+): SettlementRow | undefined {
+  if (rows.length === 0) {
+    return undefined;
+  }
+
+  const selectedIndex = rows.findIndex((row) => row.rowId === selectedRowId);
+  const startIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0;
+
+  for (let offset = 0; offset < rows.length; offset += 1) {
+    const candidate = rows[(startIndex + offset) % rows.length];
+    if (candidate.rowId !== selectedRowId && predicate(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
 }
