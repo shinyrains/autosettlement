@@ -338,8 +338,12 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
     expect(screen.getByText("다음 필요 액션")).toBeInTheDocument();
-    expect(screen.getByText("필수 파일 10개 추가 업로드 필요")).toBeInTheDocument();
+    expect(screen.getByText("필수 파일 12개 추가 업로드 필요")).toBeInTheDocument();
     expect(screen.getByText("주요 blocker: 이슈 3건 / 검수 미확정 5건")).toBeInTheDocument();
+    expect(screen.getByText("운영 blocker 상세")).toBeInTheDocument();
+    expect(screen.getByText("업로드 누락: 필수 파일 12개")).toBeInTheDocument();
+    expect(screen.getByText("최우선 이슈: 시리즈 앱 매출용 파일 1개가 아직 업로드되지 않았습니다.")).toBeInTheDocument();
+    expect(screen.getByText("검수 대기: 5/5행")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));

@@ -43,16 +43,25 @@ function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined
     .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
 }
 
+function getMissingRequiredUploadCount(draftState: AppDraftState): number {
+  return draftState.uploads.reduce((sum, upload) => {
+    if (upload.slots?.length) {
+      const requiredSlotUploadedFiles = upload.slots
+        .filter((slot) => slot.required)
+        .reduce((slotSum, slot) => slotSum + slot.fileCount, 0);
+      return sum + Math.max(upload.requiredFileCount - requiredSlotUploadedFiles, 0);
+    }
+    return sum + Math.max(upload.requiredFileCount - upload.fileCount, 0);
+  }, 0);
+}
+
 function getNextBatchAction({
-  uploadedFiles,
-  requiredFiles,
+  missingRequiredFiles,
   readiness,
 }: {
-  uploadedFiles: number;
-  requiredFiles: number;
+  missingRequiredFiles: number;
   readiness: ReturnType<typeof getReviewExportReadiness>;
 }): string {
-  const missingRequiredFiles = Math.max(requiredFiles - uploadedFiles, 0);
   if (missingRequiredFiles > 0) {
     return `필수 파일 ${missingRequiredFiles}개 추가 업로드 필요`;
   }
@@ -70,6 +79,31 @@ function getNextBatchAction({
 
 function getBatchBlockerSummary(readiness: ReturnType<typeof getReviewExportReadiness>): string {
   return `주요 blocker: 이슈 ${readiness.unresolvedIssueCount}건 / 검수 미확정 ${readiness.pendingReviewCount}건`;
+}
+
+function getBatchBlockerDetails({
+  missingRequiredFiles,
+  draftState,
+  readiness,
+}: {
+  missingRequiredFiles: number;
+  draftState: AppDraftState;
+  readiness: ReturnType<typeof getReviewExportReadiness>;
+}): string[] {
+  const details: string[] = [];
+  if (missingRequiredFiles > 0) {
+    details.push(`업로드 누락: 필수 파일 ${missingRequiredFiles}개`);
+  }
+  if (draftState.issues.length > 0) {
+    details.push(`최우선 이슈: ${draftState.issues[0].message}`);
+  }
+  if (readiness.pendingReviewCount > 0) {
+    details.push(`검수 대기: ${readiness.pendingReviewCount}/${draftState.rows.length}행`);
+  }
+  if (details.length === 0) {
+    details.push("현재 운영 blocker 없음");
+  }
+  return details;
 }
 
 export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: BatchListPageProps) {
@@ -118,8 +152,10 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
     exportStage: getReviewExportStage(readiness),
   });
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
-  const nextBatchAction = getNextBatchAction({ uploadedFiles, requiredFiles, readiness });
+  const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
+  const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
   const blockerSummary = getBatchBlockerSummary(readiness);
+  const blockerDetails = getBatchBlockerDetails({ missingRequiredFiles, draftState, readiness });
 
   return (
     <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
@@ -182,6 +218,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">다음 필요 액션</p>
                 <p className="mt-2 text-sm font-medium text-slate-100">{nextBatchAction}</p>
                 <p className="mt-2 text-xs text-slate-500">{blockerSummary}</p>
+              </div>
+              <div className="mt-3 rounded-lg border border-line bg-ink-900 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">운영 blocker 상세</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                  {blockerDetails.map((detail) => (
+                    <li key={detail}>• <span>{detail}</span></li>
+                  ))}
+                </ul>
               </div>
               <ul className="mt-3 space-y-2 text-sm text-slate-400">
                 <li>• 저장된 활성 배치 임시 저장본 다시 열기</li>
