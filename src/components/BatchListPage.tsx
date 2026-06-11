@@ -1,3 +1,4 @@
+import { platformLabels } from "../data/mockSettlement";
 import { createExportPackages } from "../exporters";
 import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
@@ -88,6 +89,17 @@ function getBatchBlockerSummary(readiness: ReturnType<typeof getReviewExportRead
   return `주요 blocker: 이슈 ${readiness.unresolvedIssueCount}건 / 검수 미확정 ${readiness.pendingReviewCount}건`;
 }
 
+function getPrimaryIssueLabel(issue: AppDraftState["issues"][number]): string {
+  const sourceParts = [
+    platformLabels[issue.platform],
+    issue.sourceRowIndex != null ? `원본 ${issue.sourceRowIndex}행` : undefined,
+  ].filter((part): part is string => Boolean(part));
+
+  return sourceParts.length > 0
+    ? `${issue.message} · ${sourceParts.join(" · ")}`
+    : issue.message;
+}
+
 function getBatchBlockerDetails({
   missingRequiredFiles,
   draftState,
@@ -106,7 +118,7 @@ function getBatchBlockerDetails({
     .sort((left, right) => issueSeverityPriority[left.severity] - issueSeverityPriority[right.severity])[0];
 
   if (primaryIssue) {
-    details.push(`최우선 이슈: ${primaryIssue.message}`);
+    details.push(`최우선 이슈: ${getPrimaryIssueLabel(primaryIssue)}`);
   }
   if (readiness.pendingReviewCount > 0) {
     details.push(`검수 대기: ${readiness.pendingReviewCount}/${draftState.rows.length}행`);
