@@ -145,6 +145,17 @@ export function ReviewSection({
               ]}
               onChange={(value) => onChangeFilters({ ...filters, issueMode: value as ReviewFilterState["issueMode"] })}
             />
+            <FilterSelect
+              icon={Filter}
+              label="검수 상태 필터"
+              value={filters.reviewStatus}
+              options={[
+                { value: "all", label: "검수 상태 전체" },
+                { value: "pending", label: "미확정 행만" },
+                { value: "confirmed", label: "확정 행만" },
+              ]}
+              onChange={(value) => onChangeFilters({ ...filters, reviewStatus: value as ReviewFilterState["reviewStatus"] })}
+            />
             <SearchField
               label="검수 검색"
               value={filters.searchQuery}

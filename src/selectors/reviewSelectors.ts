@@ -47,12 +47,14 @@ export type IssueSummary = {
 export type ReviewCompanyFilter = Company | "all";
 export type ReviewPlatformFilter = Platform | "all";
 export type ReviewIssueFilter = "all" | "with_issues";
+export type ReviewStatusFilter = "all" | "pending" | "confirmed";
 export type ReviewSortMode = "source" | "settlement_desc" | "title";
 
 export type ReviewFilterState = {
   company: ReviewCompanyFilter;
   platform: ReviewPlatformFilter;
   issueMode: ReviewIssueFilter;
+  reviewStatus: ReviewStatusFilter;
   searchQuery: string;
   sortMode: ReviewSortMode;
 };
@@ -84,6 +86,7 @@ export const defaultReviewFilterState: ReviewFilterState = {
   company: "all",
   platform: "all",
   issueMode: "all",
+  reviewStatus: "all",
   searchQuery: "",
   sortMode: "source",
 };
@@ -186,6 +189,7 @@ export function getAvailablePlatforms(rows: SettlementRow[], issues: ParseIssue[
 export function getFilteredReviewRows(
   rows: SettlementRow[],
   filters: ReviewFilterState,
+  reviewDecisions: ReviewDecision[] = [],
 ): SettlementRow[] {
   const normalizedQuery = filters.searchQuery.trim().toLocaleLowerCase("ko-KR");
 
@@ -197,6 +201,9 @@ export function getFilteredReviewRows(
       return false;
     }
     if (filters.issueMode === "with_issues" && row.issues.length === 0) {
+      return false;
+    }
+    if (filters.reviewStatus !== "all" && getReviewDecisionStatus(reviewDecisions, row.rowId) !== filters.reviewStatus) {
       return false;
     }
     if (normalizedQuery.length > 0) {

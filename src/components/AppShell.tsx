@@ -47,7 +47,10 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
   );
   const availableCompanies = useMemo(() => getAvailableCompanies(state.rows, state.issues), [state.rows, state.issues]);
   const availablePlatforms = useMemo(() => getAvailablePlatforms(state.rows, state.issues), [state.rows, state.issues]);
-  const filteredRows = useMemo(() => getFilteredReviewRows(state.rows, reviewFilters), [state.rows, reviewFilters]);
+  const filteredRows = useMemo(
+    () => getFilteredReviewRows(state.rows, reviewFilters, state.reviewDecisions),
+    [state.rows, reviewFilters, state.reviewDecisions],
+  );
   const selectedRow = useMemo(
     () => getSelectedReviewRow(filteredRows, state.selectedRowId),
     [filteredRows, state.selectedRowId],

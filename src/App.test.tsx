@@ -492,6 +492,28 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("filters review rows by persisted review decision status", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/검수 확정 1건/)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "confirmed" } });
+
+    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 1건")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+    expect(screen.queryByText("밤의 계산서")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "pending" } });
+
+    expect(screen.getByText("현재 필터 결과 4행 / 전체 5행 · 이슈 연결 행 2건 · 검수 확정 1건")).toBeInTheDocument();
+    expect(screen.queryByText("검은 별의 서점(앱)")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+  });
+
   it("bulk-confirms and resets the current filtered review rows", async () => {
     renderActiveBatchApp();
 

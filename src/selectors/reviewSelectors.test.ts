@@ -248,6 +248,8 @@ describe("review selectors", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, company: "sr" })).toEqual([rows[1], rows[2]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, platform: "guru_company" })).toEqual([rows[0]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, issueMode: "with_issues" })).toEqual([rows[2]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, reviewStatus: "confirmed" }, reviewDecisions)).toEqual([rows[1]]);
+    expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, reviewStatus: "pending" }, reviewDecisions)).toEqual([rows[0], rows[2]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, searchQuery: "바람" })).toEqual([rows[2]]);
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, searchQuery: "에스알" })).toEqual([rows[1], rows[2]]);
   });
