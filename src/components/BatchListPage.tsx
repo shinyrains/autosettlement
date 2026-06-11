@@ -197,7 +197,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-white">{draftState.batch.batchName}</h2>
               <dl className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-                <SummaryCard label="업로드" value={`${uploadedFiles}/${requiredFiles}`} helper="필수 파일 기준" />
+                <SummaryCard label="업로드" value={`${uploadedFiles}/${requiredFiles}`} helper={`선택 파일 기준 · 필수 누락 ${missingRequiredFiles}개`} />
                 <SummaryCard label="정산 행" value={`${draftState.rows.length}`} helper="정규화 완료 행" />
                 <SummaryCard label="이슈" value={`${draftState.issues.length}`} helper="오류/누락/매칭 실패" />
                 <SummaryCard label="출력" value={`${readiness.readyExportCount}/4`} helper="검수 완료 후 다운로드 가능" />
