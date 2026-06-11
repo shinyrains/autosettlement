@@ -47,7 +47,7 @@ export type IssueSummary = {
 export type ReviewCompanyFilter = Company | "all";
 export type ReviewPlatformFilter = Platform | "all";
 export type ReviewIssueFilter = "all" | "with_issues";
-export type ReviewStatusFilter = "all" | "pending" | "confirmed";
+export type ReviewStatusFilter = "all" | "pending" | "held" | "confirmed";
 export type ReviewSortMode = "source" | "settlement_desc" | "title";
 
 export type ReviewFilterState = {

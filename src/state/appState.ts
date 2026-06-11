@@ -107,10 +107,10 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
         selectedRowId,
       }));
     },
-    setReviewDecisionStatus: (rowId: string, status: ReviewDecisionStatus) => {
+    setReviewDecisionStatus: (rowId: string, status: ReviewDecisionStatus, note?: string) => {
       setState((currentState) => normalizeAppDraftState({
         ...currentState,
-        reviewDecisions: upsertReviewDecisionStatus(currentState.reviewDecisions, rowId, status),
+        reviewDecisions: upsertReviewDecisionStatus(currentState.reviewDecisions, rowId, status, note),
       }));
     },
     setReviewDecisionStatuses: (rowIds: string[], status: ReviewDecisionStatus) => {
@@ -201,27 +201,35 @@ function upsertReviewDecisionStatus(
   reviewDecisions: ReviewDecision[],
   rowId: string,
   status: ReviewDecisionStatus,
+  note?: string,
 ): ReviewDecision[] {
-  return upsertReviewDecisionStatuses(reviewDecisions, [rowId], status);
+  return upsertReviewDecisionStatuses(reviewDecisions, [rowId], status, note);
 }
 
 function upsertReviewDecisionStatuses(
   reviewDecisions: ReviewDecision[],
   rowIds: string[],
   status: ReviewDecisionStatus,
+  note?: string,
 ): ReviewDecision[] {
   const nextUpdatedAt = new Date().toISOString();
   const targetRowIds = Array.from(new Set(rowIds));
   const targetRowIdSet = new Set(targetRowIds);
   const remainingDecisions = reviewDecisions.filter((decision) => !targetRowIdSet.has(decision.rowId));
+  const previousByRowId = new Map(reviewDecisions.map((decision) => [decision.rowId, decision]));
 
   return [
     ...remainingDecisions,
-    ...targetRowIds.map((rowId) => ({
-      rowId,
-      status,
-      updatedAt: nextUpdatedAt,
-    })),
+    ...targetRowIds.map((rowId) => {
+      const previousNote = previousByRowId.get(rowId)?.note;
+      const nextNote = note ?? previousNote;
+      return {
+        rowId,
+        status,
+        ...(nextNote ? { note: nextNote } : {}),
+        updatedAt: nextUpdatedAt,
+      };
+    }),
   ];
 }
 

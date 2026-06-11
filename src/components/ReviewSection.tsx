@@ -24,6 +24,7 @@ type ReviewSectionProps = {
   onChangeFilters: (filters: ReviewFilterState) => void;
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
+  selectedRowReviewNote: string;
   selectedRowIssues: ParseIssue[];
   selectedRowId: string;
   onSelectRow: (rowId: string) => void;
@@ -32,6 +33,7 @@ type ReviewSectionProps = {
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
+  onHoldRow: (rowId: string, note: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   onConfirmRows: (rowIds: string[]) => void;
   onResetRowsConfirmation: (rowIds: string[]) => void;
@@ -54,6 +56,7 @@ export function ReviewSection({
   onChangeFilters,
   selectedRow,
   selectedRowReviewStatus,
+  selectedRowReviewNote,
   selectedRowIssues,
   selectedRowId,
   onSelectRow,
@@ -62,6 +65,7 @@ export function ReviewSection({
   onOpenQueuedRow,
   onConfirmQueuedRows,
   onConfirmRow,
+  onHoldRow,
   onResetRowConfirmation,
   onConfirmRows,
   onResetRowsConfirmation,
@@ -158,6 +162,7 @@ export function ReviewSection({
               options={[
                 { value: "all", label: "검수 상태 전체" },
                 { value: "pending", label: "미확정 행만" },
+                { value: "held", label: "보류 행만" },
                 { value: "confirmed", label: "확정 행만" },
               ]}
               onChange={(value) => onChangeFilters({ ...filters, reviewStatus: value as ReviewFilterState["reviewStatus"] })}
@@ -236,11 +241,13 @@ export function ReviewSection({
       <ReviewDetail
         selectedRow={selectedRow}
         selectedRowReviewStatus={selectedRowReviewStatus}
+        selectedRowReviewNote={selectedRowReviewNote}
         selectedRowIssues={selectedRowIssues}
         reviewActionQueue={reviewActionQueue}
         onOpenQueuedRow={onOpenQueuedRow}
         onConfirmQueuedRows={onConfirmQueuedRows}
         onConfirmRow={onConfirmRow}
+        onHoldRow={onHoldRow}
         onResetRowConfirmation={onResetRowConfirmation}
         hasNextPendingRow={hasNextPendingRow}
         hasNextIssueRow={hasNextIssueRow}
@@ -255,11 +262,13 @@ export function ReviewSection({
 function ReviewDetail({
   selectedRow,
   selectedRowReviewStatus,
+  selectedRowReviewNote,
   selectedRowIssues,
   reviewActionQueue,
   onOpenQueuedRow,
   onConfirmQueuedRows,
   onConfirmRow,
+  onHoldRow,
   onResetRowConfirmation,
   hasNextPendingRow,
   hasNextIssueRow,
@@ -269,11 +278,13 @@ function ReviewDetail({
 }: {
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
+  selectedRowReviewNote: string;
   selectedRowIssues: ParseIssue[];
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
   onConfirmQueuedRows: (rowIds: string[]) => void;
   onConfirmRow: (rowId: string) => void;
+  onHoldRow: (rowId: string, note: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
   hasNextPendingRow: boolean;
   hasNextIssueRow: boolean;
@@ -285,11 +296,13 @@ function ReviewDetail({
   ) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingHoldReason, setIsEditingHoldReason] = useState(false);
   const [draftFields, setDraftFields] = useState({
     mailerContentTitle: "",
     author: "",
     publisher: "",
   });
+  const [draftHoldReason, setDraftHoldReason] = useState("");
 
   useEffect(() => {
     if (!selectedRow) {
@@ -301,7 +314,8 @@ function ReviewDetail({
       author: selectedRow.author,
       publisher: selectedRow.publisher ?? "",
     });
-  }, [selectedRow]);
+    setDraftHoldReason(selectedRowReviewNote);
+  }, [selectedRow, selectedRowReviewNote]);
 
   if (!selectedRow) {
     return (
@@ -320,9 +334,11 @@ function ReviewDetail({
         <h3 className="text-xl font-semibold tracking-normal">{selectedRow.mailerContentTitle}</h3>
         <span className={selectedRowReviewStatus === "confirmed"
           ? "rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
-          : "rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-xs font-semibold text-amber"}
+          : selectedRowReviewStatus === "held"
+            ? "rounded-full border border-orange-400/40 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300"
+            : "rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-xs font-semibold text-amber"}
         >
-          {selectedRowReviewStatus === "confirmed" ? "검수 확정" : "검수 대기"}
+          {selectedRowReviewStatus === "confirmed" ? "검수 확정" : selectedRowReviewStatus === "held" ? "검수 보류" : "검수 대기"}
         </span>
       </div>
       <div className="mt-5 space-y-3 text-sm">
@@ -345,6 +361,13 @@ function ReviewDetail({
             onClick={() => setIsEditing(true)}
           >
             검수 행 편집
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-200 transition hover:bg-orange-500/20"
+            onClick={() => setIsEditingHoldReason(true)}
+          >
+            보류 사유 편집
           </button>
           {selectedRowReviewStatus === "confirmed" ? (
             <button
@@ -434,6 +457,49 @@ function ReviewDetail({
             </div>
           </div>
         ) : null}
+        <div className="mt-4 rounded-md border border-line bg-ink-850 p-3">
+          <p className="text-xs font-semibold text-slate-400">검수 보류 사유</p>
+          {selectedRowReviewNote ? (
+            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">{selectedRowReviewNote}</p>
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">저장된 보류 사유 없음</p>
+          )}
+          {isEditingHoldReason ? (
+            <div className="mt-3 space-y-3">
+              <label className="block text-sm text-slate-300">
+                <span className="mb-1 block text-xs font-semibold text-slate-400">검수 보류 사유</span>
+                <textarea
+                  aria-label="검수 보류 사유"
+                  className="min-h-24 w-full rounded-md border border-line bg-ink-900 px-3 py-2 text-sm text-slate-100 outline-none"
+                  value={draftHoldReason}
+                  onChange={(event) => setDraftHoldReason(event.target.value)}
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-200 transition hover:bg-orange-500/20"
+                  onClick={() => {
+                    onHoldRow(selectedRow.rowId, draftHoldReason.trim());
+                    setIsEditingHoldReason(false);
+                  }}
+                >
+                  보류 사유 저장
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-line px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700"
+                  onClick={() => {
+                    setDraftHoldReason(selectedRowReviewNote);
+                    setIsEditingHoldReason(false);
+                  }}
+                >
+                  보류 사유 취소
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="mt-6 border-t border-line pt-5">
         <p className="text-sm font-semibold text-slate-300">연결된 이슈</p>

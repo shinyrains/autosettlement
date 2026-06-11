@@ -59,6 +59,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
   const selectedRowIssues = selectedRow
     ? state.issues.filter((issue) => selectedRow.issues.includes(issue.issueId))
     : [];
+  const selectedRowReviewDecision = state.reviewDecisions.find((decision) => decision.rowId === selectedRow?.rowId);
   const selectedRowReviewStatus = getReviewDecisionStatus(state.reviewDecisions, selectedRow?.rowId);
   const reviewActionQueue = useMemo(
     () => getReviewActionQueue(filteredRows, state.reviewDecisions),
@@ -140,6 +141,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               onChangeFilters={setReviewFilters}
               selectedRow={selectedRow}
               selectedRowReviewStatus={selectedRowReviewStatus}
+              selectedRowReviewNote={selectedRowReviewDecision?.note ?? ""}
               selectedRowIssues={selectedRowIssues}
               selectedRowId={selectedRow?.rowId ?? state.selectedRowId}
               onSelectRow={setSelectedRowId}
@@ -148,6 +150,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               onOpenQueuedRow={(rowId) => setSelectedRowId(rowId)}
               onConfirmQueuedRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
               onConfirmRow={(rowId) => setReviewDecisionStatus(rowId, "confirmed")}
+              onHoldRow={(rowId, note) => setReviewDecisionStatus(rowId, "held", note)}
               onResetRowConfirmation={(rowId) => setReviewDecisionStatus(rowId, "pending")}
               onConfirmRows={(rowIds) => setReviewDecisionStatuses(rowIds, "confirmed")}
               onResetRowsConfirmation={(rowIds) => setReviewDecisionStatuses(rowIds, "pending")}

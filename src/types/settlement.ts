@@ -98,11 +98,12 @@ export type SettlementRow = {
   issues: string[];
 };
 
-export type ReviewDecisionStatus = "pending" | "confirmed";
+export type ReviewDecisionStatus = "pending" | "held" | "confirmed";
 
 export type ReviewDecision = {
   rowId: string;
   status: ReviewDecisionStatus;
+  note?: string;
   updatedAt: string;
 };
 

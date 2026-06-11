@@ -667,6 +667,46 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("saves a review hold reason and filters held rows", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.change(screen.getByLabelText("검수 보류 사유"), { target: { value: "원천 파일 출판사 값 확인 필요" } });
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("검수 보류")).toBeInTheDocument();
+      expect(screen.getByText("원천 파일 출판사 값 확인 필요")).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          rowId: "row-002",
+          status: "held",
+          note: "원천 파일 출판사 값 확인 필요",
+        }),
+      ]));
+    });
+
+    fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "held" } });
+
+    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("검수 보류")).not.toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-002", status: "confirmed", note: "원천 파일 출판사 값 확인 필요" }),
+      ]));
+    });
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     renderActiveBatchApp();
 

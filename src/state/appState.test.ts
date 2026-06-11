@@ -17,6 +17,12 @@ describe("appState persistence", () => {
     state.selectedRowId = "row-005";
     state.uploads[0].status = "uploaded";
     state.batch.status = "uploaded";
+    state.reviewDecisions = [{
+      rowId: "row-005",
+      status: "held",
+      note: "출판사 값 확인 필요",
+      updatedAt: "2026-06-12T09:00:00.000Z",
+    }];
 
     saveAppDraftState(state, window.localStorage);
 
@@ -24,6 +30,9 @@ describe("appState persistence", () => {
     expect(reloaded.selectedRowId).toBe("row-005");
     expect(reloaded.uploads[0].status).toBe("uploaded");
     expect(reloaded.batch.uploads[0].status).toBe("uploaded");
+    expect(reloaded.reviewDecisions).toEqual([
+      expect.objectContaining({ rowId: "row-005", status: "held", note: "출판사 값 확인 필요" }),
+    ]);
   });
 
   it("falls back to the seed draft when storage contains invalid JSON", () => {
