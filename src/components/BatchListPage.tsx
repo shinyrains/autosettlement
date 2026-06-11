@@ -2,7 +2,7 @@ import { platformLabels } from "../data/mockSettlement";
 import { createExportPackages } from "../exporters";
 import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
-import type { ParseIssueSeverity } from "../types/settlement";
+import type { ParseIssueSeverity, ReviewDecisionStatus } from "../types/settlement";
 
 type BatchListPageProps = {
   draftState: AppDraftState | null;
@@ -34,6 +34,12 @@ const issueSeverityPriority: Record<ParseIssueSeverity, number> = {
   info: 2,
 };
 
+const reviewDecisionStatusLabels: Record<ReviewDecisionStatus, string> = {
+  pending: "미확정",
+  held: "보류",
+  confirmed: "확정",
+};
+
 function formatBatchHistoryTimestamp(timestamp?: string): string {
   if (!timestamp) {
     return "기록 없음";
@@ -42,6 +48,18 @@ function formatBatchHistoryTimestamp(timestamp?: string): string {
   const [datePart, timePart = ""] = timestamp.split("T");
   const timeWithoutSeconds = timePart.slice(0, 5);
   return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
+}
+
+function getLatestReviewDecisionSummary(draftState: AppDraftState): string {
+  const latestDecision = draftState.reviewDecisions
+    .slice()
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
+
+  if (!latestDecision) {
+    return "기록 없음";
+  }
+
+  return `${reviewDecisionStatusLabels[latestDecision.status]} · ${formatBatchHistoryTimestamp(latestDecision.updatedAt)}`;
 }
 
 function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined {
@@ -175,6 +193,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
     exportStage: getReviewExportStage(readiness),
   });
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
+  const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
   const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
   const blockerSummary = getBatchBlockerSummary(readiness);
@@ -231,10 +250,11 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               </dl>
               <div className="mt-6 rounded-xl border border-line bg-ink-850 p-4">
                 <p className="text-sm font-semibold text-slate-200">배치 진행 내역</p>
-                <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-3">
+                <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-4">
                   <p>생성: {formatBatchHistoryTimestamp(draftState.batch.createdAt)}</p>
                   <p>최근 수정: {formatBatchHistoryTimestamp(draftState.batch.updatedAt)}</p>
                   <p>최근 업로드: {formatBatchHistoryTimestamp(latestUploadTimestamp)}</p>
+                  <p>최근 검수: {latestReviewDecisionSummary}</p>
                 </div>
               </div>
             </div>

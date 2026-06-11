@@ -329,7 +329,14 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("opens the persisted batch shell from the batch list page", () => {
-    saveAppDraftState(createSeedAppState(), window.localStorage);
+    const state = createSeedAppState();
+    state.reviewDecisions = [{
+      rowId: "row-002",
+      status: "held",
+      note: "계약 확인 필요",
+      updatedAt: "2026-06-08T19:10:00.000Z",
+    }];
+    saveAppDraftState(state, window.localStorage);
     render(<App />);
 
     expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
@@ -337,6 +344,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("생성: 2026-06-08 09:20")).toBeInTheDocument();
     expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
+    expect(screen.getByText("최근 검수: 보류 · 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("선택 파일 19/29")).toBeInTheDocument();
     expect(screen.getByText("필수 파일 누락 12개")).toBeInTheDocument();
     expect(screen.getByText("다음 필요 액션")).toBeInTheDocument();
