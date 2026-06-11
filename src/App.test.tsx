@@ -867,6 +867,26 @@ describe("AutoSettlement UI shell", () => {
     });
   });
 
+  it("shows selected review decision audit metadata from persisted decisions", async () => {
+    const draft = createSeedAppState();
+    draft.reviewDecisions = [{
+      rowId: "row-002",
+      status: "held",
+      note: "계약 조건 재확인",
+      updatedAt: "2026-06-11T10:00:00.000Z",
+    }];
+    draft.selectedRowId = "row-002";
+    saveAppDraftState(draft, window.localStorage);
+    renderActiveBatchApp();
+
+    await waitFor(() => {
+      expect(screen.getByText("검수 결정 이력")).toBeInTheDocument();
+      expect(screen.getByText("현재 결정: 검수 보류")).toBeInTheDocument();
+      expect(screen.getByText("마지막 변경: 2026-06-11 10:00")).toBeInTheDocument();
+      expect(screen.getByText("감사 사유: 계약 조건 재확인")).toBeInTheDocument();
+    });
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     renderActiveBatchApp();
 

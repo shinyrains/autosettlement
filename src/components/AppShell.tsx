@@ -142,6 +142,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
               selectedRow={selectedRow}
               selectedRowReviewStatus={selectedRowReviewStatus}
               selectedRowReviewNote={selectedRowReviewDecision?.note ?? ""}
+              selectedRowReviewUpdatedAt={selectedRowReviewDecision?.updatedAt}
               selectedRowIssues={selectedRowIssues}
               selectedRowId={selectedRow?.rowId ?? state.selectedRowId}
               onSelectRow={setSelectedRowId}

@@ -24,6 +24,20 @@ function formatHoldReasonPreview(note: string): string {
     : normalizedNote;
 }
 
+function getReviewStatusLabel(status: ReviewDecisionStatus): string {
+  return status === "confirmed" ? "검수 확정" : status === "held" ? "검수 보류" : "검수 대기";
+}
+
+function formatReviewDecisionUpdatedAt(updatedAt?: string): string {
+  if (!updatedAt) {
+    return "저장된 변경 시각 없음";
+  }
+
+  const [datePart, timePart = ""] = updatedAt.split("T");
+  const timeWithoutSeconds = timePart.slice(0, 5);
+  return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
+}
+
 type ReviewSectionProps = {
   rows: SettlementRow[];
   totalRowCount: number;
@@ -34,6 +48,7 @@ type ReviewSectionProps = {
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
   selectedRowReviewNote: string;
+  selectedRowReviewUpdatedAt?: string;
   selectedRowIssues: ParseIssue[];
   selectedRowId: string;
   onSelectRow: (rowId: string) => void;
@@ -67,6 +82,7 @@ export function ReviewSection({
   selectedRow,
   selectedRowReviewStatus,
   selectedRowReviewNote,
+  selectedRowReviewUpdatedAt,
   selectedRowIssues,
   selectedRowId,
   onSelectRow,
@@ -253,6 +269,7 @@ export function ReviewSection({
         selectedRow={selectedRow}
         selectedRowReviewStatus={selectedRowReviewStatus}
         selectedRowReviewNote={selectedRowReviewNote}
+        selectedRowReviewUpdatedAt={selectedRowReviewUpdatedAt}
         selectedRowIssues={selectedRowIssues}
         reviewActionQueue={reviewActionQueue}
         onOpenQueuedRow={onOpenQueuedRow}
@@ -275,6 +292,7 @@ function ReviewDetail({
   selectedRow,
   selectedRowReviewStatus,
   selectedRowReviewNote,
+  selectedRowReviewUpdatedAt,
   selectedRowIssues,
   reviewActionQueue,
   onOpenQueuedRow,
@@ -292,6 +310,7 @@ function ReviewDetail({
   selectedRow?: SettlementRow;
   selectedRowReviewStatus: ReviewDecisionStatus;
   selectedRowReviewNote: string;
+  selectedRowReviewUpdatedAt?: string;
   selectedRowIssues: ParseIssue[];
   reviewActionQueue: ReviewActionQueue;
   onOpenQueuedRow: (rowId: string) => void;
@@ -359,7 +378,7 @@ function ReviewDetail({
             ? "rounded-full border border-orange-400/40 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300"
             : "rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-xs font-semibold text-amber"}
         >
-          {selectedRowReviewStatus === "confirmed" ? "검수 확정" : selectedRowReviewStatus === "held" ? "검수 보류" : "검수 대기"}
+          {getReviewStatusLabel(selectedRowReviewStatus)}
         </span>
       </div>
       <div className="mt-5 space-y-3 text-sm">
@@ -367,6 +386,14 @@ function ReviewDetail({
         <DetailLine label="플랫폼" value={platformLabels[selectedRow.platform]} />
         <DetailLine label="원본" value={`${selectedRow.sourceFileName} · row ${selectedRow.sourceRowIndex}`} />
         <DetailLine label="정산금" value={moneyFormatter.format(selectedRow.settlementAmount)} />
+      </div>
+      <div className="mt-4 rounded-md border border-line bg-ink-800 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">검수 결정 이력</p>
+        <div className="mt-2 space-y-1 text-sm text-slate-300">
+          <p>현재 결정: {getReviewStatusLabel(selectedRowReviewStatus)}</p>
+          <p>마지막 변경: {formatReviewDecisionUpdatedAt(selectedRowReviewUpdatedAt)}</p>
+          <p>감사 사유: {selectedRowReviewNote || "저장된 사유 없음"}</p>
+        </div>
       </div>
       <ReviewQueueSummary
         queue={reviewActionQueue}
