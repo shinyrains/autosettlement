@@ -757,6 +757,54 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("보류 0행")).toBeInTheDocument();
   });
 
+  it("applies quick hold reasons and resolves held rows by reason group", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.click(screen.getByRole("button", { name: "중복 정산" }));
+    expect(screen.getByLabelText("검수 보류 사유")).toHaveValue("앱/웹 중복 정산 확인");
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("보류 사유 그룹")).toBeInTheDocument();
+      expect(screen.getByText("앱/웹 중복 정산 확인 1행")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.click(screen.getByRole("button", { name: "원천 파일 확인" }));
+    expect(screen.getByLabelText("검수 보류 사유")).toHaveValue("원천 파일 행/금액 확인 필요");
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("원천 파일 행/금액 확인 필요 1행")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 첫 행 열기" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 모두 확정" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("앱/웹 중복 정산 확인 1행")).not.toBeInTheDocument();
+      expect(screen.getByText("원천 파일 행/금액 확인 필요 1행")).toBeInTheDocument();
+      const persistedDraft = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+      expect(persistedDraft).not.toBeNull();
+      const parsedDraft = JSON.parse(persistedDraft!);
+      expect(parsedDraft.reviewDecisions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ rowId: "row-002", status: "confirmed", note: "앱/웹 중복 정산 확인" }),
+        expect.objectContaining({ rowId: "row-003", status: "held", note: "원천 파일 행/금액 확인 필요" }),
+      ]));
+    });
+  });
+
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
     renderActiveBatchApp();
 

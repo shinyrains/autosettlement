@@ -75,8 +75,16 @@ export type ReviewActionQueueItem = {
   notePreview?: string;
 };
 
+export type ReviewHoldReasonGroup = {
+  note: string;
+  count: number;
+  nextRow?: SettlementRow;
+  rowIds: string[];
+};
+
 export type ReviewActionQueue = {
   held: ReviewActionQueueItem;
+  holdReasonGroups: ReviewHoldReasonGroup[];
   pendingIssue: ReviewActionQueueItem;
   highValuePending: ReviewActionQueueItem;
   pending: ReviewActionQueueItem;
@@ -253,6 +261,7 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
   const reviewDecisionByRowId = new Map(reviewDecisions.map((decision) => [decision.rowId, decision]));
   const pendingRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) !== "confirmed");
   const heldRows = rows.filter((row) => getReviewDecisionStatus(reviewDecisions, row.rowId) === "held");
+  const holdReasonGroups = getHoldReasonGroups(heldRows, reviewDecisionByRowId);
   const pendingIssueRows = pendingRows.filter((row) => row.issues.length > 0);
   const highValuePendingRows = [...pendingRows].sort((left, right) => {
     if (right.settlementAmount !== left.settlementAmount) {
@@ -268,6 +277,7 @@ export function getReviewActionQueue(rows: SettlementRow[], reviewDecisions: Rev
       rowIds: heldRows.map((row) => row.rowId),
       notePreview: heldRows[0] ? reviewDecisionByRowId.get(heldRows[0].rowId)?.note : undefined,
     },
+    holdReasonGroups,
     pendingIssue: {
       count: pendingIssueRows.length,
       nextRow: pendingIssueRows[0],
@@ -353,6 +363,37 @@ export function getReviewExportStage(readiness: ReviewExportReadiness): ReviewEx
   }
 
   return readiness.batchStatus === "ready_for_export" ? "ready_for_export" : "reviewing";
+}
+
+function getHoldReasonGroups(
+  heldRows: SettlementRow[],
+  reviewDecisionByRowId: Map<string, ReviewDecision>,
+): ReviewHoldReasonGroup[] {
+  const groupsByNote = new Map<string, SettlementRow[]>();
+
+  heldRows.forEach((row) => {
+    const note = reviewDecisionByRowId.get(row.rowId)?.note?.trim();
+    if (!note) {
+      return;
+    }
+    const groupRows = groupsByNote.get(note) ?? [];
+    groupRows.push(row);
+    groupsByNote.set(note, groupRows);
+  });
+
+  return Array.from(groupsByNote.entries())
+    .map(([note, groupRows]) => ({
+      note,
+      count: groupRows.length,
+      nextRow: groupRows[0],
+      rowIds: groupRows.map((row) => row.rowId),
+    }))
+    .sort((left, right) => {
+      if (right.count !== left.count) {
+        return right.count - left.count;
+      }
+      return left.note.localeCompare(right.note, "ko-KR");
+    });
 }
 
 function sortReviewRows(rows: SettlementRow[], sortMode: ReviewSortMode): SettlementRow[] {

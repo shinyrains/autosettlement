@@ -309,6 +309,12 @@ function ReviewDetail({
   });
   const [draftHoldReason, setDraftHoldReason] = useState("");
   const canSaveHoldReason = draftHoldReason.trim().length > 0;
+  const holdReasonPresets = [
+    { label: "중복 정산", value: "앱/웹 중복 정산 확인" },
+    { label: "원천 파일 확인", value: "원천 파일 행/금액 확인 필요" },
+    { label: "출판사 확인", value: "출판사/작가 매핑 확인 필요" },
+    { label: "계약 확인", value: "계약 조건 확인 필요" },
+  ];
 
   useEffect(() => {
     if (!selectedRow) {
@@ -473,6 +479,18 @@ function ReviewDetail({
           )}
           {isEditingHoldReason ? (
             <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {holdReasonPresets.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    className="rounded-md border border-orange-400/30 bg-orange-500/5 px-2.5 py-1.5 text-xs font-medium text-orange-100 transition hover:bg-orange-500/15"
+                    onClick={() => setDraftHoldReason(preset.value)}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
               <label className="block text-sm text-slate-300">
                 <span className="mb-1 block text-xs font-semibold text-slate-400">검수 보류 사유</span>
                 <textarea
@@ -564,6 +582,53 @@ function ReviewQueueSummary({
           onOpenQueuedRow={onOpenQueuedRow}
           onApplyQueuedRows={onResetQueuedRows}
         />
+        {queue.holdReasonGroups.length > 0 ? (
+          <div className="rounded-md border border-orange-400/20 bg-orange-500/5 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-orange-200">보류 사유 그룹</p>
+            <div className="mt-2 space-y-2">
+              {queue.holdReasonGroups.map((group) => (
+                <div key={group.note} className="flex items-start justify-between gap-3 rounded border border-line bg-ink-850 p-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">{group.note} {group.count}행</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {group.nextRow ? `${companyLabels[group.nextRow.company]} · ${platformLabels[group.nextRow.platform]} · ${group.nextRow.mailerContentTitle}` : "대상 행 없음"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!group.nextRow}
+                      onClick={() => {
+                        if (group.nextRow) {
+                          onOpenQueuedRow(group.nextRow.rowId);
+                        }
+                      }}
+                    >
+                      {group.note} 사유 첫 행 열기
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={group.rowIds.length === 0}
+                      onClick={() => onConfirmQueuedRows(group.rowIds)}
+                    >
+                      {group.note} 사유 모두 확정
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={group.rowIds.length === 0}
+                      onClick={() => onResetQueuedRows(group.rowIds)}
+                    >
+                      {group.note} 사유 대기로 전환
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <ReviewQueueCard
           label="이슈 미확정"
           count={queue.pendingIssue.count}

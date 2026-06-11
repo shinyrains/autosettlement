@@ -260,19 +260,28 @@ describe("review selectors", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "title" })).toEqual([rows[0], rows[2], rows[1]]);
   });
 
-  it("builds a filtered review action queue for held, issue, high-value, and remaining pending rows", () => {
+  it("builds a filtered review action queue for held reason groups, issue, high-value, and remaining pending rows", () => {
     const queueDecisions = [
       ...reviewDecisions,
-      { rowId: "row-sr-kyobo-2", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:17:00.000Z" },
+      { rowId: "row-raon-guru", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:17:00.000Z" },
+      { rowId: "row-sr-kyobo-2", status: "held" as const, note: "출판사 확인", updatedAt: "2026-06-11T09:18:00.000Z" },
     ];
 
     expect(getReviewActionQueue(rows, queueDecisions)).toEqual({
       held: {
-        count: 1,
-        nextRow: rows[2],
-        rowIds: ["row-sr-kyobo-2"],
+        count: 2,
+        nextRow: rows[0],
+        rowIds: ["row-raon-guru", "row-sr-kyobo-2"],
         notePreview: "출판사 확인",
       },
+      holdReasonGroups: [
+        {
+          note: "출판사 확인",
+          count: 2,
+          nextRow: rows[0],
+          rowIds: ["row-raon-guru", "row-sr-kyobo-2"],
+        },
+      ],
       pendingIssue: {
         count: 1,
         nextRow: rows[2],
@@ -292,11 +301,19 @@ describe("review selectors", () => {
 
     expect(getReviewActionQueue(rows.slice(0, 2), queueDecisions)).toEqual({
       held: {
-        count: 0,
-        nextRow: undefined,
-        rowIds: [],
-        notePreview: undefined,
+        count: 1,
+        nextRow: rows[0],
+        rowIds: ["row-raon-guru"],
+        notePreview: "출판사 확인",
       },
+      holdReasonGroups: [
+        {
+          note: "출판사 확인",
+          count: 1,
+          nextRow: rows[0],
+          rowIds: ["row-raon-guru"],
+        },
+      ],
       pendingIssue: {
         count: 0,
         nextRow: undefined,
