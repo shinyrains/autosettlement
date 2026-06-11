@@ -259,6 +259,27 @@ function createEmptyJoaraDraft() {
 
 function createExportBlockedDraft() {
   const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => ({
+    ...upload,
+    status: "parsed" as const,
+    fileCount: upload.requiredFileCount,
+    issueCount: 0,
+    sourceFileNames: Array.from({ length: upload.requiredFileCount }, (_, index) => `${upload.uploadId}-${index + 1}.xlsx`),
+    slots: upload.slots?.map((slot) => ({
+      ...slot,
+      status: slot.required ? "parsed" as const : slot.status,
+      fileCount: slot.required ? 1 : slot.fileCount,
+      issueCount: 0,
+      sourceFileNames: slot.required ? [`${slot.slotId}.xlsx`] : slot.sourceFileNames,
+    })),
+  }));
+  state.batch.uploads = state.uploads;
+  state.issues = [];
+  state.reviewDecisions = state.rows.map((row, index) => ({
+    rowId: row.rowId,
+    status: "confirmed" as const,
+    updatedAt: `2026-06-11T08:${String(index).padStart(2, "0")}:00.000Z`,
+  }));
   state.rows = state.rows.map((row, index) => (
     index === 0
       ? {
@@ -271,43 +292,70 @@ function createExportBlockedDraft() {
   return state;
 }
 
+function createReadyForExportDraft() {
+  const state = createSeedAppState();
+  state.uploads = state.uploads.map((upload) => ({
+    ...upload,
+    status: "parsed" as const,
+    fileCount: upload.requiredFileCount,
+    issueCount: 0,
+    sourceFileNames: Array.from({ length: upload.requiredFileCount }, (_, index) => `${upload.uploadId}-${index + 1}.xlsx`),
+    slots: upload.slots?.map((slot) => ({
+      ...slot,
+      status: slot.required ? "parsed" as const : slot.status,
+      fileCount: slot.required ? 1 : slot.fileCount,
+      issueCount: 0,
+      sourceFileNames: slot.required ? [`${slot.slotId}.xlsx`] : slot.sourceFileNames,
+    })),
+  }));
+  state.batch.uploads = state.uploads;
+  state.issues = [];
+  state.reviewDecisions = state.rows.map((row, index) => ({
+    rowId: row.rowId,
+    status: "confirmed" as const,
+    updatedAt: `2026-06-11T09:${String(index).padStart(2, "0")}:00.000Z`,
+  }));
+  state.selectedRowId = state.rows[0]?.rowId ?? "";
+  return state;
+}
+
 describe("AutoSettlement UI shell", () => {
   it("shows an empty batch-list state before any draft is persisted", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "배치 목록 / 배치 진입" })).toBeInTheDocument();
-    expect(screen.getByText("저장된 batch 없음")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "이 batch 열기" })).not.toBeInTheDocument();
+    expect(screen.getByText("저장된 배치 없음")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이 배치 열기" })).not.toBeInTheDocument();
   });
 
   it("opens the persisted batch shell from the batch list page", () => {
     saveAppDraftState(createSeedAppState(), window.localStorage);
     render(<App />);
 
-    expect(screen.getByText("현재 브라우저 저장 batch")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이 batch 열기" })).toBeInTheDocument();
+    expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "이 batch 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
 
     expect(screen.getByRole("button", { name: "배치 목록으로" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /2026-06 정산 batch/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /2026-06 정산 배치/i })).toBeInTheDocument();
   });
 
   it("returns from the shell to the batch list page", () => {
     saveAppDraftState(createSeedAppState(), window.localStorage);
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "이 batch 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
     fireEvent.click(screen.getByRole("button", { name: "배치 목록으로" }));
 
     expect(screen.getByRole("heading", { name: "배치 목록 / 배치 진입" })).toBeInTheDocument();
-    expect(screen.getByText("현재 브라우저 저장 batch")).toBeInTheDocument();
+    expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
   });
 
-  it("renders the batch-centered MVP workflow with grouped upload cards and export status", () => {
+  it("renders the batch-centered MVP workflow with grouped upload cards and export gating status", () => {
     renderActiveBatchApp();
 
-    expect(screen.getByText("2026-06 정산 Batch")).toBeInTheDocument();
+    expect(screen.getByText("2026-06 정산 배치")).toBeInTheDocument();
     expect(screen.getByText("배치 중심 4단계 흐름")).toBeInTheDocument();
     expect(screen.getAllByText("시리즈").length).toBeGreaterThan(0);
     expect(screen.getAllByText("필수 6개: 일반 3개 + 앱 3개").length).toBeGreaterThan(0);
@@ -315,9 +363,9 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
     expect(screen.getByText("기본 정산")).toBeInTheDocument();
     expect(screen.getByText("정산 상세리스트")).toBeInTheDocument();
-    expect(screen.getAllByText(/batch 전체 4개 파일/).length).toBeGreaterThan(0);
-    expect(screen.getByText("라온_메일러_발송용.xlsx")).toBeInTheDocument();
-    expect(screen.getByText("에스알_정산_통합검수용.xlsx")).toBeInTheDocument();
+    expect(screen.getAllByText(/배치 전체 4개 파일/).length).toBeGreaterThan(0);
+    expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+    expect(screen.getByText("오류/누락/매칭 실패 3건을 먼저 확인해야 합니다.")).toBeInTheDocument();
   });
 
   it("hydrates the selected review row from persisted localStorage state", () => {
@@ -338,17 +386,50 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
     fireEvent.click(screen.getByRole("button", { name: "초기 상태로 리셋" }));
 
-    expect(screen.getByRole("heading", { name: "검은 별의 서점(app)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
   });
 
-  it("shows blocked export state when persisted rows fail pre-export validation", () => {
-    saveAppDraftState(createExportBlockedDraft(), window.localStorage);
+  it("shows blocked export state when review/export gates are not satisfied", () => {
+    saveAppDraftState(createSeedAppState(), window.localStorage);
 
     renderActiveBatchApp();
 
-    expect(screen.getByText(/export blocked/i)).toBeInTheDocument();
-    expect(screen.getByText("0/4 ready")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
+    expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+    expect(screen.getByText("오류/누락/매칭 실패 3건을 먼저 확인해야 합니다.")).toBeInTheDocument();
+    expect(screen.getByText("검수 확정이 5행 남아 있어 출력 준비 상태로 전환되지 않았습니다.")).toBeInTheDocument();
+    expect(screen.getAllByText("0/4 준비").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
+  });
+
+  it("shows exporter validation blocker after review is complete but export fields are invalid", () => {
+    saveAppDraftState(createExportBlockedDraft(), window.localStorage);
+
+    render(<App />);
+
+    expect(screen.getByText("출력 검증 필요")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+
+    expect(screen.getByText("상태: 출력 검증 필요")).toBeInTheDocument();
+    expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+    expect(screen.getByText("출력용 필수 값 검증이 끝나지 않아 엑셀 다운로드를 생성할 수 없습니다.")).toBeInTheDocument();
+    expect(screen.getAllByText("0/4 준비").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
+  });
+
+  it("shows ready-for-export state after all review rows are confirmed and blockers are cleared", () => {
+    saveAppDraftState(createReadyForExportDraft(), window.localStorage);
+
+    render(<App />);
+
+    expect(screen.getByText("출력 가능", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByText("4/4")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+
+    expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
+    expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "다운로드" })).toHaveLength(4);
   });
 
   it("filters and sorts review rows through the actual app-shell controls", () => {
@@ -360,11 +441,11 @@ describe("AutoSettlement UI shell", () => {
 
     fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "항구" } });
     expect(screen.queryByText("달빛 회계법")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "파란 항구의 기록(app)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "파란 항구의 기록(앱)" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "with_issues" } });
-    expect(screen.queryByText("파란 항구의 기록(app)")).not.toBeInTheDocument();
+    expect(screen.queryByText("파란 항구의 기록(앱)")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
     expect(screen.getByText("이슈 행")).toBeInTheDocument();
@@ -415,14 +496,14 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     fireEvent.click(screen.getByRole("button", { name: "검수 행 편집" }));
-    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "검은 별의 서점(app) [수정]" } });
+    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "검은 별의 서점(앱) [수정]" } });
     fireEvent.change(screen.getByLabelText("작가 편집"), { target: { value: "한도윤 외 1명" } });
     fireEvent.change(screen.getByLabelText("출판사 편집"), { target: { value: "라온 노벨" } });
     fireEvent.click(screen.getByRole("button", { name: "검수 편집 저장" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점(app) [수정]" })).toBeInTheDocument();
-      expect(screen.getByDisplayValue("검은 별의 서점(app) [수정]")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱) [수정]" })).toBeInTheDocument();
+      expect(screen.getByDisplayValue("검은 별의 서점(앱) [수정]")).toBeInTheDocument();
       expect(screen.getByDisplayValue("한도윤 외 1명")).toBeInTheDocument();
       expect(screen.getByDisplayValue("라온 노벨")).toBeInTheDocument();
 
@@ -431,7 +512,7 @@ describe("AutoSettlement UI shell", () => {
       const parsedDraft = JSON.parse(persistedDraft!);
       const editedRow = parsedDraft.rows.find((row: { rowId: string }) => row.rowId === "row-002");
       expect(editedRow).toEqual(expect.objectContaining({
-        mailerContentTitle: "검은 별의 서점(app) [수정]",
+        mailerContentTitle: "검은 별의 서점(앱) [수정]",
         author: "한도윤 외 1명",
         publisher: "라온 노벨",
       }));

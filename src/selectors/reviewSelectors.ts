@@ -1,4 +1,5 @@
 import type {
+  BatchStatus,
   Company,
   ParseIssue,
   ParseIssueSeverity,
@@ -12,6 +13,7 @@ import type {
   BatchParseFileResult,
   BatchParseOrchestratorResult,
 } from "../orchestrators/batchParseOrchestrator";
+import type { ExportBuildResult } from "../exporters";
 
 export type CompanySummary = {
   company: Company;
@@ -62,6 +64,20 @@ export type ReviewOverview = {
   companyCount: number;
   platformCount: number;
   confirmedRowCount: number;
+};
+
+export type ReviewExportBlocker = "missing_rows" | "unresolved_issues" | "review_incomplete" | "export_validation";
+
+export type ReviewExportStage = "reviewing" | "export_validation" | "ready_for_export";
+
+export type ReviewExportReadiness = {
+  batchStatus: Extract<BatchStatus, "reviewing" | "ready_for_export">;
+  exportStatus: "blocked" | "ready";
+  confirmedRowCount: number;
+  pendingReviewCount: number;
+  unresolvedIssueCount: number;
+  readyExportCount: number;
+  blockers: ReviewExportBlocker[];
 };
 
 export const defaultReviewFilterState: ReviewFilterState = {
@@ -226,6 +242,54 @@ export function getReviewOverview(rows: SettlementRow[], issues: ParseIssue[], r
     platformCount: getAvailablePlatforms(rows, issues).length,
     confirmedRowCount: getConfirmedReviewRowCount(rows, reviewDecisions),
   };
+}
+
+export function getReviewExportReadiness(
+  rows: SettlementRow[],
+  issues: ParseIssue[],
+  reviewDecisions: ReviewDecision[],
+  exportResult: ExportBuildResult,
+): ReviewExportReadiness {
+  const confirmedRowCount = getConfirmedReviewRowCount(rows, reviewDecisions);
+  const pendingReviewCount = Math.max(rows.length - confirmedRowCount, 0);
+  const unresolvedIssueCount = issues.length;
+  const blockers: ReviewExportBlocker[] = [];
+
+  if (rows.length === 0) {
+    blockers.push("missing_rows");
+  }
+  if (unresolvedIssueCount > 0) {
+    blockers.push("unresolved_issues");
+  }
+  if (rows.length > 0 && pendingReviewCount > 0) {
+    blockers.push("review_incomplete");
+  }
+  if (exportResult.status === "blocked") {
+    blockers.push("export_validation");
+  }
+
+  const exportStatus = blockers.length === 0 ? "ready" : "blocked";
+
+  return {
+    batchStatus: exportStatus === "ready" ? "ready_for_export" : "reviewing",
+    exportStatus,
+    confirmedRowCount,
+    pendingReviewCount,
+    unresolvedIssueCount,
+    readyExportCount: exportStatus === "ready" ? exportResult.packages.length : 0,
+    blockers,
+  };
+}
+
+export function getReviewExportStage(readiness: ReviewExportReadiness): ReviewExportStage {
+  if (
+    readiness.blockers.includes("export_validation")
+    && !readiness.blockers.some((blocker) => blocker === "missing_rows" || blocker === "unresolved_issues" || blocker === "review_incomplete")
+  ) {
+    return "export_validation";
+  }
+
+  return readiness.batchStatus === "ready_for_export" ? "ready_for_export" : "reviewing";
 }
 
 function sortReviewRows(rows: SettlementRow[], sortMode: ReviewSortMode): SettlementRow[] {

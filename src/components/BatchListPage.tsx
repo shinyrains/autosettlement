@@ -1,3 +1,5 @@
+import { createExportPackages } from "../exporters";
+import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
 
 type BatchListPageProps = {
@@ -6,11 +8,12 @@ type BatchListPageProps = {
   onCreateNewBatch: () => void;
 };
 
-type BatchSummaryStatus = "uploading" | "review_needed" | "ready_for_export" | "completed";
+type BatchSummaryStatus = "uploading" | "review_needed" | "export_validation" | "ready_for_export" | "completed";
 
 const statusLabels: Record<BatchSummaryStatus, string> = {
   uploading: "업로드 중",
   review_needed: "검수 필요",
+  export_validation: "출력 검증 필요",
   ready_for_export: "출력 가능",
   completed: "완료",
 };
@@ -18,6 +21,7 @@ const statusLabels: Record<BatchSummaryStatus, string> = {
 const statusClasses: Record<BatchSummaryStatus, string> = {
   uploading: "border-sky-400/30 bg-sky-500/10 text-sky-200",
   review_needed: "border-amber/40 bg-amber/10 text-amber",
+  export_validation: "border-violet-400/30 bg-violet-500/10 text-violet-200",
   ready_for_export: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
   completed: "border-violet-400/30 bg-violet-500/10 text-violet-200",
 };
@@ -32,7 +36,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
               <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-                저장된 active batch draft가 아직 없습니다. 새 batch를 시작하면 업로드/검수/출력 shell로 진입합니다.
+                저장된 활성 배치 임시 저장본이 아직 없습니다. 새 배치를 시작하면 업로드/검수/출력 화면으로 진입합니다.
               </p>
             </div>
             <button
@@ -45,8 +49,8 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
           </header>
 
           <section className="rounded-2xl border border-dashed border-line bg-ink-900/80 px-6 py-10 text-center">
-            <p className="text-lg font-semibold text-white">저장된 batch 없음</p>
-            <p className="mt-3 text-sm text-slate-400">브라우저 localStorage에 복원 가능한 active draft가 없으므로 재진입 버튼은 노출되지 않습니다.</p>
+            <p className="text-lg font-semibold text-white">저장된 배치 없음</p>
+            <p className="mt-3 text-sm text-slate-400">브라우저 저장소에 복원 가능한 활성 임시 저장본이 없으므로 재진입 버튼은 노출되지 않습니다.</p>
           </section>
         </div>
       </main>
@@ -55,12 +59,17 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
 
   const uploadedFiles = draftState.uploads.reduce((sum, upload) => sum + upload.fileCount, 0);
   const requiredFiles = draftState.uploads.reduce((sum, upload) => sum + upload.requiredFileCount, 0);
-  const readyExports = draftState.rows.length > 0 && draftState.issues.length === 0 ? 4 : 0;
+  const exportResult = createExportPackages(draftState.rows);
+  const readiness = getReviewExportReadiness(
+    draftState.rows,
+    draftState.issues,
+    draftState.reviewDecisions,
+    exportResult,
+  );
   const summaryStatus = getBatchSummaryStatus({
     uploadedFiles,
     requiredFiles,
-    issueCount: draftState.issues.length,
-    readyExports,
+    exportStage: getReviewExportStage(readiness),
   });
 
   return (
@@ -71,7 +80,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
             <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
             <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-              브라우저에 저장된 활성 batch draft를 다시 열거나, 초기 상태에서 새 batch 작업을 시작합니다.
+              브라우저에 저장된 활성 배치 임시 저장본을 다시 열거나, 초기 상태에서 새 배치 작업을 시작합니다.
             </p>
           </div>
           <button
@@ -86,7 +95,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
         <section className="rounded-2xl border border-line bg-ink-900/80 shadow-card">
           <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-5">
             <div>
-              <p className="text-sm font-semibold text-slate-200">현재 브라우저 저장 batch</p>
+              <p className="text-sm font-semibold text-slate-200">현재 브라우저 저장 배치</p>
               <p className="mt-1 text-sm text-slate-500">업로드 / 검수 / 출력 상태를 요약한 단일 진입 카드</p>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[summaryStatus]}`}>
@@ -106,23 +115,23 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <SummaryCard label="업로드" value={`${uploadedFiles}/${requiredFiles}`} helper="필수 파일 기준" />
                 <SummaryCard label="정산 행" value={`${draftState.rows.length}`} helper="정규화 완료 행" />
                 <SummaryCard label="이슈" value={`${draftState.issues.length}`} helper="오류/누락/매칭 실패" />
-                <SummaryCard label="출력" value={`${readyExports}/4`} helper="회사별 2종" />
+                <SummaryCard label="출력" value={`${readiness.readyExportCount}/4`} helper="검수 완료 후 다운로드 가능" />
               </dl>
             </div>
 
             <aside className="rounded-xl border border-line bg-ink-850 p-5">
               <p className="text-sm font-semibold text-slate-200">현재 진입 액션</p>
               <ul className="mt-3 space-y-2 text-sm text-slate-400">
-                <li>• 저장된 active batch draft 다시 열기</li>
-                <li>• 초기 상태 seed로 새 batch 재시작</li>
-                <li>• 브라우저 재진입 시 draft 복원 상태 확인</li>
+                <li>• 저장된 활성 배치 임시 저장본 다시 열기</li>
+                <li>• 초기 상태 샘플로 새 배치 재시작</li>
+                <li>• 브라우저 재진입 시 임시 저장 복원 상태 확인</li>
               </ul>
               <button
                 type="button"
                 className="mt-5 w-full rounded-md border border-line bg-ink-800 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                 onClick={onOpenBatch}
               >
-                이 batch 열기
+                이 배치 열기
               </button>
             </aside>
           </div>
@@ -145,22 +154,20 @@ function SummaryCard({ label, value, helper }: { label: string; value: string; h
 function getBatchSummaryStatus({
   uploadedFiles,
   requiredFiles,
-  issueCount,
-  readyExports,
+  exportStage,
 }: {
   uploadedFiles: number;
   requiredFiles: number;
-  issueCount: number;
-  readyExports: number;
+  exportStage: "reviewing" | "export_validation" | "ready_for_export";
 }): BatchSummaryStatus {
-  if (readyExports === 4) {
-    return "ready_for_export";
-  }
-  if (issueCount > 0) {
-    return "review_needed";
-  }
   if (uploadedFiles < requiredFiles) {
     return "uploading";
   }
-  return "completed";
+  if (exportStage === "ready_for_export") {
+    return "ready_for_export";
+  }
+  if (exportStage === "export_validation") {
+    return "export_validation";
+  }
+  return "review_needed";
 }

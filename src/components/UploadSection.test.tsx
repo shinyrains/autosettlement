@@ -24,7 +24,7 @@ describe("UploadSection", () => {
     expect(screen.getByText("정산 파일")).toBeInTheDocument();
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
     expect(screen.getByText("기본 정산")).toBeInTheDocument();
-    expect(screen.getByText("file_1 보정")).toBeInTheDocument();
+    expect(screen.getByText("1번 파일 보정")).toBeInTheDocument();
     expect(screen.getByText("이벤트 거래")).toBeInTheDocument();
     expect(screen.getByText("MG 보정")).toBeInTheDocument();
     expect(screen.getByText("정산 상세리스트")).toBeInTheDocument();

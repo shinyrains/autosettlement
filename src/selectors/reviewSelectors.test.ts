@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ExportBuildResult } from "../exporters";
 import type { BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
 import type { ParseIssue, SettlementRow } from "../types/settlement";
 import {
@@ -13,6 +14,8 @@ import {
   getIssueSummary,
   getIssuesByFile,
   getPlatformSummary,
+  getReviewExportReadiness,
+  getReviewExportStage,
   getReviewOverview,
   getRowsByCompany,
   getSelectedReviewRow,
@@ -140,6 +143,23 @@ const result: BatchParseOrchestratorResult = {
   ],
 };
 
+const readyExportResult: ExportBuildResult = {
+  packages: [
+    { company: "raon", artifactType: "review_excel", fileName: "raon-review.xlsx", rowCount: 1, workbookBuffer: new ArrayBuffer(0) },
+    { company: "raon", artifactType: "mailer_excel", fileName: "raon-mailer.xlsx", rowCount: 1, workbookBuffer: new ArrayBuffer(0) },
+    { company: "sr", artifactType: "review_excel", fileName: "sr-review.xlsx", rowCount: 2, workbookBuffer: new ArrayBuffer(0) },
+    { company: "sr", artifactType: "mailer_excel", fileName: "sr-mailer.xlsx", rowCount: 2, workbookBuffer: new ArrayBuffer(0) },
+  ],
+  issues: [],
+  status: "ready",
+};
+
+const blockedExportResult: ExportBuildResult = {
+  packages: [],
+  issues: [issues[0]],
+  status: "blocked",
+};
+
 describe("review selectors", () => {
   it("summarizes raon and sr rows, amounts, and issues", () => {
     const summary = getBatchSummary(result);
@@ -237,7 +257,7 @@ describe("review selectors", () => {
     expect(getFilteredReviewRows(rows, { ...defaultReviewFilterState, sortMode: "title" })).toEqual([rows[0], rows[2], rows[1]]);
   });
 
-  it("returns selected row fallback and overview counts", () => {
+  it("returns selected row fallback, overview counts, and legacy decision helpers", () => {
     expect(getSelectedReviewRow(rows, "row-sr-kyobo-2")).toEqual(rows[2]);
     expect(getSelectedReviewRow(rows, "missing-row")).toEqual(rows[0]);
     expect(getReviewDecisionStatus(reviewDecisions, "row-sr-kyobo")).toBe("confirmed");
@@ -250,6 +270,61 @@ describe("review selectors", () => {
       companyCount: 2,
       platformCount: 3,
       confirmedRowCount: 1,
+    });
+  });
+
+  it("derives review-to-export readiness from issues, confirmations, and exporter validation", () => {
+    expect(getReviewExportReadiness(rows, issues, reviewDecisions, readyExportResult)).toEqual({
+      batchStatus: "reviewing",
+      exportStatus: "blocked",
+      confirmedRowCount: 1,
+      pendingReviewCount: 2,
+      unresolvedIssueCount: 2,
+      readyExportCount: 0,
+      blockers: ["unresolved_issues", "review_incomplete"],
+    });
+
+    expect(getReviewExportReadiness(rows, [], reviewDecisions, readyExportResult)).toEqual({
+      batchStatus: "reviewing",
+      exportStatus: "blocked",
+      confirmedRowCount: 1,
+      pendingReviewCount: 2,
+      unresolvedIssueCount: 0,
+      readyExportCount: 0,
+      blockers: ["review_incomplete"],
+    });
+
+    expect(getReviewExportReadiness(rows, [], [
+      { rowId: "row-raon-guru", status: "confirmed", updatedAt: "2026-06-11T09:17:00.000Z" },
+      { rowId: "row-sr-kyobo", status: "confirmed", updatedAt: "2026-06-11T09:18:00.000Z" },
+      { rowId: "row-sr-kyobo-2", status: "confirmed", updatedAt: "2026-06-11T09:19:00.000Z" },
+    ], blockedExportResult)).toEqual({
+      batchStatus: "reviewing",
+      exportStatus: "blocked",
+      confirmedRowCount: 3,
+      pendingReviewCount: 0,
+      unresolvedIssueCount: 0,
+      readyExportCount: 0,
+      blockers: ["export_validation"],
+    });
+    expect(getReviewExportStage(getReviewExportReadiness(rows, [], [
+      { rowId: "row-raon-guru", status: "confirmed", updatedAt: "2026-06-11T09:17:00.000Z" },
+      { rowId: "row-sr-kyobo", status: "confirmed", updatedAt: "2026-06-11T09:18:00.000Z" },
+      { rowId: "row-sr-kyobo-2", status: "confirmed", updatedAt: "2026-06-11T09:19:00.000Z" },
+    ], blockedExportResult))).toBe("export_validation");
+
+    expect(getReviewExportReadiness(rows, [], [
+      { rowId: "row-raon-guru", status: "confirmed", updatedAt: "2026-06-11T09:17:00.000Z" },
+      { rowId: "row-sr-kyobo", status: "confirmed", updatedAt: "2026-06-11T09:18:00.000Z" },
+      { rowId: "row-sr-kyobo-2", status: "confirmed", updatedAt: "2026-06-11T09:19:00.000Z" },
+    ], readyExportResult)).toEqual({
+      batchStatus: "ready_for_export",
+      exportStatus: "ready",
+      confirmedRowCount: 3,
+      pendingReviewCount: 0,
+      unresolvedIssueCount: 0,
+      readyExportCount: 4,
+      blockers: [],
     });
   });
 });

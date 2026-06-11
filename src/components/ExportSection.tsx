@@ -6,10 +6,12 @@ import {
   type ExportBuildResult,
   type ExportPackage,
 } from "../exporters";
+import type { ReviewExportReadiness } from "../selectors";
 import type { Company } from "../types/settlement";
 import { artifactLabels } from "./uiShellConfig";
 
 type ExportSectionProps = {
+  readiness?: ReviewExportReadiness;
   readyExports?: number;
   exportPackages?: ExportPackage[];
   exportResult?: ExportBuildResult;
@@ -17,6 +19,7 @@ type ExportSectionProps = {
 };
 
 export function ExportSection({
+  readiness,
   readyExports,
   exportPackages,
   exportResult,
@@ -24,8 +27,18 @@ export function ExportSection({
 }: ExportSectionProps) {
   const packages =
     exportPackages ?? exportResult?.packages ?? createExportPackages(mockSettlementRows).packages;
-  const exportStatus = exportResult?.status ?? "ready";
-  const readyExportCount = readyExports ?? packages.length;
+  const effectiveReadiness = readiness ?? {
+    batchStatus: "ready_for_export",
+    exportStatus: exportResult?.status ?? "ready",
+    confirmedRowCount: packages.reduce((sum, item) => sum + item.rowCount, 0),
+    pendingReviewCount: 0,
+    unresolvedIssueCount: 0,
+    readyExportCount: readyExports ?? packages.length,
+    blockers: (exportResult?.status ?? "ready") === "blocked" ? ["export_validation"] : [],
+  };
+  const isBlocked = effectiveReadiness.exportStatus === "blocked";
+  const blockerMessages = getBlockerMessages(effectiveReadiness);
+  const readyExportCountValue = readyExports ?? effectiveReadiness.readyExportCount;
 
   return (
     <section id="step-4" className="rounded-md border border-line bg-ink-850">
@@ -34,16 +47,21 @@ export function ExportSection({
           <FileSpreadsheet className="h-5 w-5 text-mint" />
           <div>
             <h2 className="text-lg font-semibold tracking-normal">회사별 출력</h2>
-            <p className="mt-1 text-sm text-slate-400">회사별 2종 출력, batch 전체 4개 파일</p>
+            <p className="mt-1 text-sm text-slate-400">검수가 끝난 뒤 회사별 2종 출력, 배치 전체 4개 파일을 다운로드합니다.</p>
           </div>
         </div>
         <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">
-          {readyExportCount}/4 ready
+          {readyExportCountValue}/4 준비
         </span>
       </div>
-      {exportStatus === "blocked" ? (
+      {isBlocked ? (
         <div className="m-5 rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-amber">
-          Export blocked. Resolve validation issues before creating workbook downloads.
+          <p className="font-semibold text-amber">출력 대기 상태입니다.</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {blockerMessages.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-5 p-5">
@@ -108,13 +126,13 @@ function ExportRow({
       <div>
         <p className="font-medium text-white">{artifact.fileName}</p>
         <p className="mt-1 text-xs text-slate-500">
-          {artifactLabels[artifact.artifactType]} · {artifact.rowCount} rows
+          {artifactLabels[artifact.artifactType]} · {artifact.rowCount}행
         </p>
       </div>
       <div className="flex items-center gap-3">
         <span className="flex items-center gap-2 text-sm font-semibold text-mint">
           <CheckCircle2 className="h-4 w-4" />
-          ready
+          준비 완료
         </span>
         <button
           type="button"
@@ -122,9 +140,26 @@ function ExportRow({
           onClick={() => onDownloadPackage(artifact)}
         >
           <Download className="h-4 w-4" />
-          Download
+          다운로드
         </button>
       </div>
     </div>
   );
+}
+
+function getBlockerMessages(readiness: ReviewExportReadiness): string[] {
+  return readiness.blockers.map((blocker) => {
+    switch (blocker) {
+      case "missing_rows":
+        return "정규화된 정산 행이 아직 없어 출력 생성으로 진행할 수 없습니다.";
+      case "unresolved_issues":
+        return `오류/누락/매칭 실패 ${readiness.unresolvedIssueCount}건을 먼저 확인해야 합니다.`;
+      case "review_incomplete":
+        return `검수 확정이 ${readiness.pendingReviewCount}행 남아 있어 출력 준비 상태로 전환되지 않았습니다.`;
+      case "export_validation":
+        return "출력용 필수 값 검증이 끝나지 않아 엑셀 다운로드를 생성할 수 없습니다.";
+      default:
+        return "출력 준비를 막는 조건을 먼저 해결해야 합니다.";
+    }
+  });
 }

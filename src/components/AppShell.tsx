@@ -6,6 +6,7 @@ import {
   getAvailableCompanies,
   getAvailablePlatforms,
   getFilteredReviewRows,
+  getReviewExportReadiness,
   getReviewOverview,
   getSelectedReviewRow,
 } from "../selectors";
@@ -55,6 +56,10 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
   const selectedRowReviewStatus = getReviewDecisionStatus(state.reviewDecisions, selectedRow?.rowId);
   const exportResult = useMemo(() => createExportPackages(state.rows), [state.rows]);
   const exportPackages = exportResult.packages;
+  const exportReadiness = useMemo(
+    () => getReviewExportReadiness(state.rows, state.issues, state.reviewDecisions, exportResult),
+    [exportResult, state.rows, state.issues, state.reviewDecisions],
+  );
 
   const totals = useMemo(() => {
     const uploadedFiles = state.uploads.reduce((sum, upload) => sum + upload.fileCount, 0);
@@ -63,9 +68,9 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
       uploadedFiles,
       requiredFiles,
       rows: state.rows.length,
-      readyExports: exportPackages.length,
+      readyExports: exportReadiness.readyExportCount,
     };
-  }, [exportPackages.length, state.rows.length, state.uploads]);
+  }, [exportReadiness.readyExportCount, state.rows.length, state.uploads]);
 
   const handleUploadFiles = async (target: LiveUploadTarget, files: File[]) => {
     const nextState = await applyLiveUploadMutation(state, target, files, uploadMutationDependencies);
@@ -83,6 +88,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
             onResetState={resetState}
             onBackToBatchList={onBackToBatchList}
             readyExports={totals.readyExports}
+            readiness={exportReadiness}
             requiredFiles={totals.requiredFiles}
             rowsCount={totals.rows}
             uploadedFiles={totals.uploadedFiles}
@@ -124,6 +130,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
             <ExportSection
               exportPackages={exportPackages}
               exportResult={exportResult}
+              readiness={exportReadiness}
               readyExports={totals.readyExports}
             />
           </div>
