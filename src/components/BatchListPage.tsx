@@ -43,6 +43,35 @@ function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined
     .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
 }
 
+function getNextBatchAction({
+  uploadedFiles,
+  requiredFiles,
+  readiness,
+}: {
+  uploadedFiles: number;
+  requiredFiles: number;
+  readiness: ReturnType<typeof getReviewExportReadiness>;
+}): string {
+  const missingRequiredFiles = Math.max(requiredFiles - uploadedFiles, 0);
+  if (missingRequiredFiles > 0) {
+    return `필수 파일 ${missingRequiredFiles}개 추가 업로드 필요`;
+  }
+  if (readiness.unresolvedIssueCount > 0) {
+    return `이슈 ${readiness.unresolvedIssueCount}건 확인 필요`;
+  }
+  if (readiness.pendingReviewCount > 0) {
+    return `검수 미확정 ${readiness.pendingReviewCount}건 처리 필요`;
+  }
+  if (getReviewExportStage(readiness) === "export_validation") {
+    return "출력 검증 blocker 확인 필요";
+  }
+  return "회사별 출력 파일 다운로드 가능";
+}
+
+function getBatchBlockerSummary(readiness: ReturnType<typeof getReviewExportReadiness>): string {
+  return `주요 blocker: 이슈 ${readiness.unresolvedIssueCount}건 / 검수 미확정 ${readiness.pendingReviewCount}건`;
+}
+
 export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: BatchListPageProps) {
   if (!draftState) {
     return (
@@ -89,6 +118,8 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
     exportStage: getReviewExportStage(readiness),
   });
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
+  const nextBatchAction = getNextBatchAction({ uploadedFiles, requiredFiles, readiness });
+  const blockerSummary = getBatchBlockerSummary(readiness);
 
   return (
     <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
@@ -147,6 +178,11 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
 
             <aside className="rounded-xl border border-line bg-ink-850 p-5">
               <p className="text-sm font-semibold text-slate-200">현재 진입 액션</p>
+              <div className="mt-3 rounded-lg border border-line bg-ink-900 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">다음 필요 액션</p>
+                <p className="mt-2 text-sm font-medium text-slate-100">{nextBatchAction}</p>
+                <p className="mt-2 text-xs text-slate-500">{blockerSummary}</p>
+              </div>
               <ul className="mt-3 space-y-2 text-sm text-slate-400">
                 <li>• 저장된 활성 배치 임시 저장본 다시 열기</li>
                 <li>• 초기 상태 샘플로 새 배치 재시작</li>
