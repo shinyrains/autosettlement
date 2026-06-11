@@ -38,6 +38,21 @@ function formatReviewDecisionUpdatedAt(updatedAt?: string): string {
   return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
 }
 
+function getSelectedRowQueueLabels(row: SettlementRow, status: ReviewDecisionStatus): string[] {
+  if (status === "confirmed") {
+    return ["확정 큐 대상"];
+  }
+  if (status === "held") {
+    return ["보류 큐 대상", "전체 미확정 큐 대상"];
+  }
+
+  return [
+    "보류 제외 미확정 큐 대상",
+    ...(row.issues.length > 0 ? ["이슈 미확정 큐 대상"] : []),
+    "전체 미확정 큐 대상",
+  ];
+}
+
 type ReviewSectionProps = {
   rows: SettlementRow[];
   totalRowCount: number;
@@ -367,6 +382,8 @@ function ReviewDetail({
     );
   }
 
+  const selectedRowQueueLabels = getSelectedRowQueueLabels(selectedRow, selectedRowReviewStatus);
+
   return (
     <aside className="rounded-md border border-line bg-ink-850 p-5">
       <p className="text-sm font-semibold text-signal">선택 행 상세</p>
@@ -393,6 +410,14 @@ function ReviewDetail({
           <p>현재 결정: {getReviewStatusLabel(selectedRowReviewStatus)}</p>
           <p>마지막 변경: {formatReviewDecisionUpdatedAt(selectedRowReviewUpdatedAt)}</p>
           <p>감사 사유: {selectedRowReviewNote || "저장된 사유 없음"}</p>
+        </div>
+      </div>
+      <div className="mt-4 rounded-md border border-line bg-ink-800 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">선택 행 큐 위치</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selectedRowQueueLabels.map((label) => (
+            <span key={label} className="rounded-full border border-line bg-ink-850 px-2 py-1 text-xs text-slate-300">{label}</span>
+          ))}
         </div>
       </div>
       <ReviewQueueSummary
