@@ -1,6 +1,7 @@
 import { createExportPackages } from "../exporters";
 import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
+import type { ParseIssueSeverity } from "../types/settlement";
 
 type BatchListPageProps = {
   draftState: AppDraftState | null;
@@ -24,6 +25,12 @@ const statusClasses: Record<BatchSummaryStatus, string> = {
   export_validation: "border-violet-400/30 bg-violet-500/10 text-violet-200",
   ready_for_export: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
   completed: "border-violet-400/30 bg-violet-500/10 text-violet-200",
+};
+
+const issueSeverityPriority: Record<ParseIssueSeverity, number> = {
+  error: 0,
+  warning: 1,
+  info: 2,
 };
 
 function formatBatchHistoryTimestamp(timestamp?: string): string {
@@ -94,8 +101,12 @@ function getBatchBlockerDetails({
   if (missingRequiredFiles > 0) {
     details.push(`업로드 누락: 필수 파일 ${missingRequiredFiles}개`);
   }
-  if (draftState.issues.length > 0) {
-    details.push(`최우선 이슈: ${draftState.issues[0].message}`);
+  const primaryIssue = draftState.issues
+    .slice()
+    .sort((left, right) => issueSeverityPriority[left.severity] - issueSeverityPriority[right.severity])[0];
+
+  if (primaryIssue) {
+    details.push(`최우선 이슈: ${primaryIssue.message}`);
   }
   if (readiness.pendingReviewCount > 0) {
     details.push(`검수 대기: ${readiness.pendingReviewCount}/${draftState.rows.length}행`);
