@@ -337,7 +337,8 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("생성: 2026-06-08 09:20")).toBeInTheDocument();
     expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
-    expect(screen.getByText("선택 파일 기준 · 필수 누락 12개")).toBeInTheDocument();
+    expect(screen.getByText("선택 파일 19/29")).toBeInTheDocument();
+    expect(screen.getByText("필수 파일 누락 12개")).toBeInTheDocument();
     expect(screen.getByText("다음 필요 액션")).toBeInTheDocument();
     expect(screen.getByText("필수 파일 12개 추가 업로드 필요")).toBeInTheDocument();
     expect(screen.getByText("주요 blocker: 이슈 3건 / 검수 미확정 5건")).toBeInTheDocument();
