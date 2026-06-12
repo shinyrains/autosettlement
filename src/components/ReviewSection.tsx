@@ -815,6 +815,22 @@ function getPreviousQueuedRowId(rowIds: string[], selectedRowId: string): string
   return rowIds[selectedIndex - 1];
 }
 
+function formatQueuePositionLabel(label: string, rowIds: string[], selectedRowId: string): string | undefined {
+  const selectedIndex = rowIds.indexOf(selectedRowId);
+  if (selectedIndex < 0) {
+    return undefined;
+  }
+  const position = selectedIndex + 1;
+  const edgeLabel = rowIds.length === 1
+    ? "단일 행"
+    : selectedIndex === 0
+      ? "처음 행"
+      : selectedIndex === rowIds.length - 1
+        ? "마지막 행"
+        : "중간 행";
+  return `${label} 큐 위치: ${position}/${rowIds.length} · ${edgeLabel}`;
+}
+
 function ReviewQueueCard({
   label,
   count,
@@ -845,6 +861,7 @@ function ReviewQueueCard({
   const nextQueuedRowId = getNextQueuedRowId(rowIds, selectedRowId);
   const previousQueuedRowId = getPreviousQueuedRowId(rowIds, selectedRowId);
   const previousActionLabel = `${label} 이전 행으로 이동`;
+  const positionLabel = formatQueuePositionLabel(label, rowIds, selectedRowId);
   const bulkActionClassName = bulkActionTone === "confirm"
     ? "rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
     : "rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50";
@@ -860,6 +877,7 @@ function ReviewQueueCard({
           {notePreview ? (
             <p className="mt-1 text-xs text-orange-200" title={notePreview}>보류 사유: {formatHoldReasonPreview(notePreview)}</p>
           ) : null}
+          {positionLabel ? <p className="mt-1 text-xs text-signal">{positionLabel}</p> : null}
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
