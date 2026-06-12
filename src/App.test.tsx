@@ -360,11 +360,14 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("필수 파일 12개 추가 업로드 필요")).toBeInTheDocument();
     expect(screen.getByText("주요 blocker: 이슈 3건 / 검수 미확정 5건")).toBeInTheDocument();
     expect(screen.getByText("운영 blocker 상세")).toBeInTheDocument();
+    expect(screen.getByText("차단 이슈 우선순위: 오류 1건 · 경고 2건 · 정보 0건")).toBeInTheDocument();
     expect(screen.getByText("업로드 누락: 필수 파일 12개")).toBeInTheDocument();
     expect(screen.getByText("필수 슬롯 누락: 라온이앤엠 · 시리즈 · 앱 매출 3개 중 1개")).toBeInTheDocument();
     expect(screen.getByText("필수 슬롯 누락: 라온이앤엠 · 조아라 · 작품별 정산리스트 중 1개")).toBeInTheDocument();
     expect(screen.getByText("최우선 이슈: 원본 행의 회사 구분 값을 라온/에스알 중 하나로 확정하지 못했습니다. · 문피아 · 원본 104행")).toBeInTheDocument();
     expect(screen.getByText("검수 대기: 5/5행")).toBeInTheDocument();
+    expect(screen.getByText("다음 검수 후보: 검은 별의 서점 · 시리즈 · 원본 18행")).toBeInTheDocument();
+    expect(screen.getByText("최근 변경 요약: 업로드 2026-06-08 17:55 · 검수 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("CTA 안내: 업로드 단계로 이동해 필수 파일 12개 처리")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
 

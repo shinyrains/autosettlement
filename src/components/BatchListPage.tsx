@@ -63,6 +63,8 @@ type CompanyOutputReadinessSummary = {
   mailerStatusLabel: string;
 };
 
+type IssueSeverityCounts = Record<ParseIssueSeverity, number>;
+
 function getUploadStatusCounts(draftState: AppDraftState): UploadStatusCounts {
   return draftState.uploads
     .flatMap((upload) => [upload.status, ...(upload.slots ?? []).map((slot) => slot.status)])
@@ -143,6 +145,38 @@ function formatBatchHistoryTimestamp(timestamp?: string): string {
   const [datePart, timePart = ""] = timestamp.split("T");
   const timeWithoutSeconds = timePart.slice(0, 5);
   return timeWithoutSeconds ? `${datePart} ${timeWithoutSeconds}` : datePart;
+}
+
+function getIssueSeverityCounts(draftState: AppDraftState): IssueSeverityCounts {
+  return draftState.issues.reduce<IssueSeverityCounts>((counts, issue) => {
+    counts[issue.severity] += 1;
+    return counts;
+  }, { error: 0, warning: 0, info: 0 });
+}
+
+function formatIssueSeverityCounts(counts: IssueSeverityCounts): string {
+  return `차단 이슈 우선순위: 오류 ${counts.error}건 · 경고 ${counts.warning}건 · 정보 ${counts.info}건`;
+}
+
+function getNextReviewCandidateLabel(draftState: AppDraftState): string | undefined {
+  const reviewedRowIds = new Set(
+    draftState.reviewDecisions
+      .filter((decision) => decision.status === "confirmed")
+      .map((decision) => decision.rowId),
+  );
+  const nextRow = draftState.rows.find((row) => !reviewedRowIds.has(row.rowId));
+  if (!nextRow) {
+    return undefined;
+  }
+  return [
+    nextRow.mailerContentTitle,
+    platformLabels[nextRow.platform],
+    nextRow.sourceRowIndex != null ? `원본 ${nextRow.sourceRowIndex}행` : undefined,
+  ].filter((part): part is string => Boolean(part)).join(" · ");
+}
+
+function formatLatestChangeSummary(latestUploadTimestamp?: string, latestReviewTimestamp?: string): string {
+  return `최근 변경 요약: 업로드 ${formatBatchHistoryTimestamp(latestUploadTimestamp)} · 검수 ${formatBatchHistoryTimestamp(latestReviewTimestamp)}`;
 }
 
 function getLatestReviewDecisionSummary(draftState: AppDraftState): string {
@@ -422,11 +456,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   const companyOutputReadinessSummaries = getCompanyOutputReadinessSummaries(exportResult, readiness);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
+  const latestReviewDecision = getLatestReviewDecision(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
   const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
   const ctaHint = getBatchCtaHint({ missingRequiredFiles, readiness });
   const blockerSummary = getBatchBlockerSummary(readiness);
   const blockerDetails = getBatchBlockerDetails({ missingRequiredFiles, draftState, readiness });
+  const issueSeverityCounts = getIssueSeverityCounts(draftState);
+  const nextReviewCandidateLabel = getNextReviewCandidateLabel(draftState);
 
   return (
     <main className="min-h-screen bg-ink-950 px-8 py-10 text-slate-100">
@@ -517,9 +554,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               <div className="mt-3 rounded-lg border border-line bg-ink-900 p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">운영 blocker 상세</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                  <li>• <span>{formatIssueSeverityCounts(issueSeverityCounts)}</span></li>
                   {blockerDetails.map((detail) => (
                     <li key={detail}>• <span>{detail}</span></li>
                   ))}
+                  {nextReviewCandidateLabel ? (
+                    <li>• <span>다음 검수 후보: {nextReviewCandidateLabel}</span></li>
+                  ) : null}
+                  <li>• <span>{formatLatestChangeSummary(latestUploadTimestamp, latestReviewDecision?.updatedAt)}</span></li>
                 </ul>
               </div>
               <ul className="mt-3 space-y-2 text-sm text-slate-400">
