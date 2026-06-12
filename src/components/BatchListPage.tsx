@@ -219,27 +219,20 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <li>• 초기 상태 샘플로 새 정산 작업 재시작</li>
                 <li>• 브라우저 재진입 시 임시 저장 복원 상태 확인</li>
               </ul>
-              <button
-                type="button"
-                className="mt-5 w-full rounded-md border border-line bg-ink-800 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
-                onClick={() => onOpenBatch("raon")}
-              >
-                이 정산 작업 열기
-              </button>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  className="rounded-md border border-line bg-ink-800 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-ink-700"
+                  className="rounded-md border border-line bg-ink-800 px-3 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("raon")}
                 >
-                  라온이앤엠 정산 작업 열기
+                  라온이앤엠 정산 작업
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-line bg-ink-800 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-ink-700"
+                  className="rounded-md border border-line bg-ink-800 px-3 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("sr")}
                 >
-                  에스알이앤엠 정산 작업 열기
+                  에스알이앤엠 정산 작업
                 </button>
               </div>
               <p className="mt-2 text-xs text-slate-500">{ctaHint}</p>
