@@ -12,6 +12,7 @@ export const APP_STATE_STORAGE_KEY = "autosettlement.active-batch.v1";
 const MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
 const SERIES_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.series-grouped-slot-snapshots.v1";
 const RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
+const JOARA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.joara-grouped-slot-snapshots.v1";
 const APP_STATE_VERSION = 1 as const;
 
 export type AppDraftState = {
@@ -155,7 +156,7 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
 }
 
 function normalizeAppDraftState(state: AppDraftState): AppDraftState {
-  const uploads = clone(state.uploads);
+  const uploads = normalizeUploads(clone(state.uploads));
   const rows = clone(state.rows);
   const selectedRowId = rows.some((row) => row.rowId === state.selectedRowId)
     ? state.selectedRowId
@@ -188,6 +189,9 @@ function applyMissingUploadPass(state: AppDraftState, target: UploadPassTarget):
       .filter((issue) => isMissingUploadIssueForTarget(issue, targetUpload, target))
       .map((issue) => issue.issueId),
   );
+  if (target.slotKey) {
+    clearGroupedUploadSnapshotSidecarForUpload(targetUpload, getBrowserStorage());
+  }
   const issues = state.issues.filter((issue) => !removedIssueIds.has(issue.issueId));
   const rows = state.rows.map((row) => ({
     ...row,
@@ -306,6 +310,20 @@ function isAppDraftStateShape(value: unknown): value is AppDraftState {
     && (candidate.reviewDecisions === undefined || Array.isArray(candidate.reviewDecisions));
 }
 
+function normalizeUploads(uploads: PlatformUploadCard[]): PlatformUploadCard[] {
+  const seedByUploadId = new Map(mockUploads.map((upload) => [upload.uploadId, upload]));
+  return uploads.map((upload) => {
+    const seedUpload = seedByUploadId.get(upload.uploadId);
+    if (!seedUpload?.sharedCompanies || upload.sharedCompanies) {
+      return upload;
+    }
+    return {
+      ...upload,
+      sharedCompanies: clone(seedUpload.sharedCompanies),
+    };
+  });
+}
+
 function normalizeReviewDecisions(reviewDecisions: ReviewDecision[], rows: SettlementRow[]): ReviewDecision[] {
   const rowIds = new Set(rows.map((row) => row.rowId));
   const latestByRowId = new Map<string, ReviewDecision>();
@@ -365,10 +383,36 @@ function getBrowserStorage(): Storage | undefined {
   return window.localStorage;
 }
 
+function clearGroupedUploadSnapshotSidecarForUpload(upload: PlatformUploadCard, storage: Storage | undefined): void {
+  if (!storage) {
+    return;
+  }
+
+  if (upload.platform === "munpia") {
+    storage.removeItem(MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY);
+    return;
+  }
+
+  if (upload.platform === "series") {
+    storage.removeItem(SERIES_GROUPED_SNAPSHOT_STORAGE_KEY);
+    return;
+  }
+
+  if (upload.platform === "ridibooks") {
+    storage.removeItem(RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY);
+    return;
+  }
+
+  if (upload.platform === "joara") {
+    storage.removeItem(JOARA_GROUPED_SNAPSHOT_STORAGE_KEY);
+  }
+}
+
 function clearGroupedUploadSnapshotSidecar(storage: Storage): void {
   storage.removeItem(MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY);
   storage.removeItem(SERIES_GROUPED_SNAPSHOT_STORAGE_KEY);
   storage.removeItem(RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY);
+  storage.removeItem(JOARA_GROUPED_SNAPSHOT_STORAGE_KEY);
 }
 
 function clone<T>(value: T): T {

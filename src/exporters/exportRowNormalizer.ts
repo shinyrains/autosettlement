@@ -7,8 +7,8 @@ export function normalizeExportWorkTitle(title: string): string {
   while (previous !== normalized) {
     previous = normalized;
     normalized = normalized
-      .replace(/\s*[\(（](?:완결|외전)[\)）]\s*$/, "")
-      .replace(/\s+\d+(?:-\d+)?\s*$/, "")
+      .replace(/\s*[\[\(（](?:완결|외전)[\]\)）]\s*$/, "")
+      .replace(/\s+\d+(?:-\d+)?\s*권?$/, "")
       .trim();
   }
 
@@ -19,6 +19,10 @@ export function normalizeAggregateExportRows(rows: SettlementRow[]): SettlementR
   const groupedRows = new Map<string, SettlementRow>();
 
   for (const row of rows) {
+    if (row.grossSales === 0) {
+      continue;
+    }
+
     const normalizedTitle = normalizeExportWorkTitle(row.mailerContentTitle || row.workTitle);
     const normalizedWorkTitle = normalizeExportWorkTitle(row.workTitle || row.mailerContentTitle);
     const publisher = row.publisher ?? "";

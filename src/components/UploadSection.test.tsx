@@ -151,6 +151,24 @@ describe("UploadSection", () => {
     expect(screen.queryByText("실파일 업로드")).not.toBeInTheDocument();
   });
 
+  it("does not offer PASS actions for company-mode pending placeholder cards", () => {
+    render(
+      <UploadSection
+        activeCompany="raon"
+        uploads={mockUploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+        onPassUpload={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("교보")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "교보 파일 없음으로 PASS 처리" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "예스24 파일 없음으로 PASS 처리" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "알라딘 파일 없음으로 PASS 처리" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "미스터블루 파일 없음으로 PASS 처리" })).not.toBeInTheDocument();
+  });
+
   it("locks only the shared Onestore upload from the other company after one company has uploaded it", () => {
     const uploads = mockUploads.map((upload) => (
       upload.uploadId === "upload-shared-onestore"

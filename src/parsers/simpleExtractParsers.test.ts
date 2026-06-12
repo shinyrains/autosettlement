@@ -239,6 +239,24 @@ describe.each(cases)("$platform simple extract parser", (parserCase) => {
   });
 });
 
+describe("Yes24 publisher preservation", () => {
+  it("requires the publisher column so 아레테 and 비카페 remain distinguishable", () => {
+    const row = { ...cases.find((item) => item.platform === "yes24")!.validRow };
+    delete row.출판사;
+
+    const result = parseYes24(contextFor("yes24"), [row]);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "missing_column",
+        severity: "error",
+        message: expect.stringContaining("출판사"),
+      }),
+    ]);
+  });
+});
+
 describe("implemented Simple Extract mappings", () => {
   it("marks all first-pass Simple Extract mappings as ready", () => {
     expect(

@@ -137,6 +137,7 @@ function UploadCard({
   const uploadTarget = sharedUploadOwner === undefined ? { ...upload, company: activeCompany } : upload;
   const canCardUpload = !hasSlots && isUploadEnabled && onUploadFiles !== undefined;
   const canPassCard = !hasSlots
+    && !upload.uploadId.endsWith("-pending")
     && upload.fileCount < upload.requiredFileCount
     && upload.status !== "error"
     && onPassUpload !== undefined;

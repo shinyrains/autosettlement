@@ -42,6 +42,7 @@ export function requiredColumns(mapping: SimpleExtractMapping): string[] {
   return [
     mapping.columns.workTitle,
     mapping.columns.author,
+    ...(mapping.platform === "yes24" && mapping.columns.publisher ? [mapping.columns.publisher] : []),
     mapping.columns.grossSales,
     mapping.columns.settlementAmount,
   ];

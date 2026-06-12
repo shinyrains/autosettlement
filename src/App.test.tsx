@@ -550,6 +550,7 @@ describe("AutoSettlement UI shell", () => {
       issues: row.rowId === "row-002" ? ["issue-missing-series-app-pass-test"] : [],
     }));
     saveAppDraftState(state, window.localStorage);
+    window.localStorage.setItem("autosettlement.series-grouped-slot-snapshots.v1", JSON.stringify({ stale: true }));
 
     render(<App />);
     fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
@@ -563,6 +564,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
     expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "다운로드" })).toHaveLength(4);
+    expect(window.localStorage.getItem("autosettlement.series-grouped-slot-snapshots.v1")).toBeNull();
   });
 
   it("filters and sorts review rows through the actual app-shell controls", () => {

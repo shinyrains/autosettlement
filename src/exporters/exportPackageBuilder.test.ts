@@ -132,6 +132,36 @@ describe("export package builder", () => {
         issues: [],
       },
       {
+        rowId: "row-onestore-3",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 13권 [완결]",
+        mailerContentTitle: "무당괴공 13권 [완결]",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 2000,
+        settlementAmount: 800,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 3,
+        issues: [],
+      },
+      {
+        rowId: "row-onestore-zero-same-work",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 14권",
+        mailerContentTitle: "무당괴공 14권",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 0,
+        settlementAmount: 999,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 4,
+        issues: [],
+      },
+      {
         rowId: "row-aladin-1",
         company: "raon",
         platform: "aladin",
@@ -143,7 +173,7 @@ describe("export package builder", () => {
         grossSales: 0,
         settlementAmount: 0,
         sourceFileName: "aladin.csv",
-        sourceRowIndex: 3,
+        sourceRowIndex: 5,
         issues: [],
       },
     ];
@@ -155,10 +185,10 @@ describe("export package builder", () => {
     expect(packages.find((item) => item.artifactType === "review_excel")?.rowCount).toBe(1);
     expect(packages.find((item) => item.artifactType === "mailer_excel")?.rowCount).toBe(1);
     expect(reviewRows[1]).toContain("무당괴공");
-    expect(reviewRows[1]).toContain(4000);
-    expect(reviewRows[1]).toContain(1600);
+    expect(reviewRows[1]).toContain(6000);
+    expect(reviewRows[1]).toContain(2400);
     expect(mailerRows[1]).toContain("무당괴공");
-    expect(mailerRows[1]).toContain(4000);
+    expect(mailerRows[1]).toContain(6000);
     expect(mailerRows.flat()).not.toContain("기사의 일기(Diary of a Knight)");
   });
 
