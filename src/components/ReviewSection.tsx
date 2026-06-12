@@ -321,6 +321,20 @@ export function ReviewSection({
   );
 }
 
+function getSelectedRowActionAuditLabel({
+  rowId,
+  status,
+  updatedAt,
+  note,
+}: {
+  rowId: string;
+  status: ReviewDecisionStatus;
+  updatedAt?: string;
+  note: string;
+}): string {
+  return `액션 감사: ${rowId} · ${getReviewStatusLabel(status)} · 마지막 변경 ${formatReviewDecisionUpdatedAt(updatedAt)} · 사유 ${note || "저장된 사유 없음"}`;
+}
+
 function ReviewDetail({
   selectedRow,
   selectedRowReviewStatus,
@@ -401,6 +415,12 @@ function ReviewDetail({
   }
 
   const selectedRowQueueLabels = getSelectedRowQueueLabels(selectedRow, selectedRowReviewStatus, reviewActionQueue);
+  const selectedRowActionAuditLabel = getSelectedRowActionAuditLabel({
+    rowId: selectedRow.rowId,
+    status: selectedRowReviewStatus,
+    updatedAt: selectedRowReviewUpdatedAt,
+    note: selectedRowReviewNote,
+  });
   const selectedHoldReasonGroup = selectedRowReviewStatus === "held"
     ? reviewActionQueue.holdReasonGroups.find((group) => group.rowIds.includes(selectedRow.rowId))
     : undefined;
@@ -431,6 +451,7 @@ function ReviewDetail({
           <p>현재 결정: {getReviewStatusLabel(selectedRowReviewStatus)}</p>
           <p>마지막 변경: {formatReviewDecisionUpdatedAt(selectedRowReviewUpdatedAt)}</p>
           <p>감사 사유: {selectedRowReviewNote || "저장된 사유 없음"}</p>
+          <p>{selectedRowActionAuditLabel}</p>
         </div>
       </div>
       <div className="mt-4 rounded-md border border-line bg-ink-800 p-3">

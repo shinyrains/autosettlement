@@ -640,6 +640,7 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     expect(screen.getByText("검수 큐")).toBeInTheDocument();
+    expect(screen.getByText("액션 감사: row-002 · 검수 대기 · 마지막 변경 저장된 변경 시각 없음 · 사유 저장된 사유 없음")).toBeInTheDocument();
     expect(screen.getByText("이슈 미확정 3행")).toBeInTheDocument();
     expect(screen.getByText("고액 미확정 5행")).toBeInTheDocument();
     expect(screen.getByText("전체 미확정 5행")).toBeInTheDocument();
