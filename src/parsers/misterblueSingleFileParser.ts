@@ -192,7 +192,7 @@ function validateRequiredColumns(context: ParserContext, rows: TabularRow[]): Pa
 }
 
 function isAggregateSummaryRow(row: TabularRow): boolean {
-  return readText(row["작품명"]) === "" && readText(row["작가명"]) === "";
+  return readText(row["작품코드"]) === "" && readText(row["작품명"]) === "" && readText(row["작가명"]) === "";
 }
 
 function readGrossGroup(

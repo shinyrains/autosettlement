@@ -65,18 +65,17 @@ describe("html xls file adapter", () => {
     expect(result.rows[0].Title).toBe("second table value");
   });
 
-  it("keeps total rows so platform parsers can decide whether to exclude them", () => {
+  it("excludes Korean total rows before platform parsing", () => {
     const html = htmlWithTables(`
       <tr><th>Title</th><th>Amount</th></tr>
       <tr><td>Series Work</td><td>18420</td></tr>
-      <tr><td>Total</td><td>18420</td></tr>
+      <tr><td>합계</td><td>18420</td></tr>
     `);
 
     const result = parseHtmlXlsAdapter(baseContext, html);
 
     expect(result.rows).toEqual([
       expect.objectContaining({ Title: "Series Work", sourceRowIndex: 2 }),
-      expect.objectContaining({ Title: "Total", sourceRowIndex: 3 }),
     ]);
   });
 

@@ -64,7 +64,7 @@ export function parsePanmurim(context: ParserContext, rows: TabularRow[]): Parse
       author,
       publisher,
       grossSales,
-      settlementAmount: grossSales * settlementRate,
+      settlementAmount: round1(grossSales * settlementRate),
     }));
   }
 
@@ -73,6 +73,10 @@ export function parsePanmurim(context: ParserContext, rows: TabularRow[]): Parse
 
 function trimHeaderNames(row: TabularRow): TabularRow {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [key.trim(), value]));
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function validateRequiredColumns(context: ParserContext, rows: TabularRow[]): ParseIssue[] {

@@ -48,6 +48,18 @@ describe("panmurim parser", () => {
     ]);
   });
 
+  it("rounds calculated settlement amounts to one decimal place", () => {
+    const result = parsePanmurim(baseContext, [
+      createValidRow({ "합계 총액 / 판매금액": 17636.57 }),
+    ]);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0]).toEqual(expect.objectContaining({
+      grossSales: 17636.57,
+      settlementAmount: 12345.6,
+    }));
+  });
+
   it("returns missing_column when a required Panmurim column is absent", () => {
     const row = createValidRow();
     delete row["표지 / 정산비율"];

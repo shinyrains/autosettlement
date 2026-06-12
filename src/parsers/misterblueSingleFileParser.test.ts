@@ -110,6 +110,26 @@ describe("misterblue single-file parser", () => {
     expect(result.issues).toEqual([]);
   });
 
+  it("returns missing_field when a row has a code but blank identity fields", () => {
+    const result = parseMisterblueSingleFileRows(baseContext, [
+      createRow({
+        작품코드: "raon-missing-identity",
+        작품명: "",
+        작가명: "",
+        sourceRowIndex: 172,
+      }),
+    ]);
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "missing_field",
+        severity: "error",
+        sourceRowIndex: 172,
+      }),
+    ]);
+  });
+
   it("returns invalid_value when total settlement cannot be parsed", () => {
     const result = parseMisterblueSingleFileRows(baseContext, [
       createRow({ "합계(정액+종량) / 정산액": "N/A" }),

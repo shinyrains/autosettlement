@@ -59,6 +59,7 @@ export function parseHtmlXlsAdapter(
   return {
     rows: tableRows
       .slice(header.dataStartIndex)
+      .filter((row) => !isTotalRow(row.cells))
       .flatMap((row) => buildRow(header.columnNames, row, context)),
     issues: [],
   };
