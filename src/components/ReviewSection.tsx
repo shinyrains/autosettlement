@@ -47,6 +47,14 @@ function formatQueueTargetLabel(label: string, rank?: string): string {
   return rank ? `${label} 큐 ${rank} 대상` : `${label} 큐 대상`;
 }
 
+function formatIssueSourceContext(issue: ParseIssue): string {
+  return [
+    platformLabels[issue.platform] ?? issue.platform,
+    issue.sourceFileName,
+    issue.sourceRowIndex != null ? `원본 ${issue.sourceRowIndex}행` : undefined,
+  ].filter((part): part is string => Boolean(part)).join(" · ");
+}
+
 function getSelectedRowQueueLabels(
   row: SettlementRow,
   status: ReviewDecisionStatus,
@@ -653,6 +661,7 @@ function ReviewDetail({
               <div key={issue.issueId} className="rounded-md border border-line bg-ink-800 p-3 text-sm text-slate-300">
                 <p className="font-mono text-xs text-amber">{issue.issueType}</p>
                 <p className="mt-2">{issue.message}</p>
+                <p className="mt-2 text-xs text-slate-500">이슈 원본: {formatIssueSourceContext(issue)}</p>
               </div>
             ))}
           </div>

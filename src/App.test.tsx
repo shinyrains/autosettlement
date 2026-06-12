@@ -641,6 +641,7 @@ describe("AutoSettlement UI shell", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+      expect(screen.getByText("이슈 원본: 예스24 · yes24-sr-june.xlsx · 원본 33행")).toBeInTheDocument();
     });
   });
 
