@@ -326,15 +326,15 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByRole("heading", { name: "정산 작업 목록 / 작업 시작" })).toBeInTheDocument();
     expect(screen.getByText("저장된 정산 작업 없음")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "라온이앤엠 정산 작업 시작" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "에스알이앤엠 정산 작업 시작" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "라온이앤엠 정산" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "에스알이앤엠 정산" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "이 정산 작업 열기" })).not.toBeInTheDocument();
   });
 
   it("opens company-mode batch screens with the same platform card order and shared Onestore exception", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "에스알이앤엠 정산 작업 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "에스알이앤엠 정산" }));
 
     expect(screen.getByText("회사 모드: 에스알이앤엠")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "에스알이앤엠 업로드 영역" })).toBeInTheDocument();
@@ -347,7 +347,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getAllByText("문피아").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "정산 작업 목록으로" }));
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
 
     expect(screen.getByText("회사 모드: 라온이앤엠")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "라온이앤엠 업로드 영역" })).toBeInTheDocument();
@@ -399,10 +399,10 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("최근 변경 요약: 업로드 2026-06-08 17:55 · 검수 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("CTA 안내: 업로드 단계로 이동해 필수 파일 12개 처리")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "이 정산 작업 열기" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "라온이앤엠 정산 작업" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "에스알이앤엠 정산 작업" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "라온이앤엠 정산" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "에스알이앤엠 정산" })).toHaveLength(2);
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
 
     expect(screen.getByRole("button", { name: "정산 작업 목록으로" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /2026-06 정산 작업/i })).toBeInTheDocument();
@@ -426,7 +426,7 @@ describe("AutoSettlement UI shell", () => {
     saveAppDraftState(createSeedAppState(), window.localStorage);
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
     fireEvent.click(screen.getByRole("button", { name: "정산 작업 목록으로" }));
 
     expect(screen.getByRole("heading", { name: "정산 작업 목록 / 작업 시작" })).toBeInTheDocument();
@@ -493,7 +493,7 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByText("출력 검증 필요")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
 
     expect(screen.getByText("상태: 출력 검증 필요")).toBeInTheDocument();
     expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
@@ -509,7 +509,7 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByText("출력 가능", { selector: "span" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
 
     expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
     expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
@@ -552,7 +552,7 @@ describe("AutoSettlement UI shell", () => {
     saveAppDraftState(state, window.localStorage);
 
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "라온이앤엠 정산" })[1]);
 
     expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
@@ -606,7 +606,7 @@ describe("AutoSettlement UI shell", () => {
   it("executes the limited user test scenario from batch entry through review and export gate", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산" }));
 
     expect(screen.getByRole("heading", { name: "2026-06 정산 작업" })).toBeInTheDocument();
     expect(screen.getByText("원스토어 (공유)")).toBeInTheDocument();

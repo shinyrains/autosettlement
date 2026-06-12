@@ -55,14 +55,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => onCreateNewBatch("raon")}
               >
-                라온이앤엠 정산 작업 시작
+                라온이앤엠 정산
               </button>
               <button
                 type="button"
                 className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => onCreateNewBatch("sr")}
               >
-                에스알이앤엠 정산 작업 시작
+                에스알이앤엠 정산
               </button>
             </div>
           </header>
@@ -123,14 +123,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               onClick={() => onCreateNewBatch("raon")}
             >
-              라온이앤엠 새 정산 작업 시작
+              라온이앤엠 정산
             </button>
             <button
               type="button"
               className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               onClick={() => onCreateNewBatch("sr")}
             >
-              에스알이앤엠 새 정산 작업 시작
+              에스알이앤엠 정산
             </button>
           </div>
         </header>
@@ -225,14 +225,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   className="rounded-md border border-line bg-ink-800 px-3 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("raon")}
                 >
-                  라온이앤엠 정산 작업
+                  라온이앤엠 정산
                 </button>
                 <button
                   type="button"
                   className="rounded-md border border-line bg-ink-800 px-3 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("sr")}
                 >
-                  에스알이앤엠 정산 작업
+                  에스알이앤엠 정산
                 </button>
               </div>
               <p className="mt-2 text-xs text-slate-500">{ctaHint}</p>
