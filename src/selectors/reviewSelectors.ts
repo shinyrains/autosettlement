@@ -80,6 +80,7 @@ export type ReviewHoldReasonGroup = {
   count: number;
   nextRow?: SettlementRow;
   rowIds: string[];
+  representativeSourceLabel?: string;
 };
 
 export type ReviewActionQueue = {
@@ -398,6 +399,7 @@ function getHoldReasonGroups(
       count: groupRows.length,
       nextRow: groupRows[0],
       rowIds: groupRows.map((row) => row.rowId),
+      representativeSourceLabel: formatRepresentativeSourceLabel(groupRows[0]),
     }))
     .sort((left, right) => {
       if (right.count !== left.count) {
@@ -405,6 +407,16 @@ function getHoldReasonGroups(
       }
       return left.note.localeCompare(right.note, "ko-KR");
     });
+}
+
+function formatRepresentativeSourceLabel(row: SettlementRow | undefined): string | undefined {
+  if (!row?.sourceFileName) {
+    return undefined;
+  }
+
+  return row.sourceRowIndex != null
+    ? `${row.sourceFileName} · 원본 ${row.sourceRowIndex}행`
+    : row.sourceFileName;
 }
 
 function sortReviewRows(rows: SettlementRow[], sortMode: ReviewSortMode): SettlementRow[] {

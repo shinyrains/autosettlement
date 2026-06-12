@@ -280,12 +280,14 @@ describe("review selectors", () => {
           count: 1,
           nextRow: rows[2],
           rowIds: ["row-sr-kyobo-2"],
+          representativeSourceLabel: "sr-kyobo.csv · 원본 3행",
         },
         {
           note: "출판사 확인",
           count: 1,
           nextRow: rows[0],
           rowIds: ["row-raon-guru"],
+          representativeSourceLabel: "raon-guru.csv · 원본 2행",
         },
       ],
       activePending: {
@@ -328,6 +330,7 @@ describe("review selectors", () => {
           count: 1,
           nextRow: rows[0],
           rowIds: ["row-raon-guru"],
+          representativeSourceLabel: "raon-guru.csv · 원본 2행",
         },
       ],
       activePending: {

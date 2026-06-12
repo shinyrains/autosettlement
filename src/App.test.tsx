@@ -873,6 +873,7 @@ describe("AutoSettlement UI shell", () => {
       expect(screen.getByText("보류 사유 그룹")).toBeInTheDocument();
       expect(screen.getByText("앱/웹 중복 정산 확인 1행")).toBeInTheDocument();
       expect(screen.getByText("현재 보류 그룹: 앱/웹 중복 정산 확인 · 1행 · 그룹 액션 대상")).toBeInTheDocument();
+      expect(screen.getByText("대표 원본: series-app-1.xls · 원본 27행")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));

@@ -739,6 +739,9 @@ function ReviewQueueSummary({
                       <p className="mt-1 text-xs text-slate-500">
                         {group.nextRow ? `${companyLabels[group.nextRow.company]} · ${platformLabels[group.nextRow.platform]} · ${group.nextRow.mailerContentTitle}` : "대상 행 없음"}
                       </p>
+                      {group.representativeSourceLabel ? (
+                        <p className="mt-1 text-xs text-slate-500">대표 원본: {group.representativeSourceLabel}</p>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 flex-col gap-1.5">
                       <button
