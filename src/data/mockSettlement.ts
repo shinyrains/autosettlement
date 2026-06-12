@@ -462,7 +462,7 @@ export const mockUploads: PlatformUploadCard[] = [
 
 export const mockBatch: Batch = {
   batchId: mockBatchId,
-  batchName: "2026-06 정산 배치",
+  batchName: "2026-06 정산 작업",
   settlementMonth: "2026-06",
   status: "reviewing",
   uploads: mockUploads,

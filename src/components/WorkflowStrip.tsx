@@ -2,11 +2,11 @@ import { steps } from "./uiShellConfig";
 
 export function WorkflowStrip() {
   return (
-    <section className="rounded-md border border-line bg-ink-850 px-6 py-5" aria-label="배치 중심 4단계 흐름">
+    <section className="rounded-md border border-line bg-ink-850 px-6 py-5" aria-label="정산 작업 4단계 흐름">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-signal">배치 중심 4단계 흐름</p>
-          <p className="mt-1 text-sm text-slate-400">라온이앤엠과 에스알이앤엠을 하나의 batch 안에서 함께 검수합니다.</p>
+          <p className="text-sm font-semibold text-signal">정산 작업 4단계 흐름</p>
+          <p className="mt-1 text-sm text-slate-400">라온이앤엠과 에스알이앤엠을 하나의 정산 작업 안에서 함께 검수합니다.</p>
         </div>
         <div className="flex min-w-[760px] items-center justify-between gap-4">
           {steps.map((step, index) => {

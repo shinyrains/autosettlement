@@ -56,7 +56,7 @@ export function ExportSection({
           <FileSpreadsheet className="h-5 w-5 text-mint" />
           <div>
             <h2 className="text-lg font-semibold tracking-normal">회사별 출력</h2>
-            <p className="mt-1 text-sm text-slate-400">검수가 끝난 뒤 회사별 2종 출력, 배치 전체 4개 파일을 다운로드합니다.</p>
+            <p className="mt-1 text-sm text-slate-400">검수가 끝난 뒤 회사별 2종 출력, 정산 작업 전체 4개 파일을 다운로드합니다.</p>
           </div>
         </div>
         <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">

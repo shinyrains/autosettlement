@@ -30,7 +30,7 @@ export function BatchHeader({
       <div className="mx-auto flex max-w-[1660px] items-center justify-between gap-8">
         <div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
-            <span>배치</span>
+            <span>정산 작업</span>
             <span className="h-1 w-1 rounded-full bg-slate-600" />
             <span>{batch.settlementMonth}</span>
             <span className="h-1 w-1 rounded-full bg-slate-600" />
@@ -45,7 +45,7 @@ export function BatchHeader({
               className="rounded-md border border-line bg-ink-800 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-ink-700"
               onClick={onBackToBatchList}
             >
-              배치 목록으로
+              정산 작업 목록으로
             </button>
           ) : null}
           <div className="grid grid-cols-4 gap-3 text-sm">

@@ -44,9 +44,9 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
           <header className="flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
-              <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
+              <h1 className="mt-2 text-3xl font-semibold text-white">정산 작업 목록 / 작업 시작</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-                저장된 활성 배치 임시 저장본이 아직 없습니다. 새 배치를 시작하면 업로드/검수/출력 화면으로 진입합니다.
+                저장된 활성 정산 작업 임시 저장본이 아직 없습니다. 새 정산 작업을 시작하면 업로드/검수/출력 화면으로 진입합니다.
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -55,20 +55,20 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => onCreateNewBatch("raon")}
               >
-                라온이앤엠 배치 시작
+                라온이앤엠 정산 작업 시작
               </button>
               <button
                 type="button"
                 className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
                 onClick={() => onCreateNewBatch("sr")}
               >
-                에스알이앤엠 배치 시작
+                에스알이앤엠 정산 작업 시작
               </button>
             </div>
           </header>
 
           <section className="rounded-2xl border border-dashed border-line bg-ink-900/80 px-6 py-10 text-center">
-            <p className="text-lg font-semibold text-white">저장된 배치 없음</p>
+            <p className="text-lg font-semibold text-white">저장된 정산 작업 없음</p>
             <p className="mt-3 text-sm text-slate-400">브라우저 저장소에 복원 가능한 활성 임시 저장본이 없으므로 재진입 버튼은 노출되지 않습니다.</p>
           </section>
         </div>
@@ -112,9 +112,9 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
         <header className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-slate-400">AutoSettlement MVP</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">배치 목록 / 배치 진입</h1>
+            <h1 className="mt-2 text-3xl font-semibold text-white">정산 작업 목록 / 작업 시작</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-              브라우저에 저장된 활성 배치 임시 저장본을 다시 열거나, 초기 상태에서 새 배치 작업을 시작합니다.
+              브라우저에 저장된 활성 정산 작업 임시 저장본을 다시 열거나, 초기 상태에서 새 정산 작업을 시작합니다.
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -123,14 +123,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               onClick={() => onCreateNewBatch("raon")}
             >
-              라온이앤엠 새 배치 시작
+              라온이앤엠 새 정산 작업 시작
             </button>
             <button
               type="button"
               className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               onClick={() => onCreateNewBatch("sr")}
             >
-              에스알이앤엠 새 배치 시작
+              에스알이앤엠 새 정산 작업 시작
             </button>
           </div>
         </header>
@@ -138,7 +138,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
         <section className="rounded-2xl border border-line bg-ink-900/80 shadow-card">
           <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-5">
             <div>
-              <p className="text-sm font-semibold text-slate-200">현재 브라우저 저장 배치</p>
+              <p className="text-sm font-semibold text-slate-200">현재 브라우저 저장 정산 작업</p>
               <p className="mt-1 text-sm text-slate-500">업로드 / 검수 / 출력 상태를 요약한 단일 진입 카드</p>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[summaryStatus]}`}>
@@ -165,7 +165,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <SummaryCard label="출력" value={`${readiness.readyExportCount}/4`} helper="검수 완료 후 다운로드 가능" />
               </dl>
               <div className="mt-6 rounded-xl border border-line bg-ink-850 p-4">
-                <p className="text-sm font-semibold text-slate-200">배치 진행 내역</p>
+                <p className="text-sm font-semibold text-slate-200">정산 작업 진행 내역</p>
                 <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-4">
                   <p>생성: {formatBatchHistoryTimestamp(draftState.batch.createdAt)}</p>
                   <p>최근 수정: {formatBatchHistoryTimestamp(draftState.batch.updatedAt)}</p>
@@ -215,8 +215,8 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 </ul>
               </div>
               <ul className="mt-3 space-y-2 text-sm text-slate-400">
-                <li>• 저장된 활성 배치 임시 저장본 다시 열기</li>
-                <li>• 초기 상태 샘플로 새 배치 재시작</li>
+                <li>• 저장된 활성 정산 작업 임시 저장본 다시 열기</li>
+                <li>• 초기 상태 샘플로 새 정산 작업 재시작</li>
                 <li>• 브라우저 재진입 시 임시 저장 복원 상태 확인</li>
               </ul>
               <button
@@ -224,7 +224,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 className="mt-5 w-full rounded-md border border-line bg-ink-800 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-ink-700"
                 onClick={() => onOpenBatch("raon")}
               >
-                이 배치 열기
+                이 정산 작업 열기
               </button>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
@@ -232,14 +232,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   className="rounded-md border border-line bg-ink-800 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("raon")}
                 >
-                  라온이앤엠 배치 열기
+                  라온이앤엠 정산 작업 열기
                 </button>
                 <button
                   type="button"
                   className="rounded-md border border-line bg-ink-800 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-ink-700"
                   onClick={() => onOpenBatch("sr")}
                 >
-                  에스알이앤엠 배치 열기
+                  에스알이앤엠 정산 작업 열기
                 </button>
               </div>
               <p className="mt-2 text-xs text-slate-500">{ctaHint}</p>

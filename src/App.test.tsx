@@ -324,17 +324,17 @@ describe("AutoSettlement UI shell", () => {
   it("shows an empty batch-list state before any draft is persisted", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "배치 목록 / 배치 진입" })).toBeInTheDocument();
-    expect(screen.getByText("저장된 배치 없음")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "라온이앤엠 배치 시작" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "에스알이앤엠 배치 시작" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "이 배치 열기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "정산 작업 목록 / 작업 시작" })).toBeInTheDocument();
+    expect(screen.getByText("저장된 정산 작업 없음")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "라온이앤엠 정산 작업 시작" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "에스알이앤엠 정산 작업 시작" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이 정산 작업 열기" })).not.toBeInTheDocument();
   });
 
   it("opens company-mode batch screens with the same platform card order and shared Onestore exception", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "에스알이앤엠 배치 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "에스알이앤엠 정산 작업 시작" }));
 
     expect(screen.getByText("회사 모드: 에스알이앤엠")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "에스알이앤엠 업로드 영역" })).toBeInTheDocument();
@@ -346,8 +346,8 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getAllByText("판무림").length).toBeGreaterThan(0);
     expect(screen.getAllByText("문피아").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "배치 목록으로" }));
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 배치 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "정산 작업 목록으로" }));
+    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업 열기" }));
 
     expect(screen.getByText("회사 모드: 라온이앤엠")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "라온이앤엠 업로드 영역" })).toBeInTheDocument();
@@ -368,8 +368,8 @@ describe("AutoSettlement UI shell", () => {
     saveAppDraftState(state, window.localStorage);
     render(<App />);
 
-    expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
-    expect(screen.getByText("배치 진행 내역")).toBeInTheDocument();
+    expect(screen.getByText("현재 브라우저 저장 정산 작업")).toBeInTheDocument();
+    expect(screen.getByText("정산 작업 진행 내역")).toBeInTheDocument();
     expect(screen.getByText("생성: 2026-06-08 09:20")).toBeInTheDocument();
     expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
@@ -398,12 +398,12 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("다음 검수 후보: 라온 시리즈 일반 정산 샘플 · 시리즈 · 원본 18행")).toBeInTheDocument();
     expect(screen.getByText("최근 변경 요약: 업로드 2026-06-08 17:55 · 검수 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("CTA 안내: 업로드 단계로 이동해 필수 파일 12개 처리")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이 정산 작업 열기" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 정산 작업 열기" }));
 
-    expect(screen.getByRole("button", { name: "배치 목록으로" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /2026-06 정산 배치/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "정산 작업 목록으로" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /2026-06 정산 작업/i })).toBeInTheDocument();
   });
 
   it("uses upload requiredFileCount rather than slot label numbers for missing slot details", () => {
@@ -424,25 +424,25 @@ describe("AutoSettlement UI shell", () => {
     saveAppDraftState(createSeedAppState(), window.localStorage);
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
-    fireEvent.click(screen.getByRole("button", { name: "배치 목록으로" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 정산 작업 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "정산 작업 목록으로" }));
 
-    expect(screen.getByRole("heading", { name: "배치 목록 / 배치 진입" })).toBeInTheDocument();
-    expect(screen.getByText("현재 브라우저 저장 배치")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "정산 작업 목록 / 작업 시작" })).toBeInTheDocument();
+    expect(screen.getByText("현재 브라우저 저장 정산 작업")).toBeInTheDocument();
   });
 
   it("renders the batch-centered MVP workflow with grouped upload cards and export gating status", () => {
     renderActiveBatchApp();
 
-    expect(screen.getByText("2026-06 정산 배치")).toBeInTheDocument();
-    expect(screen.getByText("배치 중심 4단계 흐름")).toBeInTheDocument();
+    expect(screen.getByText("2026-06 정산 작업")).toBeInTheDocument();
+    expect(screen.getByText("정산 작업 4단계 흐름")).toBeInTheDocument();
     expect(screen.getAllByText("시리즈").length).toBeGreaterThan(0);
     expect(screen.getAllByText("필수 6개: 일반 3개 + 앱 3개").length).toBeGreaterThan(0);
     expect(screen.getByText("정산 파일")).toBeInTheDocument();
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
     expect(screen.getByText("기본 정산")).toBeInTheDocument();
     expect(screen.getByText("정산 상세리스트")).toBeInTheDocument();
-    expect(screen.getAllByText(/배치 전체 4개 파일/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/정산 작업 전체 4개 파일/).length).toBeGreaterThan(0);
     expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
     expect(screen.getByText("오류/누락/매칭 실패 3건을 먼저 확인해야 합니다.")).toBeInTheDocument();
   });
@@ -491,7 +491,7 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByText("출력 검증 필요")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 정산 작업 열기" }));
 
     expect(screen.getByText("상태: 출력 검증 필요")).toBeInTheDocument();
     expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
@@ -507,7 +507,7 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByText("출력 가능", { selector: "span" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 정산 작업 열기" }));
 
     expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
     expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
@@ -550,7 +550,7 @@ describe("AutoSettlement UI shell", () => {
     saveAppDraftState(state, window.localStorage);
 
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 정산 작업 열기" }));
 
     expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
@@ -604,9 +604,9 @@ describe("AutoSettlement UI shell", () => {
   it("executes the limited user test scenario from batch entry through review and export gate", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 배치 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 정산 작업 시작" }));
 
-    expect(screen.getByRole("heading", { name: "2026-06 정산 배치" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2026-06 정산 작업" })).toBeInTheDocument();
     expect(screen.getByText("원스토어 (공유)")).toBeInTheDocument();
     expect(screen.getByText("19/29")).toBeInTheDocument();
     expect(screen.getByText("정규화 행")).toBeInTheDocument();
