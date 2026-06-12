@@ -2,7 +2,7 @@ import { platformLabels } from "../data/mockSettlement";
 import { createExportPackages } from "../exporters";
 import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
-import type { ParseIssueSeverity, ReviewDecisionStatus } from "../types/settlement";
+import type { BatchPlatformUploadStatus, ParseIssueSeverity, ReviewDecisionStatus } from "../types/settlement";
 
 type BatchListPageProps = {
   draftState: AppDraftState | null;
@@ -47,6 +47,37 @@ type LatestUploadChange = {
   slotLabel?: string;
   fileName?: string;
 };
+
+type UploadStatusCounts = Record<"complete" | "warning" | "error" | "empty", number>;
+
+function getUploadStatusCounts(draftState: AppDraftState): UploadStatusCounts {
+  return draftState.uploads
+    .flatMap((upload) => [upload.status, ...(upload.slots ?? []).map((slot) => slot.status)])
+    .reduce<UploadStatusCounts>(
+      (counts, status) => {
+        counts[getUploadStatusBucket(status)] += 1;
+        return counts;
+      },
+      { complete: 0, warning: 0, error: 0, empty: 0 },
+    );
+}
+
+function getUploadStatusBucket(status: BatchPlatformUploadStatus): keyof UploadStatusCounts {
+  if (status === "parsed" || status === "uploaded") {
+    return "complete";
+  }
+  if (status === "warning") {
+    return "warning";
+  }
+  if (status === "error") {
+    return "error";
+  }
+  return "empty";
+}
+
+function formatUploadStatusCounts(counts: UploadStatusCounts): string {
+  return `업로드 상태: 완료 ${counts.complete}개 · 경고 ${counts.warning}개 · 오류 ${counts.error}개 · 대기 ${counts.empty}개`;
+}
 
 function formatBatchHistoryTimestamp(timestamp?: string): string {
   if (!timestamp) {
@@ -330,6 +361,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   });
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
   const latestUploadChange = getLatestUploadChange(draftState);
+  const uploadStatusCounts = getUploadStatusCounts(draftState);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
@@ -396,6 +428,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   <p>최근 검수: {latestReviewDecisionSummary}</p>
                 </div>
                 <p className="mt-3 text-sm text-slate-400">최근 업로드 변경: {formatLatestUploadChange(latestUploadChange)}</p>
+                <p className="mt-2 text-sm text-slate-400">{formatUploadStatusCounts(uploadStatusCounts)}</p>
                 <p className="mt-2 text-sm text-slate-400">최근 검수 상세: {latestReviewDecisionDetail}</p>
               </div>
             </div>

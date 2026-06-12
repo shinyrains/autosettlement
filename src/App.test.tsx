@@ -345,6 +345,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("최근 수정: 2026-06-08 18:40")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드: 2026-06-08 17:55")).toBeInTheDocument();
     expect(screen.getByText("최근 업로드 변경: 에스알이앤엠 · 시리즈 · 앱 매출 3개 · sr-series-app-3.xls")).toBeInTheDocument();
+    expect(screen.getByText("업로드 상태: 완료 11개 · 경고 5개 · 오류 2개 · 대기 11개")).toBeInTheDocument();
     expect(screen.getByText("최근 검수: 보류 · 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("최근 검수 상세: 검은 별의 서점 · 보류 · 계약 확인 필요")).toBeInTheDocument();
     expect(screen.getByText("선택 파일 19/29")).toBeInTheDocument();
