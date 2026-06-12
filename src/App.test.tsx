@@ -520,6 +520,60 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("현재 필터 결과 5행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
   });
 
+  it("executes the limited user test scenario from batch entry through review and export gate", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "새 배치 시작" }));
+
+    expect(screen.getByRole("heading", { name: "2026-06 정산 배치" })).toBeInTheDocument();
+    expect(screen.getByText("원스토어 (공유)")).toBeInTheDocument();
+    expect(screen.getByText("19/29")).toBeInTheDocument();
+    expect(screen.getByText("정규화 행")).toBeInTheDocument();
+    expect(screen.getByText("파싱 이슈")).toBeInTheDocument();
+    expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
+    fireEvent.change(screen.getByLabelText("정렬"), { target: { value: "settlement_desc" } });
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("파란 항구의 기록");
+
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "달빛" } });
+    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "검수에서 열기" })[1]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.getByLabelText("회사 필터")).toHaveValue("all");
+      expect(screen.getByLabelText("검수 검색")).toHaveValue("");
+      expect(screen.getByText("현재 필터 결과 5행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "연결된 이슈 행만 보기" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "연결된 이슈 행만 보기" }));
+    expect(screen.getByLabelText("이슈 필터")).toHaveValue("with_issues");
+    expect(screen.getByText("현재 필터 결과 3행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
+    fireEvent.change(screen.getByLabelText("검수 보류 사유"), { target: { value: "원천 파일 금액 확인 필요" } });
+    fireEvent.click(screen.getByRole("button", { name: "보류 사유 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("검수 보류")).toBeInTheDocument();
+      expect(screen.getByText("원천 파일 금액 확인 필요")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("검수 보류")).not.toBeInTheDocument();
+      expect(screen.getAllByText("검수 확정").length).toBeGreaterThan(0);
+      expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+      expect(screen.getByText(/오류\/누락\/매칭 실패 3건을 먼저 확인해야 합니다\./)).toBeInTheDocument();
+    });
+  });
+
   it("confirms the selected review row and persists the review decision", async () => {
     renderActiveBatchApp();
 
