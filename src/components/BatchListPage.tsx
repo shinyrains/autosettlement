@@ -2,7 +2,7 @@ import { platformLabels } from "../data/mockSettlement";
 import { createExportPackages } from "../exporters";
 import { getReviewExportReadiness, getReviewExportStage } from "../selectors";
 import type { AppDraftState } from "../state/appState";
-import type { BatchPlatformUploadStatus, ParseIssueSeverity, ReviewDecisionStatus } from "../types/settlement";
+import type { BatchPlatformUploadStatus, Company, ParseIssueSeverity, ReviewDecisionStatus } from "../types/settlement";
 
 type BatchListPageProps = {
   draftState: AppDraftState | null;
@@ -50,6 +50,13 @@ type LatestUploadChange = {
 
 type UploadStatusCounts = Record<"complete" | "warning" | "error" | "empty", number>;
 
+type CompanyProgressSummary = {
+  company: Company;
+  rowCount: number;
+  issueCount: number;
+  confirmedRowCount: number;
+};
+
 function getUploadStatusCounts(draftState: AppDraftState): UploadStatusCounts {
   return draftState.uploads
     .flatMap((upload) => [upload.status, ...(upload.slots ?? []).map((slot) => slot.status)])
@@ -77,6 +84,28 @@ function getUploadStatusBucket(status: BatchPlatformUploadStatus): keyof UploadS
 
 function formatUploadStatusCounts(counts: UploadStatusCounts): string {
   return `업로드 상태: 완료 ${counts.complete}개 · 경고 ${counts.warning}개 · 오류 ${counts.error}개 · 대기 ${counts.empty}개`;
+}
+
+function getCompanyProgressSummaries(draftState: AppDraftState): CompanyProgressSummary[] {
+  const confirmedRowIds = new Set(
+    draftState.reviewDecisions
+      .filter((decision) => decision.status === "confirmed")
+      .map((decision) => decision.rowId),
+  );
+
+  return (["raon", "sr"] as const).map((company) => {
+    const companyRows = draftState.rows.filter((row) => row.company === company);
+    return {
+      company,
+      rowCount: companyRows.length,
+      issueCount: draftState.issues.filter((issue) => issue.company === company).length,
+      confirmedRowCount: companyRows.filter((row) => confirmedRowIds.has(row.rowId)).length,
+    };
+  });
+}
+
+function formatCompanyProgressSummary(summary: CompanyProgressSummary): string {
+  return `${platformCompanyLabel(summary.company)}: 정산 ${summary.rowCount}행 · 이슈 ${summary.issueCount}건 · 검수 확정 ${summary.confirmedRowCount}행`;
 }
 
 function formatBatchHistoryTimestamp(timestamp?: string): string {
@@ -362,6 +391,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
   const latestUploadChange = getLatestUploadChange(draftState);
   const uploadStatusCounts = getUploadStatusCounts(draftState);
+  const companyProgressSummaries = getCompanyProgressSummaries(draftState);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
@@ -430,6 +460,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                 <p className="mt-3 text-sm text-slate-400">최근 업로드 변경: {formatLatestUploadChange(latestUploadChange)}</p>
                 <p className="mt-2 text-sm text-slate-400">{formatUploadStatusCounts(uploadStatusCounts)}</p>
                 <p className="mt-2 text-sm text-slate-400">최근 검수 상세: {latestReviewDecisionDetail}</p>
+                <div className="mt-4 rounded-lg border border-line bg-ink-900 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">회사별 진행 요약</p>
+                  <div className="mt-2 space-y-1 text-sm text-slate-400">
+                    {companyProgressSummaries.map((summary) => (
+                      <p key={summary.company}>{formatCompanyProgressSummary(summary)}</p>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
