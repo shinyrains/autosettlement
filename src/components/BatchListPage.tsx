@@ -59,15 +59,34 @@ function formatBatchHistoryTimestamp(timestamp?: string): string {
 }
 
 function getLatestReviewDecisionSummary(draftState: AppDraftState): string {
-  const latestDecision = draftState.reviewDecisions
-    .slice()
-    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
+  const latestDecision = getLatestReviewDecision(draftState);
 
   if (!latestDecision) {
     return "기록 없음";
   }
 
   return `${reviewDecisionStatusLabels[latestDecision.status]} · ${formatBatchHistoryTimestamp(latestDecision.updatedAt)}`;
+}
+
+function getLatestReviewDecisionDetail(draftState: AppDraftState): string {
+  const latestDecision = getLatestReviewDecision(draftState);
+  if (!latestDecision) {
+    return "기록 없음";
+  }
+  const row = draftState.rows.find((item) => item.rowId === latestDecision.rowId);
+  return [
+    row?.workTitle ?? latestDecision.rowId,
+    reviewDecisionStatusLabels[latestDecision.status],
+    latestDecision.note,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
+}
+
+function getLatestReviewDecision(draftState: AppDraftState): AppDraftState["reviewDecisions"][number] | undefined {
+  return draftState.reviewDecisions
+    .slice()
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
 }
 
 function getLastItem<T>(items: T[]): T | undefined {
@@ -255,6 +274,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   const latestUploadTimestamp = getLatestUploadTimestamp(draftState);
   const latestUploadChange = getLatestUploadChange(draftState);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
+  const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
   const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
   const blockerSummary = getBatchBlockerSummary(readiness);
@@ -318,6 +338,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   <p>최근 검수: {latestReviewDecisionSummary}</p>
                 </div>
                 <p className="mt-3 text-sm text-slate-400">최근 업로드 변경: {formatLatestUploadChange(latestUploadChange)}</p>
+                <p className="mt-2 text-sm text-slate-400">최근 검수 상세: {latestReviewDecisionDetail}</p>
               </div>
             </div>
 
