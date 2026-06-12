@@ -72,7 +72,7 @@ export function getUploadStatusCounts(draftState: AppDraftState): UploadStatusCo
 }
 
 export function getUploadStatusBucket(status: BatchPlatformUploadStatus): keyof UploadStatusCounts {
-  if (status === "parsed" || status === "uploaded") {
+  if (status === "parsed" || status === "uploaded" || status === "passed") {
     return "complete";
   }
   if (status === "warning") {

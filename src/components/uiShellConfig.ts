@@ -26,6 +26,7 @@ export const statusLabels: Record<PlatformUploadCard["status"], string> = {
   parsed: "정상",
   warning: "주의",
   error: "오류",
+  passed: "PASS",
 };
 
 export const artifactLabels: Record<ExportArtifactType, string> = {

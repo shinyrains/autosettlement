@@ -136,4 +136,44 @@ describe("UploadSection", () => {
     fireEvent.change(eventEnd, { target: { value: "2026-06-30" } });
     expect(eventInput.disabled).toBe(false);
   });
+
+  it("calls onPassUpload for an intentionally absent required slot", () => {
+    const onPassUpload = vi.fn();
+    const uploads = mockUploads.map((upload) => (
+      upload.uploadId === "upload-raon-series"
+        ? {
+            ...upload,
+            status: "warning" as const,
+            fileCount: 5,
+            slots: upload.slots?.map((slot) => (
+              slot.slotKey === "seriesApp"
+                ? {
+                    ...slot,
+                    status: "warning" as const,
+                    fileCount: 2,
+                    sourceFileNames: ["series-app-1.xls", "series-app-2.xls"],
+                  }
+                : slot
+            )),
+          }
+        : upload
+    ));
+
+    render(
+      <UploadSection
+        activeCompany="raon"
+        uploads={uploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+        onPassUpload={onPassUpload}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "앱 매출 3개 파일 없음으로 PASS 처리" }));
+
+    expect(onPassUpload).toHaveBeenCalledWith(expect.objectContaining({
+      slotKey: "seriesApp",
+      upload: expect.objectContaining({ uploadId: "upload-raon-series" }),
+    }));
+  });
 });

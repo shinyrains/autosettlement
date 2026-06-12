@@ -6,7 +6,7 @@ import {
   mockUploads,
   type PlatformUploadCard,
 } from "../data/mockSettlement";
-import type { Batch, ParseIssue, ReviewDecision, ReviewDecisionStatus, SettlementRow } from "../types/settlement";
+import type { Batch, BatchPlatformUploadSlot, BatchPlatformUploadSlotKey, ParseIssue, ReviewDecision, ReviewDecisionStatus, SettlementRow } from "../types/settlement";
 
 export const APP_STATE_STORAGE_KEY = "autosettlement.active-batch.v1";
 const MUNPIA_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.munpia-grouped-slot-snapshots.v1";
@@ -22,6 +22,11 @@ export type AppDraftState = {
   issues: ParseIssue[];
   selectedRowId: string;
   reviewDecisions: ReviewDecision[];
+};
+
+export type UploadPassTarget = {
+  uploadId: string;
+  slotKey?: BatchPlatformUploadSlotKey;
 };
 
 export function createSeedAppState(): AppDraftState {
@@ -132,6 +137,9 @@ export function usePersistedAppState(storage: Storage | undefined = getBrowserSt
         )),
       }));
     },
+    passMissingUpload: (target: UploadPassTarget) => {
+      setState((currentState) => normalizeAppDraftState(applyMissingUploadPass(currentState, target)));
+    },
     replaceState: (nextState: AppDraftState | ((currentState: AppDraftState) => AppDraftState)) => {
       setState((currentState) => normalizeAppDraftState(
         typeof nextState === "function" ? nextState(currentState) : nextState,
@@ -165,6 +173,122 @@ function normalizeAppDraftState(state: AppDraftState): AppDraftState {
     selectedRowId,
     reviewDecisions: normalizeReviewDecisions(state.reviewDecisions ?? [], rows),
   };
+}
+
+function applyMissingUploadPass(state: AppDraftState, target: UploadPassTarget): AppDraftState {
+  const uploads = state.uploads.map((upload) => (
+    upload.uploadId === target.uploadId ? passUpload(upload, target.slotKey) : upload
+  ));
+  const targetUpload = state.uploads.find((upload) => upload.uploadId === target.uploadId);
+  if (!targetUpload) {
+    return state;
+  }
+  const removedIssueIds = new Set(
+    state.issues
+      .filter((issue) => isMissingUploadIssueForTarget(issue, targetUpload, target))
+      .map((issue) => issue.issueId),
+  );
+  const issues = state.issues.filter((issue) => !removedIssueIds.has(issue.issueId));
+  const rows = state.rows.map((row) => ({
+    ...row,
+    issues: row.issues.filter((issueId) => !removedIssueIds.has(issueId)),
+  }));
+
+  return {
+    ...state,
+    uploads,
+    batch: {
+      ...state.batch,
+      uploads,
+      updatedAt: new Date().toISOString(),
+    },
+    rows,
+    issues,
+  };
+}
+
+function isMissingUploadIssueForTarget(
+  issue: ParseIssue,
+  upload: PlatformUploadCard,
+  target: UploadPassTarget,
+): boolean {
+  if (issue.issueType !== "missing_file" || issue.company !== upload.company || issue.platform !== upload.platform) {
+    return false;
+  }
+  if (target.slotKey) {
+    return issue.slotKey === target.slotKey;
+  }
+  return issue.uploadId === target.uploadId || issue.slotKey === undefined;
+}
+
+function passUpload(upload: PlatformUploadCard, slotKey?: BatchPlatformUploadSlotKey): PlatformUploadCard {
+  if (!slotKey) {
+    return {
+      ...upload,
+      status: "passed",
+      fileCount: upload.requiredFileCount,
+      sourceFileNames: ["업로드 없음 PASS"],
+      issueCount: 0,
+    };
+  }
+
+  const requiredSlotFileCounts = getRequiredSlotFileCounts(upload);
+  const slots = upload.slots?.map((slot) => (
+    slot.slotKey === slotKey
+      ? passUploadSlot(slot, requiredSlotFileCounts.get(slot.slotId) ?? 1)
+      : slot
+  ));
+  if (!slots) {
+    return upload;
+  }
+  const requiredSlots = slots.filter((slot) => slot.required);
+  return {
+    ...upload,
+    slots,
+    status: getUploadStatusFromSlots(requiredSlots),
+    fileCount: slots.reduce((sum, slot) => sum + slot.fileCount, 0),
+    sourceFileNames: slots.flatMap((slot) => slot.sourceFileNames),
+    issueCount: slots.reduce((sum, slot) => sum + slot.issueCount, 0),
+  };
+}
+
+function getUploadStatusFromSlots(requiredSlots: BatchPlatformUploadSlot[]): PlatformUploadCard["status"] {
+  if (requiredSlots.some((slot) => slot.status === "error")) {
+    return "error";
+  }
+  if (requiredSlots.some((slot) => slot.status === "warning" || slot.status === "empty")) {
+    return "warning";
+  }
+  if (requiredSlots.some((slot) => slot.status === "passed")) {
+    return "passed";
+  }
+  return "parsed";
+}
+
+function passUploadSlot(slot: BatchPlatformUploadSlot, requiredFileCount: number): BatchPlatformUploadSlot {
+  return {
+    ...slot,
+    status: "passed",
+    fileCount: requiredFileCount,
+    sourceFileNames: ["업로드 없음 PASS"],
+    issueCount: 0,
+  };
+}
+
+function getRequiredSlotFileCounts(upload: PlatformUploadCard): Map<string, number> {
+  const requiredSlots = (upload.slots ?? []).filter((slot) => slot.required);
+  if (requiredSlots.length === 0) {
+    return new Map();
+  }
+
+  const baseCount = Math.floor(upload.requiredFileCount / requiredSlots.length);
+  const remainder = upload.requiredFileCount % requiredSlots.length;
+  return new Map(
+    requiredSlots.map((slot, index) => [
+      slot.slotId,
+      Math.max(baseCount + (index < remainder ? 1 : 0), 1),
+    ]),
+  );
 }
 
 function isAppDraftStateShape(value: unknown): value is AppDraftState {

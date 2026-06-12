@@ -2622,6 +2622,8 @@ function createStageOnlyIssue(
     severity: "error",
     issueType,
     message,
+    uploadId: upload.uploadId,
+    ...(slotKey ? { slotKey } : {}),
     sourceFileName,
   };
 }

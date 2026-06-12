@@ -40,7 +40,8 @@ export type BatchPlatformUploadStatus =
   | "uploaded"
   | "parsed"
   | "warning"
-  | "error";
+  | "error"
+  | "passed";
 
 export type BatchPlatformUploadSlotKey =
   | "settlement"
@@ -127,6 +128,8 @@ export type ParseIssue = {
   severity: ParseIssueSeverity;
   issueType: ParseIssueType;
   message: string;
+  uploadId?: string;
+  slotKey?: BatchPlatformUploadSlotKey;
   sourceFileName?: string;
   sourceRowIndex?: number;
   rowId?: string;

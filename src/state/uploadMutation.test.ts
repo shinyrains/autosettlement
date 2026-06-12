@@ -413,6 +413,8 @@ describe("uploadMutation", () => {
         company: "raon",
         platform: "ridibooks",
         issueType: "missing_file",
+        uploadId: "upload-raon-ridibooks",
+        slotKey: "base",
         sourceFileName: "calculate_1.csv",
         message: expect.stringContaining("base)과 file_1 보정(file1)이 모두 준비된 뒤"),
       }),

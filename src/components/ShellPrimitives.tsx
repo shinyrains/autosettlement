@@ -22,7 +22,7 @@ export function HeaderMetric({
 
 export function StatusBadge({ status }: { status: PlatformUploadCard["status"] }) {
   const className =
-    status === "parsed"
+    status === "parsed" || status === "passed"
       ? "bg-mint/15 text-mint"
       : status === "error"
         ? "bg-coral/15 text-coral"

@@ -555,6 +555,8 @@ export const mockIssues: ParseIssue[] = [
     severity: "warning",
     issueType: "missing_file",
     message: "시리즈 앱 매출용 파일 1개가 아직 업로드되지 않았습니다.",
+    uploadId: "upload-raon-series",
+    slotKey: "seriesApp",
     sourceFileName: "series-app-3.xls",
     rowId: "row-002",
   },

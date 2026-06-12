@@ -39,6 +39,7 @@ export function AppShell({ activeCompany = "raon", uploadMutationDependencies, o
     setReviewDecisionStatus,
     setReviewDecisionStatuses,
     updateReviewRow,
+    passMissingUpload,
     resetState,
     replaceState,
   } = usePersistedAppState();
@@ -122,6 +123,7 @@ export function AppShell({ activeCompany = "raon", uploadMutationDependencies, o
               activeCompany={activeCompany}
               uploads={state.uploads}
               onUploadFiles={handleUploadFiles}
+              onPassUpload={(target) => passMissingUpload({ uploadId: target.upload.uploadId, slotKey: target.slotKey })}
               isUploadEnabled={isLiveUploadEnabled}
             />
             <StatusSection

@@ -21,10 +21,11 @@ type UploadSectionProps = {
   activeCompany?: Company;
   uploads: PlatformUploadCard[];
   onUploadFiles?: (target: LiveUploadTarget, files: File[]) => Promise<void> | void;
+  onPassUpload?: (target: LiveUploadTarget) => void;
   isUploadEnabled?: (upload: PlatformUploadCard) => boolean;
 };
 
-export function UploadSection({ activeCompany = "raon", uploads, onUploadFiles, isUploadEnabled }: UploadSectionProps) {
+export function UploadSection({ activeCompany = "raon", uploads, onUploadFiles, onPassUpload, isUploadEnabled }: UploadSectionProps) {
   const modeUploads = getCompanyModeUploads(uploads, activeCompany);
   return (
     <section id="step-1" className="space-y-5">
@@ -32,6 +33,7 @@ export function UploadSection({ activeCompany = "raon", uploads, onUploadFiles, 
         company={activeCompany}
         uploads={modeUploads}
         onUploadFiles={onUploadFiles}
+        onPassUpload={onPassUpload}
         isUploadEnabled={isUploadEnabled}
       />
     </section>
@@ -42,11 +44,13 @@ function CompanyUploadGroup({
   company,
   uploads: allUploads,
   onUploadFiles,
+  onPassUpload,
   isUploadEnabled,
 }: {
   company: Company;
   uploads: PlatformUploadCard[];
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
+  onPassUpload?: UploadSectionProps["onPassUpload"];
   isUploadEnabled?: UploadSectionProps["isUploadEnabled"];
 }) {
   const uploads = allUploads;
@@ -70,6 +74,7 @@ function CompanyUploadGroup({
             key={upload.uploadId}
             upload={upload}
             onUploadFiles={onUploadFiles}
+            onPassUpload={onPassUpload}
             isUploadEnabled={isUploadEnabled?.(upload) ?? false}
           />
         ))}
@@ -114,15 +119,21 @@ function createPendingUploadCard(company: Company, platform: Platform): Platform
 function UploadCard({
   upload,
   onUploadFiles,
+  onPassUpload,
   isUploadEnabled,
 }: {
   upload: PlatformUploadCard;
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
+  onPassUpload?: UploadSectionProps["onPassUpload"];
   isUploadEnabled: boolean;
 }) {
   const complete = upload.fileCount >= upload.requiredFileCount;
   const hasSlots = (upload.slots?.length ?? 0) > 0;
   const canCardUpload = !hasSlots && isUploadEnabled && onUploadFiles !== undefined;
+  const canPassCard = !hasSlots
+    && upload.fileCount < upload.requiredFileCount
+    && upload.status !== "error"
+    && onPassUpload !== undefined;
   const hasAnyLiveSlot = upload.slots?.some((slot) => isLiveUploadSlotEnabled(upload, slot)) ?? false;
   const liveUploadDescription = getLiveUploadDescription({ upload });
   const acceptAttribute = getLiveUploadAcceptAttribute({ upload }) ?? ".xlsx";
@@ -158,6 +169,9 @@ function UploadCard({
           onUploadFiles={onUploadFiles}
         />
       ) : null}
+      {canPassCard ? (
+        <PassUploadButton label={upload.platformLabel} onClick={() => onPassUpload?.({ upload })} />
+      ) : null}
       {!canCardUpload && !hasSlots ? (
         <p className="mt-3 text-xs text-slate-500">실업로드 연결 예정</p>
       ) : null}
@@ -173,6 +187,7 @@ function UploadCard({
               slot={slot}
               upload={upload}
               onUploadFiles={onUploadFiles}
+              onPassUpload={onPassUpload}
             />
           ))}
           {!hasAnyLiveSlot ? (
@@ -184,17 +199,40 @@ function UploadCard({
   );
 }
 
+function getRequiredSlotFileCounts(upload: PlatformUploadCard): Map<string, number> {
+  const requiredSlots = (upload.slots ?? []).filter((slot) => slot.required);
+  if (requiredSlots.length === 0) {
+    return new Map();
+  }
+
+  const baseCount = Math.floor(upload.requiredFileCount / requiredSlots.length);
+  const remainder = upload.requiredFileCount % requiredSlots.length;
+  return new Map(
+    requiredSlots.map((slot, index) => [
+      slot.slotId,
+      Math.max(baseCount + (index < remainder ? 1 : 0), 1),
+    ]),
+  );
+}
+
 function SlotUploadCard({
   slot,
   upload,
   onUploadFiles,
+  onPassUpload,
 }: {
   slot: BatchPlatformUploadSlot;
   upload: PlatformUploadCard;
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
+  onPassUpload?: UploadSectionProps["onPassUpload"];
 }) {
   const target: LiveUploadTarget = { upload, slotKey: slot.slotKey };
+  const requiredSlotFileCount = getRequiredSlotFileCounts(upload).get(slot.slotId) ?? 1;
   const canUpload = isLiveUploadSlotEnabled(upload, slot) && onUploadFiles !== undefined;
+  const canPass = slot.required
+    && slot.fileCount < requiredSlotFileCount
+    && slot.status !== "error"
+    && onPassUpload !== undefined;
   const acceptAttribute = getLiveUploadAcceptAttribute(target) ?? ".xlsx";
   const description = getLiveUploadDescription(target);
 
@@ -221,7 +259,20 @@ function SlotUploadCard({
       ) : (
         <p className="mt-2 text-xs text-slate-500">실업로드 연결 예정</p>
       )}
+      {canPass ? <PassUploadButton label={slot.label} onClick={() => onPassUpload(target)} /> : null}
     </div>
+  );
+}
+
+function PassUploadButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="mt-2 rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-xs font-semibold text-amber transition hover:bg-amber/20"
+      onClick={onClick}
+    >
+      {label} 파일 없음으로 PASS 처리
+    </button>
   );
 }
 

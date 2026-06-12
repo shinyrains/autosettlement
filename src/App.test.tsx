@@ -506,10 +506,58 @@ describe("AutoSettlement UI shell", () => {
     render(<App />);
 
     expect(screen.getByText("출력 가능", { selector: "span" })).toBeInTheDocument();
-    expect(screen.getByText("4/4")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
 
+    expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
+    expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "다운로드" })).toHaveLength(4);
+  });
+
+  it("allows an operator to PASS an intentionally missing required upload and continue to export", () => {
+    const state = createReadyForExportDraft();
+    const seriesUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-series");
+    const appSlot = seriesUpload?.slots?.find((slot) => slot.slotKey === "seriesApp");
+    if (!seriesUpload || !appSlot) {
+      throw new Error("series app slot fixture missing");
+    }
+    seriesUpload.status = "warning";
+    seriesUpload.fileCount = seriesUpload.requiredFileCount - 1;
+    seriesUpload.issueCount = 1;
+    seriesUpload.sourceFileNames = seriesUpload.sourceFileNames.filter((fileName) => fileName !== "series-app-3.xls");
+    appSlot.status = "warning";
+    appSlot.fileCount = 2;
+    appSlot.issueCount = 1;
+    appSlot.sourceFileNames = ["series-app-1.xls", "series-app-2.xls"];
+    state.batch.uploads = state.uploads;
+    state.issues = [{
+      issueId: "issue-missing-series-app-pass-test",
+      batchId: state.batch.batchId,
+      company: "raon",
+      platform: "series",
+      severity: "warning",
+      issueType: "missing_file",
+      message: "시리즈 앱 매출용 파일 1개가 아직 업로드되지 않았습니다.",
+      uploadId: "upload-raon-series",
+      slotKey: "seriesApp",
+      sourceFileName: "series-app-3.xls",
+      rowId: "row-002",
+    }];
+    state.rows = state.rows.map((row) => ({
+      ...row,
+      issues: row.rowId === "row-002" ? ["issue-missing-series-app-pass-test"] : [],
+    }));
+    saveAppDraftState(state, window.localStorage);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
+
+    expect(screen.getByText("출력 대기 상태입니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "앱 매출 3개 파일 없음으로 PASS 처리" }));
+
+    expect(screen.getByText("업로드 없음 PASS")).toBeInTheDocument();
     expect(screen.getByText("상태: 출력 가능")).toBeInTheDocument();
     expect(screen.getAllByText("4/4 준비").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "다운로드" })).toHaveLength(4);
