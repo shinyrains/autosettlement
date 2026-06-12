@@ -83,15 +83,52 @@ function normalizeHtmlXlsInput(file: unknown): string | null {
     return file;
   }
 
-  if (file instanceof Uint8Array) {
-    return new TextDecoder().decode(file);
-  }
-
-  if (file instanceof ArrayBuffer) {
-    return new TextDecoder().decode(new Uint8Array(file));
+  const bytes = toUint8Array(file);
+  if (bytes !== null) {
+    return decodeHtmlXlsBytes(bytes);
   }
 
   return null;
+}
+
+function toUint8Array(file: unknown): Uint8Array | null {
+  if (file instanceof Uint8Array) {
+    return file;
+  }
+
+  if (file instanceof ArrayBuffer) {
+    return new Uint8Array(file);
+  }
+
+  if (ArrayBuffer.isView(file)) {
+    return new Uint8Array(file.buffer, file.byteOffset, file.byteLength);
+  }
+
+  return null;
+}
+
+function decodeHtmlXlsBytes(bytes: Uint8Array): string | null {
+  const candidates = hasUtf8Bom(bytes)
+    ? [decodeWithEncoding(bytes, "utf-8")]
+    : [decodeWithEncoding(bytes, "utf-8"), decodeWithEncoding(bytes, "euc-kr")];
+
+  return candidates.find((candidate) => candidate !== null && !hasBrokenDecodeMarker(candidate)) ?? null;
+}
+
+function decodeWithEncoding(bytes: Uint8Array, encoding: string): string | null {
+  try {
+    return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function hasUtf8Bom(bytes: Uint8Array): boolean {
+  return bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+}
+
+function hasBrokenDecodeMarker(text: string): boolean {
+  return text.includes("\uFFFD");
 }
 
 function isTotalRow(cells: string[]): boolean {

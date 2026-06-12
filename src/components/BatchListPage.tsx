@@ -148,29 +148,41 @@ function getLatestUploadTimestamp(draftState: AppDraftState): string | undefined
     .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
 }
 
+function getRequiredSlotFileCounts(upload: AppDraftState["uploads"][number]): Map<string, number> {
+  const requiredSlots = (upload.slots ?? []).filter((slot) => slot.required);
+  if (requiredSlots.length === 0) {
+    return new Map();
+  }
+
+  const baseCount = Math.floor(upload.requiredFileCount / requiredSlots.length);
+  const remainder = upload.requiredFileCount % requiredSlots.length;
+  return new Map(
+    requiredSlots.map((slot, index) => [
+      slot.slotId,
+      Math.max(baseCount + (index < remainder ? 1 : 0), 1),
+    ]),
+  );
+}
+
 function getMissingRequiredUploadCount(draftState: AppDraftState): number {
   return draftState.uploads.reduce((sum, upload) => {
     if (upload.slots?.length) {
-      const requiredSlotUploadedFiles = upload.slots
+      const requiredSlotFileCounts = getRequiredSlotFileCounts(upload);
+      return sum + upload.slots
         .filter((slot) => slot.required)
-        .reduce((slotSum, slot) => slotSum + slot.fileCount, 0);
-      return sum + Math.max(upload.requiredFileCount - requiredSlotUploadedFiles, 0);
+        .reduce((slotSum, slot) => slotSum + Math.max((requiredSlotFileCounts.get(slot.slotId) ?? 1) - slot.fileCount, 0), 0);
     }
     return sum + Math.max(upload.requiredFileCount - upload.fileCount, 0);
   }, 0);
 }
 
-function getRequiredSlotFileCount(slot: NonNullable<AppDraftState["uploads"][number]["slots"]>[number]): number {
-  const countFromLabel = slot.label.match(/(\d+)개/)?.[1];
-  return countFromLabel ? Number(countFromLabel) : 1;
-}
-
 function getMissingRequiredUploadDetails(draftState: AppDraftState): string[] {
   return draftState.uploads.flatMap((upload) => {
     if (upload.slots?.length) {
+      const requiredSlotFileCounts = getRequiredSlotFileCounts(upload);
       return upload.slots
         .filter((slot) => slot.required)
-        .map((slot) => ({ slot, missing: Math.max(getRequiredSlotFileCount(slot) - slot.fileCount, 0) }))
+        .map((slot) => ({ slot, missing: Math.max((requiredSlotFileCounts.get(slot.slotId) ?? 1) - slot.fileCount, 0) }))
         .filter(({ missing }) => missing > 0)
         .map(({ slot, missing }) => `필수 슬롯 누락: ${platformCompanyLabel(upload.company)} · ${upload.platformLabel} · ${slot.label} 중 ${missing}개`);
     }

@@ -419,6 +419,34 @@ describe("uploadMutation", () => {
     ]));
   });
 
+  it("cleans prior stage-only issues using state batch id when upload metadata is stale", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    state.batch.batchId = "batch-renamed-after-upload-card";
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+    expect(upload?.batchId).not.toBe(state.batch.batchId);
+
+    const afterFirstStage = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+      { now: () => "2026-06-13T09:00:00+09:00" },
+    );
+    const afterSecondStage = await applyLiveUploadMutation(
+      afterFirstStage,
+      { upload: afterFirstStage.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "base" },
+      [createTextUpload("calculate_1_retry.csv", "work,sale\nbase,2\n")],
+      { now: () => "2026-06-13T09:01:00+09:00" },
+    );
+
+    const stageIssues = afterSecondStage.issues.filter((issue) => issue.issueId.includes("-live-upload-stage-"));
+    expect(stageIssues).toHaveLength(1);
+    expect(stageIssues[0]).toEqual(expect.objectContaining({
+      batchId: "batch-renamed-after-upload-card",
+      sourceFileName: "calculate_1_retry.csv",
+    }));
+  });
+
   it("reruns ridibooks grouped parsing when base, file1, and mgCorrection are uploaded", async () => {
     const state = createEmptyRidibooksUploadDraft();
     const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");

@@ -135,7 +135,7 @@ export function ReviewSection({
   onSelectNextIssueRow,
   onSaveRowEdits,
 }: ReviewSectionProps) {
-  const columnHelper = createColumnHelper<SettlementRow>();
+  const columnHelper = useMemo(() => createColumnHelper<SettlementRow>(), []);
   const columns = useMemo(
     () => [
       columnHelper.accessor("company", {
@@ -392,6 +392,9 @@ function ReviewDetail({
   ];
 
   useEffect(() => {
+    setIsEditing(false);
+    setIsEditingHoldReason(false);
+
     if (!selectedRow) {
       return;
     }
@@ -402,7 +405,7 @@ function ReviewDetail({
       publisher: selectedRow.publisher ?? "",
     });
     setDraftHoldReason(selectedRowReviewNote);
-  }, [selectedRow, selectedRowReviewNote]);
+  }, [selectedRow?.rowId, selectedRowReviewNote]);
 
   if (!selectedRow) {
     return (

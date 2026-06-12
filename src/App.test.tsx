@@ -367,6 +367,20 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByRole("heading", { name: /2026-06 정산 배치/i })).toBeInTheDocument();
   });
 
+  it("uses upload requiredFileCount rather than slot label numbers for missing slot details", () => {
+    const state = createSeedAppState();
+    const seriesUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-series");
+    const appSlot = seriesUpload?.slots?.find((slot) => slot.slotKey === "seriesApp");
+    if (!appSlot) {
+      throw new Error("series app slot fixture missing");
+    }
+    appSlot.label = "앱 매출";
+    saveAppDraftState(state, window.localStorage);
+    render(<App />);
+
+    expect(screen.getByText("필수 슬롯 누락: 라온이앤엠 · 시리즈 · 앱 매출 중 1개")).toBeInTheDocument();
+  });
+
   it("returns from the shell to the batch list page", () => {
     saveAppDraftState(createSeedAppState(), window.localStorage);
     render(<App />);
@@ -740,6 +754,20 @@ describe("AutoSettlement UI shell", () => {
         author: "한도윤 외 1명",
         publisher: "라온 노벨",
       }));
+    });
+  });
+
+  it("closes unsaved edit drafts when the selected review row changes", async () => {
+    renderActiveBatchApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "검수 행 편집" }));
+    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "저장 전 임시 제목" } });
+    fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.queryByLabelText("메일러 컨텐츠 편집")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "검수 행 편집" })).toBeInTheDocument();
     });
   });
 

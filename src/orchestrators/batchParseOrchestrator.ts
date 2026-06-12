@@ -1,4 +1,5 @@
 import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
+import { resolveFileAdapter } from "../fileAdapters/resolveFileAdapter";
 import type { FileAdapter, FileAdapterResult, FileKind } from "../fileAdapters/types";
 import { parseJoaraFileGroup, parseMunpiaFileGroup, parseRidibooksFileGroup, parseSeriesFileGroup } from "../parsers";
 import type { PlatformFileGroupInput, PlatformFileGroupParserContext } from "../parsers";
@@ -162,6 +163,7 @@ export function runBatchParseOrchestrator(
       const group = seriesGroups.get(entry.key);
       if (group) {
         const groupResult = parseSeriesFileGroup(group.context, group.files);
+        applyGroupIssuesToFileResults(batchResult.fileResults, group.context, group.files, groupResult.issues);
         batchResult.rows.push(...groupResult.rows);
         batchResult.issues.push(...groupResult.issues);
       }
@@ -172,6 +174,7 @@ export function runBatchParseOrchestrator(
       const group = munpiaGroups.get(entry.key);
       if (group) {
         const groupResult = parseMunpiaFileGroup(group.context, group.files);
+        applyGroupIssuesToFileResults(batchResult.fileResults, group.context, group.files, groupResult.issues);
         batchResult.rows.push(...groupResult.rows);
         batchResult.issues.push(...groupResult.issues);
       }
@@ -182,6 +185,7 @@ export function runBatchParseOrchestrator(
       const group = joaraGroups.get(entry.key);
       if (group) {
         const groupResult = parseJoaraFileGroup(group.context, group.files);
+        applyGroupIssuesToFileResults(batchResult.fileResults, group.context, group.files, groupResult.issues);
         batchResult.rows.push(...groupResult.rows);
         batchResult.issues.push(...groupResult.issues);
       }
@@ -191,6 +195,7 @@ export function runBatchParseOrchestrator(
     const group = ridibooksGroups.get(entry.key);
     if (group) {
       const groupResult = parseRidibooksFileGroup(group.context, group.files);
+      applyGroupIssuesToFileResults(batchResult.fileResults, group.context, group.files, groupResult.issues);
       batchResult.rows.push(...groupResult.rows);
       batchResult.issues.push(...groupResult.issues);
     }
@@ -339,7 +344,7 @@ function runFileAdapter(
     ...defaultAdapters,
     ...dependencies.adapters,
   };
-  const adapter = adapters[file.fileKind];
+  const adapter = resolveFileAdapter(file.platform, file.fileKind, adapters);
 
   if (!adapter) {
     return {
@@ -364,6 +369,43 @@ function runFileAdapter(
 
 function getFileResultStatus(issues: ParseIssue[]): BatchParseFileResultStatus {
   return issues.some((issue) => issue.severity === "error") ? "failed" : "success";
+}
+
+type GroupFileWithIssues = {
+  sourceFileName: string;
+  issues: ParseIssue[];
+};
+
+function applyGroupIssuesToFileResults(
+  fileResults: BatchParseFileResult[],
+  context: PlatformFileGroupParserContext | RidibooksGroupParserContext,
+  files: GroupFileWithIssues[],
+  issues: ParseIssue[],
+): void {
+  const adapterIssueIds = new Set(files.flatMap((file) => file.issues.map((issue) => issue.issueId)));
+
+  for (const issue of issues) {
+    if (issue.sourceFileName === undefined || adapterIssueIds.has(issue.issueId)) {
+      continue;
+    }
+
+    const fileResult = fileResults.find(
+      (candidate) =>
+        candidate.company === context.company &&
+        candidate.platform === context.platform &&
+        candidate.saleMonth === context.saleMonth &&
+        candidate.fileName === issue.sourceFileName,
+    );
+
+    if (fileResult === undefined) {
+      continue;
+    }
+
+    fileResult.issueCount += 1;
+    if (issue.severity === "error") {
+      fileResult.status = "failed";
+    }
+  }
 }
 
 function getOrCreateSeriesGroup(

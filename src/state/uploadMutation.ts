@@ -1337,7 +1337,7 @@ function applyStageOnlyMunpiaResult(
   const preservedIssuesForPlatform = state.issues.filter((issue) => (
     issue.company === upload.company
     && issue.platform === upload.platform
-    && !isStageOnlyIssueForUpload(issue, upload)
+    && !isStageOnlyIssueForUpload(issue, state.batch.batchId, upload)
   ));
   const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
   const nextUpload = buildGroupedAggregateUpload(
@@ -1363,7 +1363,7 @@ function applyStageOnlySeriesResult(
   const preservedIssuesForPlatform = state.issues.filter((issue) => (
     issue.company === upload.company
     && issue.platform === upload.platform
-    && !isStageOnlyIssueForUpload(issue, upload)
+    && !isStageOnlyIssueForUpload(issue, state.batch.batchId, upload)
   ));
   const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
   const nextUpload = buildGroupedAggregateUpload(
@@ -1417,7 +1417,7 @@ function applyStageOnlyRidibooksResult(
   const preservedIssuesForPlatform = state.issues.filter((issue) => (
     issue.company === upload.company
     && issue.platform === upload.platform
-    && !isStageOnlyIssueForUpload(issue, upload)
+    && !isStageOnlyIssueForUpload(issue, state.batch.batchId, upload)
   ));
   const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
   const nextUpload = buildGroupedAggregateUpload(
@@ -1443,7 +1443,7 @@ function applyStageOnlyJoaraResult(
   const preservedIssuesForPlatform = state.issues.filter((issue) => (
     issue.company === upload.company
     && issue.platform === upload.platform
-    && !isStageOnlyIssueForUpload(issue, upload)
+    && !isStageOnlyIssueForUpload(issue, state.batch.batchId, upload)
   ));
   const nextIssuesForPlatform = [...preservedIssuesForPlatform, stageIssue];
   const nextUpload = buildGroupedAggregateUpload(
@@ -2752,8 +2752,8 @@ function normalizeRidibooksEventPeriod(eventPeriod: RidibooksEventPeriod | undef
   return { startDate, endDate };
 }
 
-function isStageOnlyIssueForUpload(issue: ParseIssue, upload: PlatformUploadCard): boolean {
-  return issue.issueId.startsWith(`${upload.batchId}-${upload.uploadId}${STAGE_ONLY_ISSUE_MARKER}`);
+function isStageOnlyIssueForUpload(issue: ParseIssue, batchId: string, upload: PlatformUploadCard): boolean {
+  return issue.issueId.startsWith(`${batchId}-${upload.uploadId}${STAGE_ONLY_ISSUE_MARKER}`);
 }
 
 function getBrowserStorage(): Storage | undefined {

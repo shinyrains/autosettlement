@@ -657,10 +657,10 @@ describe("batch parse orchestrator", () => {
 
     expect(result.rows).toEqual([]);
     expect(result.issues).toEqual([
-      expect.objectContaining({ platform: "series", issueType: "mapping_failed" }),
+      expect.objectContaining({ platform: "series", issueType: "mapping_failed", sourceFileName: "series.csv" }),
     ]);
     expect(result.fileResults[0]).toEqual(
-      expect.objectContaining({ fileName: "series.csv", status: "success", rowCount: 1, issueCount: 0 }),
+      expect.objectContaining({ fileName: "series.csv", status: "failed", rowCount: 1, issueCount: 1 }),
     );
   });
 
@@ -857,7 +857,7 @@ describe("batch parse orchestrator", () => {
     ]);
   });
 
-  it("does not distribute series group validation issues into per-file results", () => {
+  it("does not distribute source-less series group validation issues into per-file results", () => {
     const files = createSeriesFiles().slice(0, 5);
 
     const result = runBatchParseOrchestrator(
@@ -877,10 +877,55 @@ describe("batch parse orchestrator", () => {
       expect.objectContaining({
         platform: "series",
         issueType: "mapping_failed",
+        sourceFileName: undefined,
       }),
     );
     expect(result.fileResults).toEqual(
       files.map((file) =>
+        expect.objectContaining({
+          fileName: file.fileName,
+          status: "success",
+          rowCount: 1,
+          issueCount: 0,
+        }),
+      ),
+    );
+  });
+
+  it("assigns source-file series group validation issues to the matching file result", () => {
+    const files = createSeriesFiles();
+    const invalidSlotFile = { ...files[0], slot: "unexpected-slot" };
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-series-source-file-invalid",
+        files: [invalidSlotFile, ...files.slice(1)],
+      },
+      {
+        adapters: {
+          csv: createSeriesAdapter(),
+        },
+      },
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        platform: "series",
+        issueType: "mapping_failed",
+        sourceFileName: invalidSlotFile.fileName,
+      }),
+    );
+    expect(result.fileResults[0]).toEqual(
+      expect.objectContaining({
+        fileName: invalidSlotFile.fileName,
+        status: "failed",
+        rowCount: 1,
+        issueCount: 1,
+      }),
+    );
+    expect(result.fileResults.slice(1)).toEqual(
+      files.slice(1).map((file) =>
         expect.objectContaining({
           fileName: file.fileName,
           status: "success",
@@ -1028,7 +1073,7 @@ describe("batch parse orchestrator", () => {
     ]);
   });
 
-  it("returns ridibooks blocked group issues without assigning them to fileResults", () => {
+  it("assigns ridibooks source-file blocked group issues to the matching fileResult", () => {
     const result = runBatchParseOrchestrator(
       {
         batchId: "batch-ridibooks-blocked",
@@ -1068,7 +1113,7 @@ describe("batch parse orchestrator", () => {
     expect(result.fileResults).toEqual([
       expect.objectContaining({ fileName: "calculate_1.csv", status: "success", issueCount: 0 }),
       expect.objectContaining({ fileName: "calculate_1 (1).csv", status: "success", issueCount: 0 }),
-      expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "success", issueCount: 0 }),
+      expect.objectContaining({ fileName: "calculate_date_tran_1.csv", status: "failed", issueCount: 1 }),
     ]);
   });
 
