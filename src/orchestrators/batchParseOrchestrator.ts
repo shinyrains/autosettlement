@@ -150,7 +150,7 @@ export function runBatchParseOrchestrator(
         platform: file.platform,
         fileKind: file.fileKind,
         saleMonth: file.saleMonth,
-        status: fileResult.issues.length > 0 ? "failed" : "success",
+        status: getFileResultStatus(fileResult.issues),
         rowCount: fileResult.rows.length,
         issueCount: fileResult.issues.length,
       });
@@ -225,7 +225,7 @@ function collectSeriesFile(
     platform: file.platform,
     fileKind: file.fileKind,
     saleMonth: file.saleMonth,
-    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    status: getFileResultStatus(adapterResult.issues),
     rowCount: adapterResult.rows.length,
     issueCount: adapterResult.issues.length,
   });
@@ -260,7 +260,7 @@ function collectRidibooksFile(
     platform: file.platform,
     fileKind: file.fileKind,
     saleMonth: file.saleMonth,
-    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    status: getFileResultStatus(adapterResult.issues),
     rowCount: adapterResult.rows.length,
     issueCount: adapterResult.issues.length,
   });
@@ -292,7 +292,7 @@ function collectMunpiaFile(
     platform: file.platform,
     fileKind: file.fileKind,
     saleMonth: file.saleMonth,
-    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    status: getFileResultStatus(adapterResult.issues),
     rowCount: adapterResult.rows.length,
     issueCount: adapterResult.issues.length,
   });
@@ -324,7 +324,7 @@ function collectJoaraFile(
     platform: file.platform,
     fileKind: file.fileKind,
     saleMonth: file.saleMonth,
-    status: adapterResult.issues.length > 0 ? "failed" : "success",
+    status: getFileResultStatus(adapterResult.issues),
     rowCount: adapterResult.rows.length,
     issueCount: adapterResult.issues.length,
   });
@@ -360,6 +360,10 @@ function runFileAdapter(
     },
     file.content,
   );
+}
+
+function getFileResultStatus(issues: ParseIssue[]): BatchParseFileResultStatus {
+  return issues.some((issue) => issue.severity === "error") ? "failed" : "success";
 }
 
 function getOrCreateSeriesGroup(

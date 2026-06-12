@@ -11,7 +11,7 @@ import {
 } from "../parsers/seriesColumnMappings";
 import { RIDIBOOKS_REQUIRED_COLUMNS as RIDIBOOKS_COLUMNS } from "../parsers/ridibooksCalcConstants";
 import { simpleExtractMappings, type SimpleExtractPlatform } from "../parsers/simpleExtractMappings";
-import type { Company, ParseIssue, Platform } from "../types/settlement";
+import type { Company, ParseIssue, Platform, SettlementRow } from "../types/settlement";
 import { runBatchParseOrchestrator } from "./batchParseOrchestrator";
 
 function createSimpleExtractCsv(
@@ -550,6 +550,60 @@ describe("batch parse orchestrator", () => {
     expect(result.fileResults).toEqual([
       expect.objectContaining({ fileName: "valid.csv", status: "success", rowCount: 1, issueCount: 0 }),
       expect.objectContaining({ fileName: "empty.csv", status: "failed", rowCount: 0, issueCount: 1 }),
+    ]);
+  });
+
+  it("keeps file status successful when a single-file parser returns warning-only issues", () => {
+    const warningIssue: ParseIssue = {
+      issueId: "batch-warning-guru_company-warning-only",
+      batchId: "batch-warning",
+      company: "raon",
+      platform: "guru_company",
+      severity: "warning",
+      issueType: "mapping_failed",
+      message: "Non-blocking parser warning.",
+      sourceFileName: "warning.csv",
+    };
+    const warningRow: SettlementRow = {
+      rowId: "batch-warning-row-1",
+      company: "raon",
+      platform: "guru_company",
+      saleMonth: "2026-06",
+      workTitle: "Warning Work",
+      mailerContentTitle: "Warning Work",
+      author: "Warning Author",
+      grossSales: 1000,
+      settlementAmount: 400,
+      sourceFileName: "warning.csv",
+      sourceRowIndex: 2,
+      issues: [],
+    };
+
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-warning",
+        files: [
+          createFile({
+            company: "raon",
+            platform: "guru_company",
+            fileName: "warning.csv",
+            content: createSimpleExtractCsv("guru_company", {
+              workTitle: "Warning Work",
+              author: "Warning Author",
+              grossSales: "1000",
+              settlementAmount: "400",
+            }),
+          }),
+        ],
+      },
+      {
+        parseRows: () => ({ rows: [warningRow], issues: [warningIssue] }),
+      },
+    );
+
+    expect(result.issues).toEqual([warningIssue]);
+    expect(result.fileResults).toEqual([
+      expect.objectContaining({ fileName: "warning.csv", status: "success", rowCount: 1, issueCount: 1 }),
     ]);
   });
 
