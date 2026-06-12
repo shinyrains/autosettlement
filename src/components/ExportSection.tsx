@@ -6,8 +6,9 @@ import {
   type ExportBuildResult,
   type ExportPackage,
 } from "../exporters";
+import { getExportFileName } from "../exporters/exportFileNames";
 import type { ReviewExportReadiness } from "../selectors";
-import type { Company } from "../types/settlement";
+import type { Company, ExportArtifactType } from "../types/settlement";
 import { artifactLabels } from "./uiShellConfig";
 
 type ExportSectionProps = {
@@ -17,6 +18,13 @@ type ExportSectionProps = {
   exportResult?: ExportBuildResult;
   onDownloadPackage?: (exportPackage: ExportPackage) => void;
 };
+
+const plannedExportArtifacts: Array<{ company: Company; artifactType: ExportArtifactType }> = [
+  { company: "raon", artifactType: "review_excel" },
+  { company: "raon", artifactType: "mailer_excel" },
+  { company: "sr", artifactType: "review_excel" },
+  { company: "sr", artifactType: "mailer_excel" },
+];
 
 export function ExportSection({
   readiness,
@@ -62,13 +70,16 @@ export function ExportSection({
         </p>
       </div>
       {isBlocked ? (
-        <div className="m-5 rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-amber">
-          <p className="font-semibold text-amber">출력 대기 상태입니다.</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {blockerMessages.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
+        <div className="m-5 space-y-4">
+          <div className="rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-amber">
+            <p className="font-semibold text-amber">출력 대기 상태입니다.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {blockerMessages.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+          <PlannedExportList />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-5 p-5">
@@ -85,9 +96,34 @@ export function ExportSection({
         </div>
       )}
       <p className="border-t border-line px-5 py-3 text-sm text-slate-500">
-        createExportPackages 결과를 브라우저 다운로드로 연결합니다. 메일러 표시 보정, 주소록 보정, 차감 병합, 발송은 기존 메일러 책임입니다.
+        출력 파일은 회사별 정산 검수용과 메일러 발송용으로 나뉩니다. 메일러 표시 보정, 주소록 보정, 차감 병합, 실제 발송은 후속 메일러 단계에서 처리합니다.
       </p>
     </section>
+  );
+}
+
+function PlannedExportList() {
+  return (
+    <div className="rounded-md border border-line bg-ink-800 px-4 py-3">
+      <p className="text-sm font-semibold text-slate-200">출력 예정 파일</p>
+      <p className="mt-1 text-xs text-slate-500">
+        현재 출력 조건이 충족되지 않아 다운로드 버튼은 숨겨져 있습니다. 검수/이슈 조건이 해제되면 아래 회사별 4개 파일이 생성됩니다.
+      </p>
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        {plannedExportArtifacts.map((artifact) => (
+          <div
+            key={`${artifact.company}-${artifact.artifactType}`}
+            className="rounded-md border border-line bg-ink-950 px-3 py-2"
+          >
+            <p className="text-sm font-medium text-white">{getExportFileName(artifact.company, artifact.artifactType)}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {companyLabels[artifact.company]} · {artifactLabels[artifact.artifactType]}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-amber">출력 조건 충족 후 다운로드 가능</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

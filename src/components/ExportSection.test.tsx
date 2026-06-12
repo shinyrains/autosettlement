@@ -67,6 +67,12 @@ describe("ExportSection", () => {
     expect(screen.getByText("대기 중 · 확정 3행 · 대기 2행 · 이슈 1건 · 출력 0종")).toBeInTheDocument();
     expect(screen.getByText("오류/누락/매칭 실패 1건을 먼저 확인해야 합니다.")).toBeInTheDocument();
     expect(screen.getByText("검수 확정이 2행 남아 있어 출력 준비 상태로 전환되지 않았습니다.")).toBeInTheDocument();
+    expect(screen.getByText("출력 예정 파일")).toBeInTheDocument();
+    expect(screen.getByText("라온_정산_통합검수용.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("라온_메일러_발송용.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("에스알_정산_통합검수용.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("에스알_메일러_발송용.xlsx")).toBeInTheDocument();
+    expect(screen.getAllByText("출력 조건 충족 후 다운로드 가능")).toHaveLength(4);
     expect(screen.queryByRole("button", { name: "다운로드" })).not.toBeInTheDocument();
   });
 
