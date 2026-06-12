@@ -160,6 +160,28 @@ function getMissingRequiredUploadCount(draftState: AppDraftState): number {
   }, 0);
 }
 
+function getRequiredSlotFileCount(slot: NonNullable<AppDraftState["uploads"][number]["slots"]>[number]): number {
+  const countFromLabel = slot.label.match(/(\d+)개/)?.[1];
+  return countFromLabel ? Number(countFromLabel) : 1;
+}
+
+function getMissingRequiredUploadDetails(draftState: AppDraftState): string[] {
+  return draftState.uploads.flatMap((upload) => {
+    if (upload.slots?.length) {
+      return upload.slots
+        .filter((slot) => slot.required)
+        .map((slot) => ({ slot, missing: Math.max(getRequiredSlotFileCount(slot) - slot.fileCount, 0) }))
+        .filter(({ missing }) => missing > 0)
+        .map(({ slot, missing }) => `필수 슬롯 누락: ${platformCompanyLabel(upload.company)} · ${upload.platformLabel} · ${slot.label} 중 ${missing}개`);
+    }
+
+    const missing = Math.max(upload.requiredFileCount - upload.fileCount, 0);
+    return missing > 0
+      ? [`필수 업로드 누락: ${platformCompanyLabel(upload.company)} · ${upload.platformLabel} ${missing}개`]
+      : [];
+  });
+}
+
 function getNextBatchAction({
   missingRequiredFiles,
   readiness,
@@ -209,6 +231,7 @@ function getBatchBlockerDetails({
   const details: string[] = [];
   if (missingRequiredFiles > 0) {
     details.push(`업로드 누락: 필수 파일 ${missingRequiredFiles}개`);
+    details.push(...getMissingRequiredUploadDetails(draftState));
   }
   const primaryIssue = draftState.issues
     .slice()
