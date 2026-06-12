@@ -807,6 +807,14 @@ function getNextQueuedRowId(rowIds: string[], selectedRowId: string): string | u
   return rowIds[selectedIndex + 1];
 }
 
+function getPreviousQueuedRowId(rowIds: string[], selectedRowId: string): string | undefined {
+  const selectedIndex = rowIds.indexOf(selectedRowId);
+  if (selectedIndex <= 0) {
+    return undefined;
+  }
+  return rowIds[selectedIndex - 1];
+}
+
 function ReviewQueueCard({
   label,
   count,
@@ -835,6 +843,8 @@ function ReviewQueueCard({
   onApplyQueuedRows: (rowIds: string[]) => void;
 }) {
   const nextQueuedRowId = getNextQueuedRowId(rowIds, selectedRowId);
+  const previousQueuedRowId = getPreviousQueuedRowId(rowIds, selectedRowId);
+  const previousActionLabel = `${label} 이전 행으로 이동`;
   const bulkActionClassName = bulkActionTone === "confirm"
     ? "rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
     : "rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50";
@@ -863,6 +873,18 @@ function ReviewQueueCard({
             }}
           >
             {actionLabel}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!previousQueuedRowId}
+            onClick={() => {
+              if (previousQueuedRowId) {
+                onOpenQueuedRow(previousQueuedRowId);
+              }
+            }}
+          >
+            {previousActionLabel}
           </button>
           <button
             type="button"
