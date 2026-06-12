@@ -57,6 +57,12 @@ type CompanyProgressSummary = {
   confirmedRowCount: number;
 };
 
+type CompanyOutputReadinessSummary = {
+  company: Company;
+  reviewStatusLabel: string;
+  mailerStatusLabel: string;
+};
+
 function getUploadStatusCounts(draftState: AppDraftState): UploadStatusCounts {
   return draftState.uploads
     .flatMap((upload) => [upload.status, ...(upload.slots ?? []).map((slot) => slot.status)])
@@ -106,6 +112,27 @@ function getCompanyProgressSummaries(draftState: AppDraftState): CompanyProgress
 
 function formatCompanyProgressSummary(summary: CompanyProgressSummary): string {
   return `${platformCompanyLabel(summary.company)}: 정산 ${summary.rowCount}행 · 이슈 ${summary.issueCount}건 · 검수 확정 ${summary.confirmedRowCount}행`;
+}
+
+function getCompanyOutputReadinessSummaries(
+  exportResult: ReturnType<typeof createExportPackages>,
+  readiness: ReturnType<typeof getReviewExportReadiness>,
+): CompanyOutputReadinessSummary[] {
+  const readyPackagesByCompany = new Map(
+    readiness.exportStatus === "ready"
+      ? exportResult.packages.map((item) => [`${item.company}:${item.artifactType}`, item] as const)
+      : [],
+  );
+
+  return (["raon", "sr"] as const).map((company) => ({
+    company,
+    reviewStatusLabel: readyPackagesByCompany.has(`${company}:review_excel`) ? "준비" : "대기",
+    mailerStatusLabel: readyPackagesByCompany.has(`${company}:mailer_excel`) ? "준비" : "대기",
+  }));
+}
+
+function formatCompanyOutputReadinessSummary(summary: CompanyOutputReadinessSummary): string {
+  return `${platformCompanyLabel(summary.company)}: 정산_통합검수용 ${summary.reviewStatusLabel} · 메일러_발송용 ${summary.mailerStatusLabel}`;
 }
 
 function formatBatchHistoryTimestamp(timestamp?: string): string {
@@ -392,6 +419,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   const latestUploadChange = getLatestUploadChange(draftState);
   const uploadStatusCounts = getUploadStatusCounts(draftState);
   const companyProgressSummaries = getCompanyProgressSummaries(draftState);
+  const companyOutputReadinessSummaries = getCompanyOutputReadinessSummaries(exportResult, readiness);
   const latestReviewDecisionSummary = getLatestReviewDecisionSummary(draftState);
   const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
@@ -465,6 +493,14 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
                   <div className="mt-2 space-y-1 text-sm text-slate-400">
                     {companyProgressSummaries.map((summary) => (
                       <p key={summary.company}>{formatCompanyProgressSummary(summary)}</p>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 rounded-lg border border-line bg-ink-900 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">출력 준비 상세</p>
+                  <div className="mt-2 space-y-1 text-sm text-slate-400">
+                    {companyOutputReadinessSummaries.map((summary) => (
+                      <p key={summary.company}>{formatCompanyOutputReadinessSummary(summary)}</p>
                     ))}
                   </div>
                 </div>

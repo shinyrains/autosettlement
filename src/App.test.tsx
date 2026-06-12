@@ -351,6 +351,9 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("회사별 진행 요약")).toBeInTheDocument();
     expect(screen.getByText("라온이앤엠: 정산 3행 · 이슈 2건 · 검수 확정 0행")).toBeInTheDocument();
     expect(screen.getByText("에스알이앤엠: 정산 2행 · 이슈 1건 · 검수 확정 0행")).toBeInTheDocument();
+    expect(screen.getByText("출력 준비 상세")).toBeInTheDocument();
+    expect(screen.getByText("라온이앤엠: 정산_통합검수용 대기 · 메일러_발송용 대기")).toBeInTheDocument();
+    expect(screen.getByText("에스알이앤엠: 정산_통합검수용 대기 · 메일러_발송용 대기")).toBeInTheDocument();
     expect(screen.getByText("선택 파일 19/29")).toBeInTheDocument();
     expect(screen.getByText("필수 파일 누락 12개")).toBeInTheDocument();
     expect(screen.getByText("다음 필요 액션")).toBeInTheDocument();
