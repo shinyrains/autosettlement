@@ -1,6 +1,7 @@
 import type { Company, ExportArtifactType, SettlementRow } from "../types/settlement";
 import { getExportFileName, type ExportFileName } from "./exportFileNames";
 import { mapToMailerExportRows, mapToReviewExportRows } from "./exportRowMappers";
+import { normalizeAggregateExportRows } from "./exportRowNormalizer";
 import { createMailerWorkbookBuffer, createReviewWorkbookBuffer } from "./xlsxWorkbookWriter";
 
 export type ExportPackage = {
@@ -14,8 +15,10 @@ export type ExportPackage = {
 const exportCompanyOrder = ["raon", "sr"] as const satisfies readonly Company[];
 
 export function buildExportPackages(rows: SettlementRow[]): ExportPackage[] {
+  const exportRows = normalizeAggregateExportRows(rows);
+
   return exportCompanyOrder.flatMap((company) => {
-    const companyRows = rows.filter((row) => row.company === company);
+    const companyRows = exportRows.filter((row) => row.company === company);
 
     if (companyRows.length === 0) {
       return [];

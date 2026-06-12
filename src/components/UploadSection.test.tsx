@@ -151,7 +151,7 @@ describe("UploadSection", () => {
     expect(screen.queryByText("실파일 업로드")).not.toBeInTheDocument();
   });
 
-  it("locks a shared Onestore upload from the other company after one company has uploaded it", () => {
+  it("locks only the shared Onestore upload from the other company after one company has uploaded it", () => {
     const uploads = mockUploads.map((upload) => (
       upload.uploadId === "upload-shared-onestore"
         ? {
@@ -173,10 +173,16 @@ describe("UploadSection", () => {
       />,
     );
 
-    const srInput = screen.getByTestId("upload-input-upload-shared-onestore") as HTMLInputElement;
-    expect(srInput.disabled).toBe(true);
+    const onestoreInput = screen.getByTestId("upload-input-upload-shared-onestore") as HTMLInputElement;
+    expect(onestoreInput.disabled).toBe(true);
     expect(screen.getByText("라온이앤엠에서 공통 업로드 완료 · 수정은 라온이앤엠 정산에서 진행"))
       .toBeInTheDocument();
+
+    expect((screen.getByTestId("upload-input-upload-sr-yes24") as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByTestId("upload-input-upload-sr-aladin") as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByTestId("upload-input-upload-sr-kyobo") as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByTestId("upload-input-upload-sr-kakao-page") as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByTestId("upload-input-upload-sr-misterblue") as HTMLInputElement).disabled).toBe(false);
   });
 
   it("offers file replacement on the company that owns an already uploaded shared Onestore file", () => {

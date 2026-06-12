@@ -88,11 +88,121 @@ describe("export package builder", () => {
   });
 
   it("sets rowCount from rows included in each package", () => {
-    const packages = buildExportPackages([rows[0], { ...rows[0], rowId: "row-raon-2" }]);
-
-    expect(packages).toEqual([
-      expect.objectContaining({ artifactType: "review_excel", rowCount: 2 }),
-      expect.objectContaining({ artifactType: "mailer_excel", rowCount: 2 }),
+    const packages = buildExportPackages([
+      rows[0],
+      { ...rows[0], rowId: "row-raon-2", workTitle: "검은 별의 서점 외전", mailerContentTitle: "검은 별의 서점 외전" },
     ]);
+
+    expect(packages.map((item) => ({ artifactType: item.artifactType, rowCount: item.rowCount }))).toEqual([
+      { artifactType: "review_excel", rowCount: 2 },
+      { artifactType: "mailer_excel", rowCount: 2 },
+    ]);
+  });
+
+  it("normalizes trailing volume markers, aggregates equal works, and excludes zero-sales works before export", () => {
+    const sourceRows: SettlementRow[] = [
+      {
+        rowId: "row-onestore-1",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 01",
+        mailerContentTitle: "무당괴공 01",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 1000,
+        settlementAmount: 400,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 1,
+        issues: [],
+      },
+      {
+        rowId: "row-onestore-2",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 12 (완결)",
+        mailerContentTitle: "무당괴공 12 (완결)",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 3000,
+        settlementAmount: 1200,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 2,
+        issues: [],
+      },
+      {
+        rowId: "row-aladin-1",
+        company: "raon",
+        platform: "aladin",
+        saleMonth: "2026-06",
+        workTitle: "기사의 일기(Diary of a Knight) 15",
+        mailerContentTitle: "기사의 일기(Diary of a Knight) 15",
+        author: "작가B",
+        publisher: "아레테",
+        grossSales: 0,
+        settlementAmount: 0,
+        sourceFileName: "aladin.csv",
+        sourceRowIndex: 3,
+        issues: [],
+      },
+    ];
+
+    const packages = buildExportPackages(sourceRows);
+    const reviewRows = readFirstSheetRows(packages.find((item) => item.artifactType === "review_excel")!.workbookBuffer);
+    const mailerRows = readFirstSheetRows(packages.find((item) => item.artifactType === "mailer_excel")!.workbookBuffer);
+
+    expect(packages.find((item) => item.artifactType === "review_excel")?.rowCount).toBe(1);
+    expect(packages.find((item) => item.artifactType === "mailer_excel")?.rowCount).toBe(1);
+    expect(reviewRows[1]).toContain("무당괴공");
+    expect(reviewRows[1]).toContain(4000);
+    expect(reviewRows[1]).toContain(1600);
+    expect(mailerRows[1]).toContain("무당괴공");
+    expect(mailerRows[1]).toContain(4000);
+    expect(mailerRows.flat()).not.toContain("기사의 일기(Diary of a Knight)");
+  });
+
+  it("keeps Yes24 publisher names distinct while aggregating normalized titles", () => {
+    const sourceRows: SettlementRow[] = [
+      {
+        rowId: "row-yes24-arete",
+        company: "sr",
+        platform: "yes24",
+        saleMonth: "2026-06",
+        workTitle: "창천마신 10",
+        mailerContentTitle: "창천마신 10",
+        author: "작가C",
+        publisher: "아레테",
+        grossSales: 1000,
+        settlementAmount: 400,
+        sourceFileName: "yes24.xlsx",
+        sourceRowIndex: 1,
+        issues: [],
+      },
+      {
+        rowId: "row-yes24-bcafe",
+        company: "sr",
+        platform: "yes24",
+        saleMonth: "2026-06",
+        workTitle: "창천마신 11",
+        mailerContentTitle: "창천마신 11",
+        author: "작가C",
+        publisher: "비카페",
+        grossSales: 2000,
+        settlementAmount: 800,
+        sourceFileName: "yes24.xlsx",
+        sourceRowIndex: 2,
+        issues: [],
+      },
+    ];
+
+    const packages = buildExportPackages(sourceRows);
+    const reviewRows = readFirstSheetRows(packages.find((item) => item.artifactType === "review_excel")!.workbookBuffer);
+
+    expect(packages.find((item) => item.artifactType === "review_excel")?.rowCount).toBe(2);
+    expect(reviewRows[1]).toContain("창천마신");
+    expect(reviewRows[1]).toContain("아레테");
+    expect(reviewRows[2]).toContain("창천마신");
+    expect(reviewRows[2]).toContain("비카페");
   });
 });
