@@ -204,6 +204,28 @@ function getNextBatchAction({
   return "회사별 출력 파일 다운로드 가능";
 }
 
+function getBatchCtaHint({
+  missingRequiredFiles,
+  readiness,
+}: {
+  missingRequiredFiles: number;
+  readiness: ReturnType<typeof getReviewExportReadiness>;
+}): string {
+  if (missingRequiredFiles > 0) {
+    return `CTA 안내: 업로드 단계로 이동해 필수 파일 ${missingRequiredFiles}개 처리`;
+  }
+  if (readiness.unresolvedIssueCount > 0) {
+    return `CTA 안내: 이슈 패널에서 미해결 이슈 ${readiness.unresolvedIssueCount}건 확인`;
+  }
+  if (readiness.pendingReviewCount > 0) {
+    return `CTA 안내: 검수 단계에서 미확정 ${readiness.pendingReviewCount}건 처리`;
+  }
+  if (getReviewExportStage(readiness) === "export_validation") {
+    return "CTA 안내: 출력 단계에서 검증 blocker 확인";
+  }
+  return "CTA 안내: 출력 단계에서 회사별 파일 다운로드";
+}
+
 function getBatchBlockerSummary(readiness: ReturnType<typeof getReviewExportReadiness>): string {
   return `주요 blocker: 이슈 ${readiness.unresolvedIssueCount}건 / 검수 미확정 ${readiness.pendingReviewCount}건`;
 }
@@ -300,6 +322,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
   const latestReviewDecisionDetail = getLatestReviewDecisionDetail(draftState);
   const missingRequiredFiles = getMissingRequiredUploadCount(draftState);
   const nextBatchAction = getNextBatchAction({ missingRequiredFiles, readiness });
+  const ctaHint = getBatchCtaHint({ missingRequiredFiles, readiness });
   const blockerSummary = getBatchBlockerSummary(readiness);
   const blockerDetails = getBatchBlockerDetails({ missingRequiredFiles, draftState, readiness });
 
@@ -392,6 +415,7 @@ export function BatchListPage({ draftState, onOpenBatch, onCreateNewBatch }: Bat
               >
                 이 배치 열기
               </button>
+              <p className="mt-2 text-xs text-slate-500">{ctaHint}</p>
             </aside>
           </div>
         </section>

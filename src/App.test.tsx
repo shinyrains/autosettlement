@@ -358,6 +358,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("필수 슬롯 누락: 라온이앤엠 · 조아라 · 작품별 정산리스트 중 1개")).toBeInTheDocument();
     expect(screen.getByText("최우선 이슈: 원본 행의 회사 구분 값을 라온/에스알 중 하나로 확정하지 못했습니다. · 문피아 · 원본 104행")).toBeInTheDocument();
     expect(screen.getByText("검수 대기: 5/5행")).toBeInTheDocument();
+    expect(screen.getByText("CTA 안내: 업로드 단계로 이동해 필수 파일 12개 처리")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 배치 열기" }));
