@@ -326,6 +326,7 @@ export function ReviewSection({
         onConfirmRow={onConfirmRow}
         onHoldRow={onHoldRow}
         onResetRowConfirmation={onResetRowConfirmation}
+        onShowLinkedIssueRows={() => onChangeFilters({ ...filters, issueMode: "with_issues" })}
         hasNextPendingRow={hasNextPendingRow}
         hasNextIssueRow={hasNextIssueRow}
         onSelectNextPendingRow={onSelectNextPendingRow}
@@ -363,6 +364,7 @@ function ReviewDetail({
   onConfirmRow,
   onHoldRow,
   onResetRowConfirmation,
+  onShowLinkedIssueRows,
   hasNextPendingRow,
   hasNextIssueRow,
   onSelectNextPendingRow,
@@ -381,6 +383,7 @@ function ReviewDetail({
   onConfirmRow: (rowId: string) => void;
   onHoldRow: (rowId: string, note: string) => void;
   onResetRowConfirmation: (rowId: string) => void;
+  onShowLinkedIssueRows: () => void;
   hasNextPendingRow: boolean;
   hasNextIssueRow: boolean;
   onSelectNextPendingRow: () => void;
@@ -669,6 +672,13 @@ function ReviewDetail({
                 <p className="font-mono text-xs text-amber">{issue.issueType}</p>
                 <p className="mt-2">{issue.message}</p>
                 <p className="mt-2 text-xs text-slate-500">이슈 원본: {formatIssueSourceContext(issue)}</p>
+                <button
+                  type="button"
+                  className="mt-3 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-400 hover:bg-ink-700"
+                  onClick={onShowLinkedIssueRows}
+                >
+                  연결된 이슈 행만 보기
+                </button>
               </div>
             ))}
           </div>

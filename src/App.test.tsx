@@ -646,7 +646,12 @@ describe("AutoSettlement UI shell", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
       expect(screen.getByText("이슈 원본: 예스24 · yes24-sr-june.xlsx · 원본 33행")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "연결된 이슈 행만 보기" })).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByRole("button", { name: "연결된 이슈 행만 보기" }));
+    expect(screen.getByLabelText("이슈 필터")).toHaveValue("with_issues");
+    expect(screen.getByText("현재 필터 결과 3행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 1건")).toBeInTheDocument();
   });
 
   it("moves from the visible fallback row when the stored selection is outside the active filter", async () => {
