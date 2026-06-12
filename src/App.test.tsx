@@ -524,6 +524,7 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     expect(screen.getByText("선택 행 큐 위치")).toBeInTheDocument();
+    expect(screen.getByText("series-app-1.xls · 원본 27행")).toBeInTheDocument();
     expect(screen.getByText("보류 제외 미확정 큐 2번째 대상")).toBeInTheDocument();
     expect(screen.getByText("이슈 미확정 큐 1번째 대상")).toBeInTheDocument();
     expect(screen.getByText("고액 미확정 큐 4번째 대상")).toBeInTheDocument();

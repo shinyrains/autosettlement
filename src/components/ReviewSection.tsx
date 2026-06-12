@@ -55,6 +55,13 @@ function formatIssueSourceContext(issue: ParseIssue): string {
   ].filter((part): part is string => Boolean(part)).join(" · ");
 }
 
+function formatRowSourceContext(row: SettlementRow): string {
+  return [
+    row.sourceFileName,
+    row.sourceRowIndex != null ? `원본 ${row.sourceRowIndex}행` : undefined,
+  ].filter((part): part is string => Boolean(part)).join(" · ");
+}
+
 function getSelectedRowQueueLabels(
   row: SettlementRow,
   status: ReviewDecisionStatus,
@@ -453,7 +460,7 @@ function ReviewDetail({
       <div className="mt-5 space-y-3 text-sm">
         <DetailLine label="회사" value={companyLabels[selectedRow.company]} />
         <DetailLine label="플랫폼" value={platformLabels[selectedRow.platform]} />
-        <DetailLine label="원본" value={`${selectedRow.sourceFileName} · row ${selectedRow.sourceRowIndex}`} />
+        <DetailLine label="원본" value={formatRowSourceContext(selectedRow)} />
         <DetailLine label="정산금" value={moneyFormatter.format(selectedRow.settlementAmount)} />
       </div>
       <div className="mt-4 rounded-md border border-line bg-ink-800 p-3">
