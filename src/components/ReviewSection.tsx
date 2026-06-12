@@ -348,7 +348,9 @@ function getSelectedRowActionAuditLabel({
   updatedAt?: string;
   note: string;
 }): string {
-  return `액션 감사: ${rowId} · ${getReviewStatusLabel(status)} · 마지막 변경 ${formatReviewDecisionUpdatedAt(updatedAt)} · 사유 ${note || "저장된 사유 없음"}`;
+  const changedAt = updatedAt ? formatReviewDecisionUpdatedAt(updatedAt) : "변경 이력 없음";
+  const auditNote = note.trim() || "사유 없음";
+  return `운영 감사: ${getReviewStatusLabel(status)} · ${rowId} · ${changedAt} · ${auditNote}`;
 }
 
 function ReviewDetail({
