@@ -376,7 +376,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("최근 업로드 변경: 에스알이앤엠 · 시리즈 · 앱 매출 3개 · sr-series-app-3.xls")).toBeInTheDocument();
     expect(screen.getByText("업로드 상태: 완료 11개 · 경고 5개 · 오류 2개 · 대기 11개")).toBeInTheDocument();
     expect(screen.getByText("최근 검수: 보류 · 2026-06-08 19:10")).toBeInTheDocument();
-    expect(screen.getByText("최근 검수 상세: 검은 별의 서점 · 보류 · 계약 확인 필요")).toBeInTheDocument();
+    expect(screen.getByText("최근 검수 상세: 라온 시리즈 앱 정산 샘플 · 보류 · 계약 확인 필요")).toBeInTheDocument();
     expect(screen.getByText("회사별 진행 요약")).toBeInTheDocument();
     expect(screen.getByText("라온이앤엠: 정산 3행 · 이슈 2건 · 검수 확정 0행")).toBeInTheDocument();
     expect(screen.getByText("에스알이앤엠: 정산 2행 · 이슈 1건 · 검수 확정 0행")).toBeInTheDocument();
@@ -395,7 +395,7 @@ describe("AutoSettlement UI shell", () => {
     expect(screen.getByText("필수 슬롯 누락: 라온이앤엠 · 조아라 · 작품별 정산리스트 중 1개")).toBeInTheDocument();
     expect(screen.getByText("최우선 이슈: 원본 행의 회사 구분 값을 라온/에스알 중 하나로 확정하지 못했습니다. · 문피아 · 원본 104행")).toBeInTheDocument();
     expect(screen.getByText("검수 대기: 5/5행")).toBeInTheDocument();
-    expect(screen.getByText("다음 검수 후보: 검은 별의 서점 · 시리즈 · 원본 18행")).toBeInTheDocument();
+    expect(screen.getByText("다음 검수 후보: 라온 시리즈 일반 정산 샘플 · 시리즈 · 원본 18행")).toBeInTheDocument();
     expect(screen.getByText("최근 변경 요약: 업로드 2026-06-08 17:55 · 검수 2026-06-08 19:10")).toBeInTheDocument();
     expect(screen.getByText("CTA 안내: 업로드 단계로 이동해 필수 파일 12개 처리")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "이 배치 열기" })).toBeInTheDocument();
@@ -454,7 +454,7 @@ describe("AutoSettlement UI shell", () => {
 
     renderActiveBatchApp();
 
-    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
   });
 
   it("resets the persisted draft back to the seed state", () => {
@@ -465,7 +465,7 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
     fireEvent.click(screen.getByRole("button", { name: "초기 상태로 리셋" }));
 
-    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
   });
 
   it("shows blocked export state when review/export gates are not satisfied", () => {
@@ -515,35 +515,35 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
-    expect(screen.queryByText("밤의 계산서")).not.toBeInTheDocument();
-    expect(screen.getAllByText("달빛 회계법").length).toBeGreaterThan(0);
+    expect(screen.queryByText("라온 문피아 회사분류 확인 샘플")).not.toBeInTheDocument();
+    expect(screen.getAllByText("에스알 예스24 메일러 확인 샘플").length).toBeGreaterThan(0);
 
-    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "항구" } });
-    expect(screen.queryByText("달빛 회계법")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "파란 항구의 기록(앱)" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "시리즈" } });
+    expect(screen.queryByText("에스알 예스24 메일러 확인 샘플")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "에스알 시리즈 앱 정산 샘플" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "with_issues" } });
-    expect(screen.queryByText("파란 항구의 기록(앱)")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    expect(screen.queryByText("에스알 시리즈 앱 정산 샘플")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
     expect(screen.getByText("이슈 행")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("이슈 필터"), { target: { value: "all" } });
     fireEvent.change(screen.getByLabelText("정렬"), { target: { value: "settlement_desc" } });
-    expect(screen.getAllByRole("row")[1]).toHaveTextContent("파란 항구의 기록");
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("에스알 시리즈 앱 정산 샘플");
   });
 
   it("opens a linked parse issue in review and resets the active review filters", () => {
     renderActiveBatchApp();
 
     fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
-    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "달빛" } });
-    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "예스24" } });
+    expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "검수에서 열기" })[1]);
 
-    expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온 문피아 회사분류 확인 샘플" })).toBeInTheDocument();
     expect(screen.getByLabelText("회사 필터")).toHaveValue("all");
     expect(screen.getByLabelText("검수 검색")).toHaveValue("");
     expect(screen.getByText("현재 필터 결과 5행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
@@ -564,16 +564,16 @@ describe("AutoSettlement UI shell", () => {
 
     fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
     fireEvent.change(screen.getByLabelText("정렬"), { target: { value: "settlement_desc" } });
-    expect(screen.getAllByRole("row")[1]).toHaveTextContent("파란 항구의 기록");
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("에스알 시리즈 앱 정산 샘플");
 
-    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "달빛" } });
-    expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("검수 검색"), { target: { value: "예스24" } });
+    expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "검수에서 열기" })[1]);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 문피아 회사분류 확인 샘플" })).toBeInTheDocument();
       expect(screen.getByLabelText("회사 필터")).toHaveValue("all");
       expect(screen.getByLabelText("검수 검색")).toHaveValue("");
       expect(screen.getByText("현재 필터 결과 5행 / 전체 5행 · 이슈 연결 행 3건 · 검수 확정 0건")).toBeInTheDocument();
@@ -645,7 +645,7 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "확정 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "확정 모두 대기로 전환" }));
@@ -673,14 +673,14 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "confirmed" } });
 
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 1건")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
-    expect(screen.queryByText("밤의 계산서")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
+    expect(screen.queryByText("라온 문피아 회사분류 확인 샘플")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "pending" } });
 
     expect(screen.getByText("현재 필터 결과 4행 / 전체 5행 · 이슈 연결 행 2건 · 검수 확정 1건")).toBeInTheDocument();
-    expect(screen.queryByText("검은 별의 서점(앱)")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+    expect(screen.queryByText("라온 시리즈 앱 정산 샘플")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온 시리즈 일반 정산 샘플" })).toBeInTheDocument();
   });
 
   it("bulk-confirms and resets the current filtered review rows", async () => {
@@ -721,13 +721,13 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 문피아 회사분류 확인 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "다음 이슈 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
       expect(screen.getByText("이슈 원본: 예스24 · yes24-sr-june.xlsx · 원본 33행")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "연결된 이슈 행만 보기" })).toBeInTheDocument();
     });
@@ -741,12 +741,12 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     fireEvent.change(screen.getByLabelText("회사 필터"), { target: { value: "sr" } });
-    expect(screen.getByRole("heading", { name: "파란 항구의 기록(앱)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "에스알 시리즈 앱 정산 샘플" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
     });
   });
 
@@ -762,7 +762,7 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "고액 미확정 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 일반 정산 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
@@ -779,21 +779,21 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "고액 미확정 다음 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
       expect(screen.getByText("고액 미확정 큐 위치: 2/2 · 마지막 행")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "고액 미확정 이전 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "파란 항구의 기록(앱)" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "에스알 시리즈 앱 정산 샘플" })).toBeInTheDocument();
       expect(screen.getByText("고액 미확정 큐 위치: 1/2 · 처음 행")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "이슈 미확정 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "달빛 회계법" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "에스알 예스24 메일러 확인 샘플" })).toBeInTheDocument();
     });
   });
 
@@ -834,14 +834,14 @@ describe("AutoSettlement UI shell", () => {
     renderActiveBatchApp();
 
     fireEvent.click(screen.getByRole("button", { name: "검수 행 편집" }));
-    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "검은 별의 서점(앱) [수정]" } });
+    fireEvent.change(screen.getByLabelText("메일러 컨텐츠 편집"), { target: { value: "라온 시리즈 앱 정산 샘플 [수정]" } });
     fireEvent.change(screen.getByLabelText("작가 편집"), { target: { value: "한도윤 외 1명" } });
     fireEvent.change(screen.getByLabelText("출판사 편집"), { target: { value: "라온 노벨" } });
     fireEvent.click(screen.getByRole("button", { name: "검수 편집 저장" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱) [수정]" })).toBeInTheDocument();
-      expect(screen.getByDisplayValue("검은 별의 서점(앱) [수정]")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플 [수정]" })).toBeInTheDocument();
+      expect(screen.getByDisplayValue("라온 시리즈 앱 정산 샘플 [수정]")).toBeInTheDocument();
       expect(screen.getByDisplayValue("한도윤 외 1명")).toBeInTheDocument();
       expect(screen.getByDisplayValue("라온 노벨")).toBeInTheDocument();
 
@@ -850,7 +850,7 @@ describe("AutoSettlement UI shell", () => {
       const parsedDraft = JSON.parse(persistedDraft!);
       const editedRow = parsedDraft.rows.find((row: { rowId: string }) => row.rowId === "row-002");
       expect(editedRow).toEqual(expect.objectContaining({
-        mailerContentTitle: "검은 별의 서점(앱) [수정]",
+        mailerContentTitle: "라온 시리즈 앱 정산 샘플 [수정]",
         author: "한도윤 외 1명",
         publisher: "라온 노벨",
       }));
@@ -865,7 +865,7 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 문피아 회사분류 확인 샘플" })).toBeInTheDocument();
       expect(screen.queryByLabelText("메일러 컨텐츠 편집")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "검수 행 편집" })).toBeInTheDocument();
     });
@@ -896,7 +896,7 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.change(screen.getByLabelText("검수 상태 필터"), { target: { value: "held" } });
 
     expect(screen.getByText("현재 필터 결과 1행 / 전체 5행 · 이슈 연결 행 1건 · 검수 확정 0건")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "이 행 검수 확정" }));
 
@@ -927,13 +927,13 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "고액 미확정 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 일반 정산 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "보류 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
       expect(screen.getByText("앱/웹 중복 정산 확인")).toBeInTheDocument();
     });
 
@@ -978,7 +978,7 @@ describe("AutoSettlement UI shell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "다음 미확정 행으로 이동" }));
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "밤의 계산서" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 문피아 회사분류 확인 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "보류 사유 편집" }));
@@ -1008,7 +1008,7 @@ describe("AutoSettlement UI shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 그룹 첫 행 열기" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "검은 별의 서점(앱)" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "라온 시리즈 앱 정산 샘플" })).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "앱/웹 중복 정산 확인 사유 그룹 모두 확정" }));
