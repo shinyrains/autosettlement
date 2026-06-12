@@ -43,8 +43,8 @@ describe("UploadSection", () => {
     expect(screen.getAllByText("calculate_1.csv").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("정산 상세리스트_2026-5.csv").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("공유 대상: 라온이앤엠 + 에스알이앤엠")).toBeInTheDocument();
-    expect(screen.getAllByText("실파일 업로드").length).toBeGreaterThanOrEqual(12);
-    expect(screen.queryByText("grouped 계약 정렬만 반영됨 · 실업로드 연결 예정")).not.toBeInTheDocument();
+    expect(screen.getAllByText("파일 업로드").length).toBeGreaterThanOrEqual(12);
+    expect(screen.queryByText("grouped 계약 정렬만 반영됨 · 파일 업로드 연결 예정")).not.toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 조아라 정산 상세리스트 슬롯 CSV 1-file")).toBeInTheDocument();
@@ -135,6 +135,77 @@ describe("UploadSection", () => {
 
     fireEvent.change(eventEnd, { target: { value: "2026-06-30" } });
     expect(eventInput.disabled).toBe(false);
+  });
+
+  it("uses plain file-upload copy instead of real-file upload copy", () => {
+    render(
+      <UploadSection
+        activeCompany="raon"
+        uploads={mockUploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+      />,
+    );
+
+    expect(screen.getAllByText("파일 업로드").length).toBeGreaterThanOrEqual(12);
+    expect(screen.queryByText("실파일 업로드")).not.toBeInTheDocument();
+  });
+
+  it("locks a shared Onestore upload from the other company after one company has uploaded it", () => {
+    const uploads = mockUploads.map((upload) => (
+      upload.uploadId === "upload-shared-onestore"
+        ? {
+            ...upload,
+            company: "raon" as const,
+            status: "parsed" as const,
+            fileCount: 1,
+            sourceFileNames: ["onestore-raon-shared.xlsx"],
+          }
+        : upload
+    ));
+
+    render(
+      <UploadSection
+        activeCompany="sr"
+        uploads={uploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+      />,
+    );
+
+    const srInput = screen.getByTestId("upload-input-upload-shared-onestore") as HTMLInputElement;
+    expect(srInput.disabled).toBe(true);
+    expect(screen.getByText("라온이앤엠에서 공통 업로드 완료 · 수정은 라온이앤엠 정산에서 진행"))
+      .toBeInTheDocument();
+  });
+
+  it("offers file replacement on the company that owns an already uploaded shared Onestore file", () => {
+    const uploads = mockUploads.map((upload) => (
+      upload.uploadId === "upload-shared-onestore"
+        ? {
+            ...upload,
+            company: "raon" as const,
+            status: "parsed" as const,
+            fileCount: 1,
+            sourceFileNames: ["onestore-raon-shared.xlsx"],
+          }
+        : upload
+    ));
+
+    render(
+      <UploadSection
+        activeCompany="raon"
+        uploads={uploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+      />,
+    );
+
+    const raonInput = screen.getByTestId("upload-input-upload-shared-onestore") as HTMLInputElement;
+    expect(raonInput.disabled).toBe(false);
+    expect(screen.getByText("파일 교체")).toBeInTheDocument();
+    expect(screen.getByText("잘못 올린 파일은 다시 업로드하면 교체됩니다."))
+      .toBeInTheDocument();
   });
 
   it("calls onPassUpload for an intentionally absent required slot", () => {

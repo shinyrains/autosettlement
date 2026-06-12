@@ -72,6 +72,7 @@ function CompanyUploadGroup({
         {uploads.map((upload) => (
           <UploadCard
             key={upload.uploadId}
+            activeCompany={company}
             upload={upload}
             onUploadFiles={onUploadFiles}
             onPassUpload={onPassUpload}
@@ -117,11 +118,13 @@ function createPendingUploadCard(company: Company, platform: Platform): Platform
 }
 
 function UploadCard({
+  activeCompany,
   upload,
   onUploadFiles,
   onPassUpload,
   isUploadEnabled,
 }: {
+  activeCompany: Company;
   upload: PlatformUploadCard;
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
   onPassUpload?: UploadSectionProps["onPassUpload"];
@@ -129,6 +132,9 @@ function UploadCard({
 }) {
   const complete = upload.fileCount >= upload.requiredFileCount;
   const hasSlots = (upload.slots?.length ?? 0) > 0;
+  const sharedUploadOwner = getSharedUploadOwner(upload);
+  const sharedUploadLocked = sharedUploadOwner !== undefined && sharedUploadOwner !== activeCompany;
+  const uploadTarget = sharedUploadOwner === undefined ? { ...upload, company: activeCompany } : upload;
   const canCardUpload = !hasSlots && isUploadEnabled && onUploadFiles !== undefined;
   const canPassCard = !hasSlots
     && upload.fileCount < upload.requiredFileCount
@@ -162,18 +168,28 @@ function UploadCard({
       <p className="mt-3 truncate text-xs text-slate-400">{upload.sourceFileNames[0] ?? "파일 대기"}</p>
       {canCardUpload ? (
         <FileUploadControl
-          target={{ upload }}
+          target={{ upload: uploadTarget }}
+          disabled={sharedUploadLocked}
+          label={complete ? "파일 교체" : "파일 업로드"}
           dataTestId={`upload-input-${upload.uploadId}`}
           acceptAttribute={acceptAttribute}
           description={liveUploadDescription}
           onUploadFiles={onUploadFiles}
         />
       ) : null}
+      {canCardUpload && sharedUploadLocked && sharedUploadOwner ? (
+        <p className="mt-2 text-xs text-amber">
+          {companyLabels[sharedUploadOwner]}에서 공통 업로드 완료 · 수정은 {companyLabels[sharedUploadOwner]} 정산에서 진행
+        </p>
+      ) : null}
+      {canCardUpload && !sharedUploadLocked && complete ? (
+        <p className="mt-2 text-xs text-slate-400">잘못 올린 파일은 다시 업로드하면 교체됩니다.</p>
+      ) : null}
       {canPassCard ? (
         <PassUploadButton label={upload.platformLabel} onClick={() => onPassUpload?.({ upload })} />
       ) : null}
       {!canCardUpload && !hasSlots ? (
-        <p className="mt-3 text-xs text-slate-500">실업로드 연결 예정</p>
+        <p className="mt-3 text-xs text-slate-500">파일 업로드 연결 예정</p>
       ) : null}
       {upload.requiredFileCount === 6 ? (
         <p className="mt-2 rounded border border-line bg-ink-950 px-2 py-1 text-xs text-slate-300">필수 6개: 일반 3개 + 앱 3개</p>
@@ -191,12 +207,20 @@ function UploadCard({
             />
           ))}
           {!hasAnyLiveSlot ? (
-            <p className="text-xs text-slate-500">grouped 계약 정렬만 반영됨 · 실업로드 연결 예정</p>
+            <p className="text-xs text-slate-500">grouped 계약 정렬만 반영됨 · 파일 업로드 연결 예정</p>
           ) : null}
         </div>
       ) : null}
     </article>
   );
+}
+
+function getSharedUploadOwner(upload: PlatformUploadCard): Company | undefined {
+  if ((upload.sharedCompanies?.length ?? 0) <= 1 || upload.fileCount < upload.requiredFileCount) {
+    return undefined;
+  }
+
+  return upload.company;
 }
 
 function getRequiredSlotFileCounts(upload: PlatformUploadCard): Map<string, number> {
@@ -257,7 +281,7 @@ function SlotUploadCard({
           onUploadFiles={onUploadFiles}
         />
       ) : (
-        <p className="mt-2 text-xs text-slate-500">실업로드 연결 예정</p>
+        <p className="mt-2 text-xs text-slate-500">파일 업로드 연결 예정</p>
       )}
       {canPass ? <PassUploadButton label={slot.label} onClick={() => onPassUpload(target)} /> : null}
     </div>
@@ -278,12 +302,16 @@ function PassUploadButton({ label, onClick }: { label: string; onClick: () => vo
 
 function FileUploadControl({
   target,
+  disabled = false,
+  label = "파일 업로드",
   dataTestId,
   acceptAttribute,
   description,
   onUploadFiles,
 }: {
   target: LiveUploadTarget;
+  disabled?: boolean;
+  label?: string;
   dataTestId: string;
   acceptAttribute: string;
   description: string | undefined;
@@ -299,6 +327,7 @@ function FileUploadControl({
   const [eventStartDate, setEventStartDate] = useState(() => persistedEventPeriod?.startDate ?? "");
   const [eventEndDate, setEventEndDate] = useState(() => persistedEventPeriod?.endDate ?? "");
   const hasRidibooksEventPeriod = !needsRidibooksEventPeriod || (eventStartDate.trim() !== "" && eventEndDate.trim() !== "");
+  const inputDisabled = disabled || !hasRidibooksEventPeriod;
   const uploadTarget = needsRidibooksEventPeriod
     ? {
         ...target,
@@ -342,7 +371,7 @@ function FileUploadControl({
         type="file"
         accept={acceptAttribute}
         multiple={allowMultiple}
-        disabled={!hasRidibooksEventPeriod}
+        disabled={inputDisabled}
         className="hidden"
         onChange={async (event) => {
           const files = Array.from(event.currentTarget.files ?? []);
@@ -364,10 +393,10 @@ function FileUploadControl({
         htmlFor={inputId}
         className={[
           "inline-flex items-center rounded-md border border-line bg-ink-950 px-3 py-2 text-xs font-semibold text-slate-200 transition",
-          hasRidibooksEventPeriod ? "cursor-pointer hover:bg-ink-900" : "cursor-not-allowed opacity-60",
+          inputDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-ink-900",
         ].join(" ")}
       >
-        {isUploading ? "처리 중..." : "실파일 업로드"}
+        {isUploading ? "처리 중..." : label}
       </label>
       {description ? <p className="text-xs text-slate-400">현재 live path: {description}</p> : null}
     </div>

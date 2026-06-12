@@ -1545,6 +1545,7 @@ describe("AutoSettlement UI shell", () => {
       const liveUpload = parsedDraft.uploads.find((upload: { uploadId: string }) => upload.uploadId === "upload-shared-onestore");
       expect(liveUpload).toEqual(expect.objectContaining({
         status: "parsed",
+        company: "raon",
         fileCount: 1,
         parsedRowCount: 13209,
         sourceFileNames: ["정산내역_20260608_163327.xlsx"],
