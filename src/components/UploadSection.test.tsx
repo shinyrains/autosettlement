@@ -10,17 +10,20 @@ afterEach(() => {
 });
 
 describe("UploadSection", () => {
-  it("renders grouped-slot cards for munpia, series, ridibooks, and joara plus the current live upload cards", () => {
+  it("renders company-mode upload cards in the shared platform order with the Onestore exception", () => {
     render(
       <UploadSection
+        activeCompany="raon"
         uploads={mockUploads}
         isUploadEnabled={isLiveUploadEnabled}
         onUploadFiles={async () => {}}
       />,
     );
 
+    expect(screen.getByText("회사 모드: 라온이앤엠")).toBeInTheDocument();
+    expect(screen.getByText("전체 플랫폼 16개 · 원스토어는 양사 공유 업로드")).toBeInTheDocument();
     expect(screen.getByText("문피아")).toBeInTheDocument();
-    expect(screen.getAllByText("슬롯 상태").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("슬롯 상태").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText("정산 파일")).toBeInTheDocument();
     expect(screen.getByText("작가 보정")).toBeInTheDocument();
     expect(screen.getByText("기본 정산")).toBeInTheDocument();
@@ -29,37 +32,50 @@ describe("UploadSection", () => {
     expect(screen.getByText("MG 보정")).toBeInTheDocument();
     expect(screen.getByText("정산 상세리스트")).toBeInTheDocument();
     expect(screen.getByText("작품별 정산리스트")).toBeInTheDocument();
-    expect(screen.getAllByText("일반 매출 3개").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("앱 매출 3개").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("일반 매출 3개").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("앱 매출 3개").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("required · xlsx")).toBeInTheDocument();
-    expect(screen.getAllByText("required · csv").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("required · csv").length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByText("optional · csv").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("optional · csv/xlsx").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("required · html_xls").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("required · html_xls").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("munpia-author-correction.csv")).toBeInTheDocument();
-    expect(screen.getAllByText("calculate_1.csv").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("정산 상세리스트_2026-5.csv").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("공유 업로드 영역")).toBeInTheDocument();
+    expect(screen.getAllByText("calculate_1.csv").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("정산 상세리스트_2026-5.csv").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("공유 대상: 라온이앤엠 + 에스알이앤엠")).toBeInTheDocument();
-    expect(screen.getAllByText("실파일 업로드")).toHaveLength(24);
+    expect(screen.getAllByText("실파일 업로드").length).toBeGreaterThanOrEqual(12);
     expect(screen.queryByText("grouped 계약 정렬만 반영됨 · 실업로드 연결 예정")).not.toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 조아라 정산 상세리스트 슬롯 CSV 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 조아라 작품별 정산리스트 슬롯 CSV 1-file")).toBeInTheDocument();
-    expect(screen.getAllByText("현재 live path: 시리즈 일반 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("현재 live path: 시리즈 앱 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("현재 live path: 미스터블루 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getAllByText("현재 live path: 시리즈 일반 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("현재 live path: 시리즈 앱 슬롯 HTML-XLS 3-file").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("현재 live path: 판무림 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 북큐브 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 에피루스 단일 CSV 1-file")).toBeInTheDocument();
-    expect(screen.getByText("현재 live path: 예스24 단일 XLSX 1-file")).toBeInTheDocument();
-    expect(screen.getByText("현재 live path: 알라딘 단일 CSV 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 구루컴퍼니 단일 CSV 1-file")).toBeInTheDocument();
-    expect(screen.getByText("현재 live path: 교보문고 단일 XLSX 1-file")).toBeInTheDocument();
-    expect(screen.getByText("현재 live path: 카카오페이지 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 무툰 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 노벨피아 단일 HTML-XLS 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 원스토어 공유 XLSX 1-file (raon+sr 동시 반영)")).toBeInTheDocument();
+
+    cleanup();
+    render(
+      <UploadSection
+        activeCompany="sr"
+        uploads={mockUploads}
+        isUploadEnabled={isLiveUploadEnabled}
+        onUploadFiles={async () => {}}
+      />,
+    );
+
+    expect(screen.getByText("회사 모드: 에스알이앤엠")).toBeInTheDocument();
+    expect(screen.getByText("전체 플랫폼 16개 · 원스토어는 양사 공유 업로드")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 미스터블루 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 예스24 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 알라딘 단일 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 교보문고 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 카카오페이지 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 원스토어 공유 XLSX 1-file (raon+sr 동시 반영)")).toBeInTheDocument();
   });
 

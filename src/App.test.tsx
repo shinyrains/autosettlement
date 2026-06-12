@@ -11,6 +11,7 @@ import {
   saveAppDraftState,
 } from "./state/appState";
 import { resetLiveUploadRuntimeState } from "./state/uploadMutation";
+import type { Company } from "./types/settlement";
 
 afterEach(() => {
   cleanup();
@@ -18,8 +19,8 @@ afterEach(() => {
   window.localStorage.removeItem(APP_STATE_STORAGE_KEY);
 });
 
-function renderActiveBatchApp() {
-  return render(<App initialView="shell" />);
+function renderActiveBatchApp(initialCompany: Company = "raon") {
+  return render(<App initialView="shell" initialCompany={initialCompany} />);
 }
 
 function readMisterblueSampleWorkbook(): Uint8Array {
@@ -325,7 +326,35 @@ describe("AutoSettlement UI shell", () => {
 
     expect(screen.getByRole("heading", { name: "배치 목록 / 배치 진입" })).toBeInTheDocument();
     expect(screen.getByText("저장된 배치 없음")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "라온이앤엠 배치 시작" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "에스알이앤엠 배치 시작" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "이 배치 열기" })).not.toBeInTheDocument();
+  });
+
+  it("opens company-mode batch screens with the same platform card order and shared Onestore exception", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "에스알이앤엠 배치 시작" }));
+
+    expect(screen.getByText("회사 모드: 에스알이앤엠")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "에스알이앤엠 업로드 영역" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "라온이앤엠 업로드 영역" })).not.toBeInTheDocument();
+    expect(screen.getByText("전체 플랫폼 16개 · 원스토어는 양사 공유 업로드")).toBeInTheDocument();
+    expect(screen.getAllByText("원스토어 (공유)").length).toBeGreaterThan(0);
+    expect(screen.getByText("공유 대상: 라온이앤엠 + 에스알이앤엠")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 원스토어 공유 XLSX 1-file (raon+sr 동시 반영)")).toBeInTheDocument();
+    expect(screen.getAllByText("판무림").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("문피아").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "배치 목록으로" }));
+    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 배치 열기" }));
+
+    expect(screen.getByText("회사 모드: 라온이앤엠")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "라온이앤엠 업로드 영역" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "에스알이앤엠 업로드 영역" })).not.toBeInTheDocument();
+    expect(screen.getByText("전체 플랫폼 16개 · 원스토어는 양사 공유 업로드")).toBeInTheDocument();
+    expect(screen.getAllByText("미스터블루").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("원스토어 (공유)").length).toBeGreaterThan(0);
   });
 
   it("opens the persisted batch shell from the batch list page", () => {
@@ -523,7 +552,7 @@ describe("AutoSettlement UI shell", () => {
   it("executes the limited user test scenario from batch entry through review and export gate", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "새 배치 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "라온이앤엠 배치 시작" }));
 
     expect(screen.getByRole("heading", { name: "2026-06 정산 배치" })).toBeInTheDocument();
     expect(screen.getByText("원스토어 (공유)")).toBeInTheDocument();
@@ -1065,7 +1094,7 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("parses a real misterblue workbook through the live upload card and persists the new draft", async () => {
-    renderActiveBatchApp();
+    renderActiveBatchApp("sr");
 
     const input = screen.getByTestId("upload-input-upload-sr-misterblue") as HTMLInputElement;
     const bytes = readMisterblueSampleWorkbook().slice();
@@ -1197,7 +1226,7 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("parses a real yes24 workbook through the live upload card and persists the new draft", async () => {
-    renderActiveBatchApp();
+    renderActiveBatchApp("sr");
 
     const input = screen.getByTestId("upload-input-upload-sr-yes24") as HTMLInputElement;
     const bytes = readYes24SampleWorkbook().slice();
@@ -1230,7 +1259,7 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("parses a real aladin csv through the live upload card and persists the new draft", async () => {
-    renderActiveBatchApp();
+    renderActiveBatchApp("sr");
 
     const input = screen.getByTestId("upload-input-upload-sr-aladin") as HTMLInputElement;
     const bytes = readAladinSampleCsv().slice();
@@ -1296,7 +1325,7 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("parses a real kyobo workbook through the live upload card and persists the new draft", async () => {
-    renderActiveBatchApp();
+    renderActiveBatchApp("sr");
 
     const input = screen.getByTestId("upload-input-upload-sr-kyobo") as HTMLInputElement;
     const bytes = readKyoboSampleWorkbook().slice();
@@ -1329,7 +1358,7 @@ describe("AutoSettlement UI shell", () => {
   });
 
   it("parses a real kakao page workbook through the live upload card and persists the new draft", async () => {
-    renderActiveBatchApp();
+    renderActiveBatchApp("sr");
 
     const input = screen.getByTestId("upload-input-upload-sr-kakao-page") as HTMLInputElement;
     const bytes = readKakaoPageSampleWorkbook().slice();

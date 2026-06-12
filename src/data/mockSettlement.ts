@@ -38,6 +38,25 @@ export const platformLabels: Record<Platform, string> = {
   ridibooks: "리디북스",
 };
 
+export const uploadPlatformOrder: Platform[] = [
+  "series",
+  "munpia",
+  "ridibooks",
+  "joara",
+  "epyrus",
+  "panmurim",
+  "bookcube",
+  "mootoon",
+  "novelpia",
+  "guru_company",
+  "kyobo",
+  "kakao_page",
+  "yes24",
+  "aladin",
+  "misterblue",
+  "onestore",
+];
+
 const mockBatchId = "batch-2026-06";
 
 export const mockUploads: PlatformUploadCard[] = [

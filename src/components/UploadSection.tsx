@@ -2,6 +2,8 @@ import { Building2 } from "lucide-react";
 import { useId, useState } from "react";
 import {
   companyLabels,
+  platformLabels,
+  uploadPlatformOrder,
   type PlatformUploadCard,
 } from "../data/mockSettlement";
 import {
@@ -10,64 +12,28 @@ import {
   isLiveUploadSlotEnabled,
   type LiveUploadTarget,
 } from "../state/uploadMutation";
-import type { BatchPlatformUploadSlot, BatchPlatformUploadSlotKey, Company } from "../types/settlement";
+import type { BatchPlatformUploadSlot, BatchPlatformUploadSlotKey, Company, Platform } from "../types/settlement";
 import { MiniMetric, StatusBadge } from "./ShellPrimitives";
 
 const RIDIBOOKS_GROUPED_SNAPSHOT_STORAGE_KEY = "autosettlement.ridibooks-grouped-slot-snapshots.v1";
 
 type UploadSectionProps = {
+  activeCompany?: Company;
   uploads: PlatformUploadCard[];
   onUploadFiles?: (target: LiveUploadTarget, files: File[]) => Promise<void> | void;
   isUploadEnabled?: (upload: PlatformUploadCard) => boolean;
 };
 
-export function UploadSection({ uploads, onUploadFiles, isUploadEnabled }: UploadSectionProps) {
-  const sharedUploads = uploads.filter((upload) => (upload.sharedCompanies?.length ?? 0) > 1);
+export function UploadSection({ activeCompany = "raon", uploads, onUploadFiles, isUploadEnabled }: UploadSectionProps) {
+  const modeUploads = getCompanyModeUploads(uploads, activeCompany);
   return (
     <section id="step-1" className="space-y-5">
-      {sharedUploads.length > 0 ? (
-        <SharedUploadGroup uploads={sharedUploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
-      ) : null}
-      <div className="grid grid-cols-2 gap-5">
-        <CompanyUploadGroup company="raon" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
-        <CompanyUploadGroup company="sr" uploads={uploads} onUploadFiles={onUploadFiles} isUploadEnabled={isUploadEnabled} />
-      </div>
-    </section>
-  );
-}
-
-function SharedUploadGroup({
-  uploads,
-  onUploadFiles,
-  isUploadEnabled,
-}: {
-  uploads: PlatformUploadCard[];
-  onUploadFiles?: UploadSectionProps["onUploadFiles"];
-  isUploadEnabled?: UploadSectionProps["isUploadEnabled"];
-}) {
-  const readyCount = uploads.filter((upload) => upload.status === "parsed").length;
-  return (
-    <section className="rounded-md border border-line bg-ink-850">
-      <div className="flex items-center justify-between border-b border-line px-5 py-4">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-5 w-5 text-signal" />
-          <div>
-            <h2 className="text-lg font-semibold tracking-normal">공유 업로드 영역</h2>
-            <p className="text-sm text-slate-400">여러 회사 slice를 동시에 교체하는 공용 카드</p>
-          </div>
-        </div>
-        <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">{readyCount}/{uploads.length}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 p-4">
-        {uploads.map((upload) => (
-          <UploadCard
-            key={upload.uploadId}
-            upload={upload}
-            onUploadFiles={onUploadFiles}
-            isUploadEnabled={isUploadEnabled?.(upload) ?? false}
-          />
-        ))}
-      </div>
+      <CompanyUploadGroup
+        company={activeCompany}
+        uploads={modeUploads}
+        onUploadFiles={onUploadFiles}
+        isUploadEnabled={isUploadEnabled}
+      />
     </section>
   );
 }
@@ -83,7 +49,7 @@ function CompanyUploadGroup({
   onUploadFiles?: UploadSectionProps["onUploadFiles"];
   isUploadEnabled?: UploadSectionProps["isUploadEnabled"];
 }) {
-  const uploads = allUploads.filter((upload) => upload.company === company && (upload.sharedCompanies?.length ?? 0) <= 1);
+  const uploads = allUploads;
   const readyCount = uploads.filter((upload) => upload.status === "parsed").length;
   return (
     <section className="rounded-md border border-line bg-ink-850">
@@ -92,7 +58,8 @@ function CompanyUploadGroup({
           <Building2 className="h-5 w-5 text-signal" />
           <div>
             <h2 className="text-lg font-semibold tracking-normal">{companyLabels[company]} 업로드 영역</h2>
-            <p className="text-sm text-slate-400">플랫폼 카드 단위 mock 상태</p>
+            <p className="text-sm text-slate-400">회사 모드: {companyLabels[company]}</p>
+            <p className="text-sm text-slate-400">전체 플랫폼 {uploads.length}개 · 원스토어는 양사 공유 업로드</p>
           </div>
         </div>
         <span className="rounded-md border border-line px-3 py-1 font-mono text-sm text-mint">{readyCount}/{uploads.length}</span>
@@ -109,6 +76,39 @@ function CompanyUploadGroup({
       </div>
     </section>
   );
+}
+
+function getCompanyModeUploads(allUploads: PlatformUploadCard[], company: Company): PlatformUploadCard[] {
+  return uploadPlatformOrder.map((platform) => {
+    const sharedUpload = allUploads.find((upload) => upload.platform === platform && (upload.sharedCompanies?.length ?? 0) > 1);
+    if (sharedUpload) {
+      return sharedUpload;
+    }
+
+    const companyUpload = allUploads.find((upload) => upload.company === company && upload.platform === platform);
+    if (companyUpload) {
+      return companyUpload;
+    }
+
+    return createPendingUploadCard(company, platform);
+  });
+}
+
+function createPendingUploadCard(company: Company, platform: Platform): PlatformUploadCard {
+  return {
+    uploadId: `upload-${company}-${platform.replace(/_/g, "-")}-pending`,
+    batchId: "batch-2026-06",
+    company,
+    platform,
+    platformLabel: platformLabels[platform],
+    category: platform === "series" ? "series" : "domestic",
+    status: "empty",
+    fileCount: 0,
+    requiredFileCount: 1,
+    sourceFileNames: [],
+    parsedRowCount: 0,
+    issueCount: 0,
+  };
 }
 
 function UploadCard({

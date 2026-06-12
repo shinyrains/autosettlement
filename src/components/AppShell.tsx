@@ -17,7 +17,7 @@ import {
   isLiveUploadEnabled,
   type LiveUploadTarget,
 } from "../state/uploadMutation";
-import type { SettlementRow } from "../types/settlement";
+import type { Company, SettlementRow } from "../types/settlement";
 import { BatchHeader } from "./BatchHeader";
 import { ExportSection } from "./ExportSection";
 import { ReviewSection } from "./ReviewSection";
@@ -27,11 +27,12 @@ import { UploadSection } from "./UploadSection";
 import { WorkflowStrip } from "./WorkflowStrip";
 
 type AppShellProps = {
+  activeCompany?: Company;
   uploadMutationDependencies?: Parameters<typeof applyLiveUploadMutation>[3];
   onBackToBatchList?: () => void;
 };
 
-export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppShellProps = {}) {
+export function AppShell({ activeCompany = "raon", uploadMutationDependencies, onBackToBatchList }: AppShellProps = {}) {
   const {
     state,
     setSelectedRowId,
@@ -118,6 +119,7 @@ export function AppShell({ uploadMutationDependencies, onBackToBatchList }: AppS
           <div className="mx-auto flex max-w-[1660px] flex-col gap-6 px-8 py-6">
             <WorkflowStrip />
             <UploadSection
+              activeCompany={activeCompany}
               uploads={state.uploads}
               onUploadFiles={handleUploadFiles}
               isUploadEnabled={isLiveUploadEnabled}
