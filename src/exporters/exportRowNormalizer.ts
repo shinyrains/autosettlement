@@ -8,11 +8,21 @@ export function normalizeExportWorkTitle(title: string): string {
     previous = normalized;
     normalized = normalized
       .replace(/\s*[\[\(（](?:완결|외전)[\]\)）]\s*$/, "")
-      .replace(/\s+\d+(?:-\d+)?\s*권?$/, "")
+      .replace(/\s+\d+(?:-\d+)?\s*권$/, "")
       .trim();
+
+    if (containsHangul(normalized)) {
+      normalized = normalized
+        .replace(/\s+\d+(?:-\d+)?\s*$/, "")
+        .trim();
+    }
   }
 
   return normalized;
+}
+
+function containsHangul(value: string): boolean {
+  return /[가-힣]/.test(value);
 }
 
 export function normalizeAggregateExportRows(rows: SettlementRow[]): SettlementRow[] {

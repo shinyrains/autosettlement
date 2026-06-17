@@ -68,6 +68,61 @@ function createFile(input: {
   };
 }
 
+function createSettlementLikeRow(input: {
+  workTitle: string;
+  author: string;
+  grossSales: number;
+  settlementAmount: number;
+  publisher?: string;
+  mailerContentTitle?: string;
+  sourceFileName?: string;
+  sourceRowIndex?: number;
+}): TabularRow {
+  return {
+    workTitle: input.workTitle,
+    mailerContentTitle: input.mailerContentTitle ?? input.workTitle,
+    author: input.author,
+    publisher: input.publisher,
+    grossSales: input.grossSales,
+    settlementAmount: input.settlementAmount,
+    sourceFileName: input.sourceFileName ?? "settlement-like.csv",
+    sourceRowIndex: input.sourceRowIndex ?? 1,
+  };
+}
+
+function createSettlementLikeDependencies() {
+  return {
+    adapters: {
+      csv: (_context: FileAdapterContext, file: unknown): FileAdapterResult => ({
+        rows: Array.isArray(file) ? file as TabularRow[] : [file as TabularRow],
+        issues: [],
+      }),
+      xlsx: (_context: FileAdapterContext, file: unknown): FileAdapterResult => ({
+        rows: Array.isArray(file) ? file as TabularRow[] : [file as TabularRow],
+        issues: [],
+      }),
+    },
+    parseRows: (platform: Platform, context: { batchId: string; company: Company; saleMonth: string; sourceFileName: string }, rows: TabularRow[]) => ({
+      rows: rows.map((row, index): SettlementRow => ({
+        rowId: [context.batchId, platform, context.company, row.sourceFileName ?? context.sourceFileName, row.sourceRowIndex ?? index + 1].join("-"),
+        company: context.company,
+        platform,
+        saleMonth: context.saleMonth,
+        workTitle: String(row.workTitle ?? ""),
+        mailerContentTitle: String(row.mailerContentTitle ?? row.workTitle ?? ""),
+        author: String(row.author ?? ""),
+        ...(String(row.publisher ?? "").trim() !== "" ? { publisher: String(row.publisher) } : {}),
+        grossSales: Number(row.grossSales ?? 0),
+        settlementAmount: Number(row.settlementAmount ?? 0),
+        sourceFileName: String(row.sourceFileName ?? context.sourceFileName),
+        sourceRowIndex: Number(row.sourceRowIndex ?? index + 1),
+        issues: [],
+      })),
+      issues: [],
+    }),
+  };
+}
+
 function createSeriesRow(input: {
   sourceFileName: string;
   amount: number;
@@ -757,13 +812,6 @@ describe("batch parse orchestrator", () => {
         sourceFileName: "series-general-1.xls",
       }),
       expect.objectContaining({
-        workTitle: "Sanitized Series Work 5",
-        mailerContentTitle: "Sanitized Series Work 5",
-        grossSales: 0,
-        settlementAmount: 0,
-        sourceFileName: "series-general-1.xls",
-      }),
-      expect.objectContaining({
         workTitle: "Sanitized Series Work 1",
         mailerContentTitle: "Sanitized Series Work 1(app)",
         grossSales: 10500,
@@ -789,13 +837,6 @@ describe("batch parse orchestrator", () => {
         mailerContentTitle: "Sanitized Series Work 4(app)",
         grossSales: 1500,
         settlementAmount: 1018.5,
-        sourceFileName: "series-app-1.xls",
-      }),
-      expect.objectContaining({
-        workTitle: "Sanitized Series Work 5",
-        mailerContentTitle: "Sanitized Series Work 5(app)",
-        grossSales: 0,
-        settlementAmount: 0,
         sourceFileName: "series-app-1.xls",
       }),
     ]);
@@ -1268,17 +1309,17 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(151);
+    expect(result.rows).toHaveLength(15);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         platform: "epyrus",
         saleMonth: "2026-04",
-        workTitle: "그의 비밀 2",
-        mailerContentTitle: "그의 비밀 2",
+        workTitle: "그의 비밀",
+        mailerContentTitle: "그의 비밀",
         author: "시커먼스",
         publisher: "라온E＆M",
-        grossSales: 2720,
-        settlementAmount: 1904,
+        grossSales: 8160,
+        settlementAmount: 5712,
         sourceFileName: "2026년04월정산내역_라온E＆M.csv",
         sourceRowIndex: 2,
       }),
@@ -1341,17 +1382,17 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(354);
+    expect(result.rows).toHaveLength(29);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         platform: "panmurim",
         saleMonth: "2026-05",
-        workTitle: "그의 비밀 2권",
-        mailerContentTitle: "그의 비밀 2권",
+        workTitle: "그의 비밀",
+        mailerContentTitle: "그의 비밀",
         author: "시커먼스",
         publisher: "라온E&M",
-        grossSales: 3200,
-        settlementAmount: 2240,
+        grossSales: 9600,
+        settlementAmount: 6720,
         sourceFileName: "（주）라온이앤엠_2026년 5월.xlsx",
         sourceRowIndex: 5,
       }),
@@ -1374,17 +1415,17 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(5);
+    expect(result.rows).toHaveLength(1);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         platform: "bookcube",
         saleMonth: "2026-05",
-        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
-        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
+        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다",
+        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다",
         author: "봄날의복길이",
         publisher: "B cafe",
-        grossSales: 3000,
-        settlementAmount: 2100,
+        grossSales: 15000,
+        settlementAmount: 10500,
         sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
         sourceRowIndex: 3,
       }),
@@ -1407,18 +1448,18 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(13209);
+    expect(result.rows).toHaveLength(11321);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",
         platform: "onestore",
         saleMonth: "2026-06",
-        workTitle: "레이드 커맨더 4권",
-        mailerContentTitle: "레이드 커맨더 4권",
+        workTitle: "레이드 커맨더",
+        mailerContentTitle: "레이드 커맨더",
         author: "산호초",
         publisher: "Arete",
-        grossSales: 3200,
-        settlementAmount: 2016,
+        grossSales: 28800,
+        settlementAmount: 18144,
         sourceFileName: "정산내역_20260608_163327.xlsx",
         sourceRowIndex: 3,
       }),
@@ -1441,18 +1482,18 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(207);
+    expect(result.rows).toHaveLength(98);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",
         platform: "kakao_page",
         saleMonth: "2026-05",
-        workTitle: "둠스데이 [완결]",
-        mailerContentTitle: "둠스데이 [완결]",
+        workTitle: "둠스데이",
+        mailerContentTitle: "둠스데이",
         author: "산호초",
         publisher: "Arete",
-        grossSales: 2340,
-        settlementAmount: 1499,
+        grossSales: 25940,
+        settlementAmount: 17298,
         sourceFileName: "카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx",
         sourceRowIndex: 3,
       }),
@@ -1687,6 +1728,163 @@ describe("batch parse orchestrator", () => {
     expect(result.fileResults).toEqual([
       expect.objectContaining({ fileName: "joara-detail.csv", platform: "joara", status: "success", issueCount: 0 }),
       expect.objectContaining({ fileName: "joara-work.csv", platform: "joara", status: "failed", issueCount: 1 }),
+    ]);
+  });
+
+  it("normalizes work titles, aggregates equal parsed works, and excludes zero-sales rows in batch results", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-normalized-works",
+        files: [
+          createFile({
+            company: "raon",
+            platform: "aladin",
+            fileName: "aladin-1.csv",
+            content: [
+              createSettlementLikeRow({
+                workTitle: "무당괴공 01",
+                author: "작가A",
+                publisher: "비카페",
+                grossSales: 1000,
+                settlementAmount: 400,
+                sourceFileName: "aladin-1.csv",
+                sourceRowIndex: 1,
+              }),
+              createSettlementLikeRow({
+                workTitle: "무당괴공 12 (완결)",
+                author: "작가A",
+                publisher: "비카페",
+                grossSales: 3000,
+                settlementAmount: 1200,
+                sourceFileName: "aladin-1.csv",
+                sourceRowIndex: 2,
+              }),
+              createSettlementLikeRow({
+                workTitle: "무당괴공 13권 [완결]",
+                author: "작가A",
+                publisher: "비카페",
+                grossSales: 2000,
+                settlementAmount: 800,
+                sourceFileName: "aladin-1.csv",
+                sourceRowIndex: 3,
+              }),
+              createSettlementLikeRow({
+                workTitle: "무당괴공 14권",
+                author: "작가A",
+                publisher: "비카페",
+                grossSales: 0,
+                settlementAmount: 999,
+                sourceFileName: "aladin-1.csv",
+                sourceRowIndex: 4,
+              }),
+            ],
+          }),
+          createFile({
+            company: "raon",
+            platform: "kyobo",
+            fileName: "kyobo.csv",
+            content: [
+              createSettlementLikeRow({
+                workTitle: "기사의 일기(Diary of a Knight) 15",
+                author: "작가B",
+                publisher: "아레테",
+                grossSales: 500,
+                settlementAmount: 200,
+                sourceFileName: "kyobo.csv",
+                sourceRowIndex: 1,
+              }),
+            ],
+          }),
+        ],
+      },
+      createSettlementLikeDependencies(),
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        company: "raon",
+        platform: "aladin",
+        workTitle: "무당괴공",
+        mailerContentTitle: "무당괴공",
+        publisher: "비카페",
+        grossSales: 6000,
+        settlementAmount: 2400,
+        sourceFileName: "aladin-1.csv",
+        sourceRowIndex: 1,
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "kyobo",
+        workTitle: "기사의 일기(Diary of a Knight)",
+        mailerContentTitle: "기사의 일기(Diary of a Knight)",
+        publisher: "아레테",
+        grossSales: 500,
+        settlementAmount: 200,
+      }),
+    ]);
+  });
+
+  it("keeps Yes24 publisher names distinct when normalized work titles are equal", () => {
+    const result = runBatchParseOrchestrator(
+      {
+        batchId: "batch-yes24-publisher",
+        files: [
+          createFile({
+            company: "sr",
+            platform: "yes24",
+            fileName: "yes24.csv",
+            content: [
+              createSettlementLikeRow({
+                workTitle: "창천마신 10",
+                author: "작가C",
+                publisher: "아레테",
+                grossSales: 1000,
+                settlementAmount: 400,
+                sourceFileName: "yes24.csv",
+                sourceRowIndex: 1,
+              }),
+              createSettlementLikeRow({
+                workTitle: "창천마신 11",
+                author: "작가C",
+                publisher: "아레테",
+                grossSales: 3000,
+                settlementAmount: 1200,
+                sourceFileName: "yes24.csv",
+                sourceRowIndex: 2,
+              }),
+              createSettlementLikeRow({
+                workTitle: "창천마신 12",
+                author: "작가C",
+                publisher: "비카페",
+                grossSales: 2000,
+                settlementAmount: 800,
+                sourceFileName: "yes24.csv",
+                sourceRowIndex: 3,
+              }),
+            ],
+          }),
+        ],
+      },
+      createSettlementLikeDependencies(),
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        platform: "yes24",
+        workTitle: "창천마신",
+        publisher: "아레테",
+        grossSales: 4000,
+        settlementAmount: 1600,
+      }),
+      expect.objectContaining({
+        platform: "yes24",
+        workTitle: "창천마신",
+        publisher: "비카페",
+        grossSales: 2000,
+        settlementAmount: 800,
+      }),
     ]);
   });
 

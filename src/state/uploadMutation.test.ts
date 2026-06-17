@@ -868,20 +868,20 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 354,
+      parsedRowCount: 29,
       issueCount: 0,
       sourceFileNames: ["（주）라온이앤엠_2026년 5월.xlsx"],
       lastUploadedAt: "2026-06-10T00:01:00+09:00",
     }));
 
     const panmurimRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "panmurim");
-    expect(panmurimRows).toHaveLength(354);
+    expect(panmurimRows).toHaveLength(29);
     expect(panmurimRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "그의 비밀 2권",
-        mailerContentTitle: "그의 비밀 2권",
-        grossSales: 3200,
-        settlementAmount: 2240,
+        workTitle: "그의 비밀",
+        mailerContentTitle: "그의 비밀",
+        grossSales: 9600,
+        settlementAmount: 6720,
         sourceFileName: "（주）라온이앤엠_2026년 5월.xlsx",
       }),
     ]));
@@ -912,20 +912,20 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 5,
+      parsedRowCount: 1,
       issueCount: 0,
       sourceFileNames: ["북큐브 상세매출 2026-5~2026-5 (1).xlsx"],
       lastUploadedAt: "2026-06-10T00:15:00+09:00",
     }));
 
     const bookcubeRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "bookcube");
-    expect(bookcubeRows).toHaveLength(5);
+    expect(bookcubeRows).toHaveLength(1);
     expect(bookcubeRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
-        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다 1",
-        grossSales: 3000,
-        settlementAmount: 2100,
+        workTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다",
+        mailerContentTitle: "짝사랑을 끝냈더니 소꿉친구들이 나에게 집착한다",
+        grossSales: 15000,
+        settlementAmount: 10500,
         publisher: "B cafe",
         sourceFileName: "북큐브 상세매출 2026-5~2026-5 (1).xlsx",
       }),
@@ -957,22 +957,22 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 151,
+      parsedRowCount: 15,
       issueCount: 0,
       sourceFileNames: ["2026년04월정산내역_라온E＆M.csv"],
       lastUploadedAt: "2026-06-10T00:20:00+09:00",
     }));
 
     const epyrusRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "epyrus");
-    expect(epyrusRows).toHaveLength(151);
+    expect(epyrusRows).toHaveLength(15);
     expect(epyrusRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "그의 비밀 2",
-        mailerContentTitle: "그의 비밀 2",
+        workTitle: "그의 비밀",
+        mailerContentTitle: "그의 비밀",
         author: "시커먼스",
         publisher: "라온E＆M",
-        grossSales: 2720,
-        settlementAmount: 1904,
+        grossSales: 8160,
+        settlementAmount: 5712,
         sourceFileName: "2026년04월정산내역_라온E＆M.csv",
       }),
     ]));
@@ -1003,22 +1003,22 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 15,
+      parsedRowCount: 2,
       issueCount: 0,
       sourceFileNames: ["B2C_List_260608_153729.xlsx"],
       lastUploadedAt: "2026-06-10T00:30:00+09:00",
     }));
 
     const yes24Rows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "yes24");
-    expect(yes24Rows).toHaveLength(15);
+    expect(yes24Rows).toHaveLength(2);
     expect(yes24Rows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "나 혼자 히든농장 01권",
-        mailerContentTitle: "나 혼자 히든농장 01권",
+        workTitle: "회귀자의 로열라이프",
+        mailerContentTitle: "회귀자의 로열라이프",
         author: "한얼23",
         publisher: "Arete",
-        grossSales: 0,
-        settlementAmount: 0,
+        grossSales: 24000,
+        settlementAmount: 16800,
         sourceFileName: "B2C_List_260608_153729.xlsx",
       }),
     ]));
@@ -1049,22 +1049,22 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 80,
+      parsedRowCount: 10,
       issueCount: 0,
       sourceFileNames: ["sales_19835_202605.csv"],
       lastUploadedAt: "2026-06-10T00:40:00+09:00",
     }));
 
     const aladinRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "aladin");
-    expect(aladinRows).toHaveLength(80);
+    expect(aladinRows).toHaveLength(10);
     expect(aladinRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "창천마신 10",
-        mailerContentTitle: "창천마신 10",
+        workTitle: "창천마신",
+        mailerContentTitle: "창천마신",
         author: "김태현",
         publisher: "라온E&M",
-        grossSales: 3200,
-        settlementAmount: 2240,
+        grossSales: 9600,
+        settlementAmount: 6720,
         sourceFileName: "sales_19835_202605.csv",
       }),
     ]));
@@ -1140,22 +1140,22 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 46,
+      parsedRowCount: 14,
       issueCount: 0,
       sourceFileNames: ["정산내역조회.xlsx"],
       lastUploadedAt: "2026-06-10T01:30:00+09:00",
     }));
 
     const kyoboRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo");
-    expect(kyoboRows).toHaveLength(46);
+    expect(kyoboRows).toHaveLength(14);
     expect(kyoboRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "1챕터의 고인물. 6",
-        mailerContentTitle: "1챕터의 고인물. 6",
+        workTitle: "1챕터의 고인물.",
+        mailerContentTitle: "1챕터의 고인물.",
         author: "산호초",
         publisher: "Arete",
-        grossSales: 900,
-        settlementAmount: 450,
+        grossSales: 14400,
+        settlementAmount: 9360,
         sourceFileName: "정산내역조회.xlsx",
       }),
     ]));
@@ -1228,21 +1228,21 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 116,
+      parsedRowCount: 17,
       issueCount: 0,
       sourceFileNames: ["일별 정산.xls"],
       lastUploadedAt: "2026-06-10T02:00:00+09:00",
     }));
 
     const novelpiaRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "novelpia");
-    expect(novelpiaRows).toHaveLength(116);
+    expect(novelpiaRows).toHaveLength(17);
     expect(novelpiaRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
         workTitle: "객잔 주인이 요리를 너무 잘함",
         mailerContentTitle: "객잔 주인이 요리를 너무 잘함",
         author: "해씨",
-        grossSales: 3800,
-        settlementAmount: 2394,
+        grossSales: 17100,
+        settlementAmount: 10773,
         sourceFileName: "일별 정산.xls",
         sourceRowIndex: 2,
       }),
@@ -1275,15 +1275,15 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 13209,
+      parsedRowCount: 11321,
       issueCount: 0,
       sourceFileNames: ["정산내역_20260608_163327.xlsx"],
       lastUploadedAt: "2026-06-12T11:00:00+09:00",
     }));
 
     const onestoreRows = nextState.rows.filter((row) => row.platform === "onestore");
-    expect(onestoreRows).toHaveLength(13209);
-    expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더 4권" && row.settlementAmount === 2016)).toBe(true);
+    expect(onestoreRows).toHaveLength(11321);
+    expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더" && row.settlementAmount === 18144)).toBe(true);
     expect(onestoreRows.some((row) => row.company === "raon")).toBe(true);
     expect(nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo")).toEqual(previousKyoboRows);
     expect(nextState.issues.filter((issue) => issue.platform === "onestore")).toEqual([]);
@@ -1323,7 +1323,7 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "error",
       fileCount: 1,
-      parsedRowCount: 13209,
+      parsedRowCount: 11321,
       sourceFileNames: ["bad.csv"],
       lastUploadedAt: "2026-06-12T11:02:00+09:00",
     }));

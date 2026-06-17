@@ -1,6 +1,7 @@
 import { parseCsvAdapter, parseHtmlXlsAdapter, parseXlsxAdapter } from "../fileAdapters";
 import { resolveFileAdapter } from "../fileAdapters/resolveFileAdapter";
 import type { FileAdapter, FileAdapterResult, FileKind } from "../fileAdapters/types";
+import { normalizeAggregateExportRows } from "../exporters/exportRowNormalizer";
 import { parseJoaraFileGroup, parseMunpiaFileGroup, parseRidibooksFileGroup, parseSeriesFileGroup } from "../parsers";
 import type { PlatformFileGroupInput, PlatformFileGroupParserContext } from "../parsers";
 import type { JoaraGroupFileInput } from "../parsers/joaraGroupParser";
@@ -200,6 +201,8 @@ export function runBatchParseOrchestrator(
       batchResult.issues.push(...groupResult.issues);
     }
   }
+
+  batchResult.rows = normalizeAggregateExportRows(batchResult.rows);
 
   return batchResult;
 }
