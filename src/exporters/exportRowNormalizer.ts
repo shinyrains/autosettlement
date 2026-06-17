@@ -7,8 +7,8 @@ export function normalizeExportWorkTitle(title: string): string {
   while (previous !== normalized) {
     previous = normalized;
     normalized = normalized
-      .replace(/\s*[\[\(（](?:완결|외전)[\]\)）]\s*$/, "")
-      .replace(/\s+\d+(?:-\d+)?\s*권$/, "")
+      .replace(/\s*[\[\(（](?:완결|외전|단행본)[\]\)）](?=\s*(?:\([^)]*\)|$))/g, "")
+      .replace(/\s+\d+(?:-\d+)?\s*[권화]$/, "")
       .trim();
 
     if (containsHangul(normalized)) {
@@ -29,7 +29,7 @@ export function normalizeAggregateExportRows(rows: SettlementRow[]): SettlementR
   const groupedRows = new Map<string, SettlementRow>();
 
   for (const row of rows) {
-    if (row.grossSales === 0) {
+    if (row.grossSales === 0 && row.settlementAmount === 0) {
       continue;
     }
 
@@ -66,7 +66,7 @@ export function normalizeAggregateExportRows(rows: SettlementRow[]): SettlementR
     });
   }
 
-  return Array.from(groupedRows.values()).filter((row) => row.grossSales !== 0);
+  return Array.from(groupedRows.values()).filter((row) => row.grossSales !== 0 || row.settlementAmount !== 0);
 }
 
 function mergeUniqueText(left: string, right: string): string {

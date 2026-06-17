@@ -99,7 +99,7 @@ describe("export package builder", () => {
     ]);
   });
 
-  it("normalizes trailing volume markers, aggregates equal works, and excludes zero-sales works before export", () => {
+  it("normalizes trailing volume markers, aggregates equal works, and excludes only zero-value works before export", () => {
     const sourceRows: SettlementRow[] = [
       {
         rowId: "row-onestore-1",
@@ -162,6 +162,36 @@ describe("export package builder", () => {
         issues: [],
       },
       {
+        rowId: "row-onestore-episode",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 188화",
+        mailerContentTitle: "무당괴공 188화",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 500,
+        settlementAmount: 100,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 5,
+        issues: [],
+      },
+      {
+        rowId: "row-onestore-dan",
+        company: "raon",
+        platform: "onestore",
+        saleMonth: "2026-06",
+        workTitle: "무당괴공 [단행본]",
+        mailerContentTitle: "무당괴공 [단행본]",
+        author: "작가A",
+        publisher: "비카페",
+        grossSales: 0,
+        settlementAmount: 0,
+        sourceFileName: "onestore.xlsx",
+        sourceRowIndex: 6,
+        issues: [],
+      },
+      {
         rowId: "row-aladin-1",
         company: "raon",
         platform: "aladin",
@@ -185,10 +215,10 @@ describe("export package builder", () => {
     expect(packages.find((item) => item.artifactType === "review_excel")?.rowCount).toBe(1);
     expect(packages.find((item) => item.artifactType === "mailer_excel")?.rowCount).toBe(1);
     expect(reviewRows[1]).toContain("무당괴공");
-    expect(reviewRows[1]).toContain(6000);
-    expect(reviewRows[1]).toContain(2400);
+    expect(reviewRows[1]).toContain(6500);
+    expect(reviewRows[1]).toContain(3499);
     expect(mailerRows[1]).toContain("무당괴공");
-    expect(mailerRows[1]).toContain(6000);
+    expect(mailerRows[1]).toContain(6500);
     expect(mailerRows.flat()).not.toContain("기사의 일기(Diary of a Knight)");
   });
 

@@ -76,6 +76,18 @@ describe("UploadSection", () => {
     expect(screen.getByText("현재 live path: 알라딘 단일 CSV 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 교보문고 단일 XLSX 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 카카오페이지 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 문피아 정산 슬롯 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 문피아 작가 보정 슬롯 CSV/XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 리디북스 기본 정산 슬롯 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 리디북스 file_1 보정 슬롯 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 조아라 정산 상세리스트 슬롯 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 조아라 작품별 정산리스트 슬롯 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 판무림 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 북큐브 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 에피루스 단일 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 구루컴퍼니 단일 CSV 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 무툰 단일 XLSX 1-file")).toBeInTheDocument();
+    expect(screen.getByText("현재 live path: 노벨피아 단일 HTML-XLS 1-file")).toBeInTheDocument();
     expect(screen.getByText("현재 live path: 원스토어 공유 XLSX 1-file (raon+sr 동시 반영)")).toBeInTheDocument();
   });
 

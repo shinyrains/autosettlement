@@ -101,8 +101,10 @@ function getCompanyModeUploads(allUploads: PlatformUploadCard[], company: Compan
 }
 
 function createPendingUploadCard(company: Company, platform: Platform): PlatformUploadCard {
+  const uploadId = `upload-${company}-${platform.replace(/_/g, "-")}-pending`;
+  const slots = createPendingUploadSlots(uploadId, platform);
   return {
-    uploadId: `upload-${company}-${platform.replace(/_/g, "-")}-pending`,
+    uploadId,
     batchId: "batch-2026-06",
     company,
     platform,
@@ -110,9 +112,65 @@ function createPendingUploadCard(company: Company, platform: Platform): Platform
     category: platform === "series" ? "series" : "domestic",
     status: "empty",
     fileCount: 0,
-    requiredFileCount: 1,
+    requiredFileCount: getPendingRequiredFileCount(platform),
     sourceFileNames: [],
     parsedRowCount: 0,
+    issueCount: 0,
+    ...(slots.length > 0 ? { slots } : {}),
+  };
+}
+
+function getPendingRequiredFileCount(platform: Platform): number {
+  if (platform === "ridibooks" || platform === "joara") {
+    return 2;
+  }
+
+  return platform === "series" ? 6 : 1;
+}
+
+function createPendingUploadSlots(uploadId: string, platform: Platform): BatchPlatformUploadSlot[] {
+  if (platform === "munpia") {
+    return [
+      createPendingSlot(uploadId, "settlement", "정산 파일", true, ["xlsx"]),
+      createPendingSlot(uploadId, "authorCorrection", "작가 보정", false, ["csv", "xlsx"]),
+    ];
+  }
+
+  if (platform === "ridibooks") {
+    return [
+      createPendingSlot(uploadId, "base", "기본 정산", true, ["csv"]),
+      createPendingSlot(uploadId, "file1", "1번 파일 보정", true, ["csv"]),
+      createPendingSlot(uploadId, "event", "이벤트 거래", false, ["csv"]),
+      createPendingSlot(uploadId, "mgCorrection", "MG 보정", false, ["csv", "xlsx"]),
+    ];
+  }
+
+  if (platform === "joara") {
+    return [
+      createPendingSlot(uploadId, "settlementDetail", "정산 상세리스트", true, ["csv"]),
+      createPendingSlot(uploadId, "workSettlement", "작품별 정산리스트", true, ["csv"]),
+    ];
+  }
+
+  return [];
+}
+
+function createPendingSlot(
+  uploadId: string,
+  slotKey: BatchPlatformUploadSlotKey,
+  label: string,
+  required: boolean,
+  acceptedFileKinds: BatchPlatformUploadSlot["acceptedFileKinds"],
+): BatchPlatformUploadSlot {
+  return {
+    slotId: `${uploadId}-${slotKey}`,
+    slotKey,
+    label,
+    required,
+    acceptedFileKinds,
+    status: "empty",
+    fileCount: 0,
+    sourceFileNames: [],
     issueCount: 0,
   };
 }
@@ -255,6 +313,7 @@ function SlotUploadCard({
   const requiredSlotFileCount = getRequiredSlotFileCounts(upload).get(slot.slotId) ?? 1;
   const canUpload = isLiveUploadSlotEnabled(upload, slot) && onUploadFiles !== undefined;
   const canPass = slot.required
+    && !upload.uploadId.endsWith("-pending")
     && slot.fileCount < requiredSlotFileCount
     && slot.status !== "error"
     && onPassUpload !== undefined;

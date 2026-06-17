@@ -1349,8 +1349,8 @@ describe("batch parse orchestrator", () => {
           saleMonth: "2026-04",
           workTitle: "대물로 태어나게 해주세요!",
           mailerContentTitle: "대물로 태어나게 해주세요!",
-          grossSales: 480000,
-          settlementAmount: 296949.5,
+          grossSales: 666000,
+          settlementAmount: 413761,
           sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
         }),
         expect.objectContaining({
@@ -1358,8 +1358,8 @@ describe("batch parse orchestrator", () => {
           saleMonth: "2026-04",
           workTitle: "대물로 태어나게 해주세요!",
           mailerContentTitle: "대물로 태어나게 해주세요!(app)",
-          grossSales: 99960,
-          settlementAmount: 61839.7,
+          grossSales: 168360,
+          settlementAmount: 104796.2,
           sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
         }),
       ]),
@@ -1448,7 +1448,7 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(11321);
+    expect(result.rows).toHaveLength(10293);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",
@@ -1458,8 +1458,8 @@ describe("batch parse orchestrator", () => {
         mailerContentTitle: "레이드 커맨더",
         author: "산호초",
         publisher: "Arete",
-        grossSales: 28800,
-        settlementAmount: 18144,
+        grossSales: 29600,
+        settlementAmount: 18648,
         sourceFileName: "정산내역_20260608_163327.xlsx",
         sourceRowIndex: 3,
       }),
@@ -1482,7 +1482,7 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(98);
+    expect(result.rows).toHaveLength(90);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",
@@ -1731,7 +1731,7 @@ describe("batch parse orchestrator", () => {
     ]);
   });
 
-  it("normalizes work titles, aggregates equal parsed works, and excludes zero-sales rows in batch results", () => {
+  it("normalizes work titles, aggregates equal parsed works, and excludes only zero-value rows in batch results", () => {
     const result = runBatchParseOrchestrator(
       {
         batchId: "batch-normalized-works",
@@ -1777,6 +1777,40 @@ describe("batch parse orchestrator", () => {
                 sourceFileName: "aladin-1.csv",
                 sourceRowIndex: 4,
               }),
+              createSettlementLikeRow({
+                workTitle: "무당괴공 [단행본]",
+                author: "작가A",
+                publisher: "비카페",
+                grossSales: 0,
+                settlementAmount: 0,
+                sourceFileName: "aladin-1.csv",
+                sourceRowIndex: 5,
+              }),
+            ],
+          }),
+          createFile({
+            company: "raon",
+            platform: "onestore",
+            fileName: "onestore.csv",
+            content: [
+              createSettlementLikeRow({
+                workTitle: "레이드 커맨더 188화",
+                author: "작가B",
+                publisher: "아레테",
+                grossSales: 500,
+                settlementAmount: 200,
+                sourceFileName: "onestore.csv",
+                sourceRowIndex: 1,
+              }),
+              createSettlementLikeRow({
+                workTitle: "레이드 커맨더 170화",
+                author: "작가B",
+                publisher: "아레테",
+                grossSales: 700,
+                settlementAmount: 300,
+                sourceFileName: "onestore.csv",
+                sourceRowIndex: 2,
+              }),
             ],
           }),
           createFile({
@@ -1785,8 +1819,8 @@ describe("batch parse orchestrator", () => {
             fileName: "kyobo.csv",
             content: [
               createSettlementLikeRow({
-                workTitle: "기사의 일기(Diary of a Knight) 15",
-                author: "작가B",
+                workTitle: "기사의 일기(Diary of a Knight) 15 [단행본]",
+                author: "작가C",
                 publisher: "아레테",
                 grossSales: 500,
                 settlementAmount: 200,
@@ -1809,9 +1843,18 @@ describe("batch parse orchestrator", () => {
         mailerContentTitle: "무당괴공",
         publisher: "비카페",
         grossSales: 6000,
-        settlementAmount: 2400,
+        settlementAmount: 3399,
         sourceFileName: "aladin-1.csv",
         sourceRowIndex: 1,
+      }),
+      expect.objectContaining({
+        company: "raon",
+        platform: "onestore",
+        workTitle: "레이드 커맨더",
+        mailerContentTitle: "레이드 커맨더",
+        publisher: "아레테",
+        grossSales: 1200,
+        settlementAmount: 500,
       }),
       expect.objectContaining({
         company: "raon",

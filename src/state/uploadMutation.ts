@@ -105,6 +105,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-sr-panmurim",
+    company: "sr",
+    platform: "panmurim",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "판무림 단일 XLSX 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-raon-bookcube",
     company: "raon",
     platform: "bookcube",
@@ -113,8 +121,24 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-sr-bookcube",
+    company: "sr",
+    platform: "bookcube",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "북큐브 단일 XLSX 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-raon-epyrus",
     company: "raon",
+    platform: "epyrus",
+    acceptedKinds: ["csv"],
+    uiLabel: "에피루스 단일 CSV 1-file",
+  },
+  {
+    kind: "single",
+    uploadId: "upload-sr-epyrus",
+    company: "sr",
     platform: "epyrus",
     acceptedKinds: ["csv"],
     uiLabel: "에피루스 단일 CSV 1-file",
@@ -145,6 +169,14 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-sr-guru-company",
+    company: "sr",
+    platform: "guru_company",
+    acceptedKinds: ["csv"],
+    uiLabel: "구루컴퍼니 단일 CSV 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-sr-kyobo",
     company: "sr",
     platform: "kyobo",
@@ -169,8 +201,24 @@ const SINGLE_FILE_LIVE_UPLOAD_SPECS: SingleFileLiveUploadSpec[] = [
   },
   {
     kind: "single",
+    uploadId: "upload-sr-mootoon",
+    company: "sr",
+    platform: "mootoon",
+    acceptedKinds: ["xlsx"],
+    uiLabel: "무툰 단일 XLSX 1-file",
+  },
+  {
+    kind: "single",
     uploadId: "upload-raon-novelpia",
     company: "raon",
+    platform: "novelpia",
+    acceptedKinds: ["xls"],
+    uiLabel: "노벨피아 단일 HTML-XLS 1-file",
+  },
+  {
+    kind: "single",
+    uploadId: "upload-sr-novelpia",
+    company: "sr",
     platform: "novelpia",
     acceptedKinds: ["xls"],
     uiLabel: "노벨피아 단일 HTML-XLS 1-file",
@@ -1469,7 +1517,9 @@ function mergeCommittedUploadResult(
 ): AppDraftState {
   const preservedRows = state.rows.filter((row) => !matchesReplacementTarget(replacementTargets, row.company, row.platform));
   const preservedIssues = state.issues.filter((issue) => !matchesReplacementTarget(replacementTargets, issue.company, issue.platform));
-  const uploads = state.uploads.map((currentUpload) => currentUpload.uploadId === upload.uploadId ? nextUpload : currentUpload);
+  const uploads = state.uploads.some((currentUpload) => currentUpload.uploadId === upload.uploadId)
+    ? state.uploads.map((currentUpload) => currentUpload.uploadId === upload.uploadId ? nextUpload : currentUpload)
+    : [...state.uploads, nextUpload];
   const rows = [...preservedRows, ...nextRowsForUpload];
   const issues = [...preservedIssues, ...nextIssuesForUpload];
   const selectedRowId = rows.some((row) => row.rowId === state.selectedRowId)
@@ -1497,7 +1547,9 @@ function mergeStageOnlyUploadResult(
   nextIssuesForUpload: AppDraftState["issues"],
   uploadedAt: string,
 ): AppDraftState {
-  const uploads = state.uploads.map((currentUpload) => currentUpload.uploadId === upload.uploadId ? nextUpload : currentUpload);
+  const uploads = state.uploads.some((currentUpload) => currentUpload.uploadId === upload.uploadId)
+    ? state.uploads.map((currentUpload) => currentUpload.uploadId === upload.uploadId ? nextUpload : currentUpload)
+    : [...state.uploads, nextUpload];
   const preservedIssues = state.issues.filter((issue) => issue.company !== upload.company || issue.platform !== upload.platform);
   return {
     ...state,
@@ -2538,8 +2590,7 @@ function getLiveUploadSpec(target: LiveUploadTarget): SingleFileLiveUploadSpec |
 
 function getSingleFileLiveUploadSpec(upload: PlatformUploadCard): SingleFileLiveUploadSpec | undefined {
   return SINGLE_FILE_LIVE_UPLOAD_SPECS.find((spec) => (
-    spec.uploadId === upload.uploadId
-    && spec.company === upload.company
+    spec.company === upload.company
     && spec.platform === upload.platform
     && upload.requiredFileCount === 1
     && (upload.slots?.length ?? 0) === 0
@@ -2563,9 +2614,7 @@ function getSlotLiveUploadSpec(
   slotKey: BatchPlatformUploadSlotKey,
 ): SlotLiveUploadSpec | undefined {
   return SLOT_LIVE_UPLOAD_SPECS.find((spec) => (
-    spec.uploadId === upload.uploadId
-    && spec.company === upload.company
-    && spec.platform === upload.platform
+    spec.platform === upload.platform
     && spec.slotKey === slotKey
     && (upload.slots?.length ?? 0) > 0
   ));

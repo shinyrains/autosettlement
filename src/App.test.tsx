@@ -1174,7 +1174,7 @@ describe("AutoSettlement UI shell", () => {
       expect(liveUpload).toEqual(expect.objectContaining({
         status: "parsed",
         fileCount: 1,
-        parsedRowCount: 198,
+        parsedRowCount: 165,
         sourceFileNames: ["작품별정산_2026-04-01_2026-04-30.xlsx"],
       }));
     });
@@ -1438,7 +1438,7 @@ describe("AutoSettlement UI shell", () => {
       expect(liveUpload).toEqual(expect.objectContaining({
         status: "parsed",
         fileCount: 1,
-        parsedRowCount: 98,
+        parsedRowCount: 90,
         sourceFileNames: ["카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx"],
       }));
     });
@@ -1477,7 +1477,7 @@ describe("AutoSettlement UI shell", () => {
       status: "parsed",
       fileCount: 1,
       sourceFileNames: ["라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx"],
-      parsedRowCount: 194,
+      parsedRowCount: 187,
       issueCount: 0,
     }));
     expect(
@@ -1549,14 +1549,14 @@ describe("AutoSettlement UI shell", () => {
         status: "parsed",
         company: "raon",
         fileCount: 1,
-        parsedRowCount: 11321,
+        parsedRowCount: 10293,
         sourceFileNames: ["정산내역_20260608_163327.xlsx"],
       }));
       expect(parsedDraft.rows.some((row: { platform: string; company: string; workTitle: string; settlementAmount: number }) => (
         row.platform === "onestore"
         && row.company === "sr"
         && row.workTitle === "레이드 커맨더"
-        && row.settlementAmount === 18144
+        && row.settlementAmount === 18648
       ))).toBe(true);
       expect(parsedDraft.rows.some((row: { platform: string; company: string }) => row.platform === "onestore" && row.company === "raon")).toBe(true);
     });

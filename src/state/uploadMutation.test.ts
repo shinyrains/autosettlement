@@ -265,85 +265,72 @@ function createEmptyJoaraUploadDraft() {
 }
 
 describe("uploadMutation", () => {
-  it("enables live upload only for the current misterblue, panmurim, bookcube, epyrus, yes24, aladin, guru_company, kyobo, kakao_page, mootoon, novelpia, and shared onestore cards", () => {
+  it("enables live upload for supported company-mode single-file cards on both company screens", () => {
     const state = createSeedAppState();
+    const srPendingUploads = [
+      "panmurim",
+      "bookcube",
+      "epyrus",
+      "guru_company",
+      "mootoon",
+      "novelpia",
+    ].map((platform) => ({
+      uploadId: `upload-sr-${platform.replace(/_/g, "-")}-pending`,
+      batchId: "batch-2026-06",
+      company: "sr" as const,
+      platform: platform as typeof state.uploads[number]["platform"],
+      platformLabel: platform,
+      category: "domestic" as const,
+      status: "empty" as const,
+      fileCount: 0,
+      requiredFileCount: 1,
+      sourceFileNames: [],
+      parsedRowCount: 0,
+      issueCount: 0,
+    }));
 
-    const enabledUploads = state.uploads.filter((upload) => isLiveUploadEnabled(upload));
+    const enabledUploads = [...state.uploads, ...srPendingUploads].filter((upload) => isLiveUploadEnabled(upload));
 
-    expect(enabledUploads).toHaveLength(12);
+    expect(enabledUploads).toHaveLength(18);
     expect(enabledUploads).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        company: "sr",
-        platform: "misterblue",
-        uploadId: "upload-sr-misterblue",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "panmurim",
-        uploadId: "upload-raon-panmurim",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "bookcube",
-        uploadId: "upload-raon-bookcube",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "epyrus",
-        uploadId: "upload-raon-epyrus",
-      }),
-      expect.objectContaining({
-        company: "sr",
-        platform: "yes24",
-        uploadId: "upload-sr-yes24",
-      }),
-      expect.objectContaining({
-        company: "sr",
-        platform: "aladin",
-        uploadId: "upload-sr-aladin",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "guru_company",
-        uploadId: "upload-raon-guru-company",
-      }),
-      expect.objectContaining({
-        company: "sr",
-        platform: "kyobo",
-        uploadId: "upload-sr-kyobo",
-      }),
-      expect.objectContaining({
-        company: "sr",
-        platform: "kakao_page",
-        uploadId: "upload-sr-kakao-page",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "mootoon",
-        uploadId: "upload-raon-mootoon",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "novelpia",
-        uploadId: "upload-raon-novelpia",
-      }),
-      expect.objectContaining({
-        company: "raon",
-        platform: "onestore",
-        uploadId: "upload-shared-onestore",
-        sharedCompanies: ["raon", "sr"],
-      }),
+      expect.objectContaining({ company: "sr", platform: "misterblue", uploadId: "upload-sr-misterblue" }),
+      expect.objectContaining({ company: "raon", platform: "panmurim", uploadId: "upload-raon-panmurim" }),
+      expect.objectContaining({ company: "raon", platform: "bookcube", uploadId: "upload-raon-bookcube" }),
+      expect.objectContaining({ company: "raon", platform: "epyrus", uploadId: "upload-raon-epyrus" }),
+      expect.objectContaining({ company: "sr", platform: "yes24", uploadId: "upload-sr-yes24" }),
+      expect.objectContaining({ company: "sr", platform: "aladin", uploadId: "upload-sr-aladin" }),
+      expect.objectContaining({ company: "raon", platform: "guru_company", uploadId: "upload-raon-guru-company" }),
+      expect.objectContaining({ company: "sr", platform: "kyobo", uploadId: "upload-sr-kyobo" }),
+      expect.objectContaining({ company: "sr", platform: "kakao_page", uploadId: "upload-sr-kakao-page" }),
+      expect.objectContaining({ company: "raon", platform: "mootoon", uploadId: "upload-raon-mootoon" }),
+      expect.objectContaining({ company: "raon", platform: "novelpia", uploadId: "upload-raon-novelpia" }),
+      expect.objectContaining({ company: "sr", platform: "panmurim", uploadId: "upload-sr-panmurim-pending" }),
+      expect.objectContaining({ company: "sr", platform: "bookcube", uploadId: "upload-sr-bookcube-pending" }),
+      expect.objectContaining({ company: "sr", platform: "epyrus", uploadId: "upload-sr-epyrus-pending" }),
+      expect.objectContaining({ company: "sr", platform: "guru_company", uploadId: "upload-sr-guru-company-pending" }),
+      expect.objectContaining({ company: "sr", platform: "mootoon", uploadId: "upload-sr-mootoon-pending" }),
+      expect.objectContaining({ company: "sr", platform: "novelpia", uploadId: "upload-sr-novelpia-pending" }),
+      expect.objectContaining({ company: "raon", platform: "onestore", uploadId: "upload-shared-onestore", sharedCompanies: ["raon", "sr"] }),
     ]));
   });
 
-  it("enables live upload for the munpia settlement and authorCorrection slots", () => {
+  it("enables live upload for the munpia settlement and authorCorrection slots on both company screens", () => {
     const state = createSeedAppState();
-    const munpiaUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-munpia");
-    expect(munpiaUpload?.slots).toBeDefined();
+    const raonMunpiaUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-munpia");
+    const srMunpiaUpload = {
+      ...raonMunpiaUpload!,
+      uploadId: "upload-sr-munpia-pending",
+      company: "sr" as const,
+      status: "empty" as const,
+      fileCount: 0,
+      sourceFileNames: [],
+    };
 
-    const enabledSlots = munpiaUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(munpiaUpload!, slot));
-
-    expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlement", "authorCorrection"]);
+    for (const upload of [raonMunpiaUpload!, srMunpiaUpload]) {
+      expect(upload.slots).toBeDefined();
+      const enabledSlots = upload.slots!.filter((slot) => isLiveUploadSlotEnabled(upload, slot));
+      expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlement", "authorCorrection"]);
+    }
   });
 
   it("enables live upload for the series general/app slots on both series cards", () => {
@@ -357,24 +344,42 @@ describe("uploadMutation", () => {
     }
   });
 
-  it("enables live upload for the ridibooks grouped slots", () => {
+  it("enables live upload for the ridibooks grouped slots on both company screens", () => {
     const state = createSeedAppState();
-    const ridibooksUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-ridibooks");
-    expect(ridibooksUpload?.slots).toBeDefined();
+    const raonRidibooksUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-ridibooks");
+    const srRidibooksUpload = {
+      ...raonRidibooksUpload!,
+      uploadId: "upload-sr-ridibooks-pending",
+      company: "sr" as const,
+      status: "empty" as const,
+      fileCount: 0,
+      sourceFileNames: [],
+    };
 
-    const enabledSlots = ridibooksUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(ridibooksUpload!, slot));
-
-    expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["base", "file1", "event", "mgCorrection"]);
+    for (const upload of [raonRidibooksUpload!, srRidibooksUpload]) {
+      expect(upload.slots).toBeDefined();
+      const enabledSlots = upload.slots!.filter((slot) => isLiveUploadSlotEnabled(upload, slot));
+      expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["base", "file1", "event", "mgCorrection"]);
+    }
   });
 
-  it("enables live upload for the joara grouped slots", () => {
+  it("enables live upload for the joara grouped slots on both company screens", () => {
     const state = createSeedAppState();
-    const joaraUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-joara");
-    expect(joaraUpload?.slots).toBeDefined();
+    const raonJoaraUpload = state.uploads.find((upload) => upload.uploadId === "upload-raon-joara");
+    const srJoaraUpload = {
+      ...raonJoaraUpload!,
+      uploadId: "upload-sr-joara-pending",
+      company: "sr" as const,
+      status: "empty" as const,
+      fileCount: 0,
+      sourceFileNames: [],
+    };
 
-    const enabledSlots = joaraUpload!.slots!.filter((slot) => isLiveUploadSlotEnabled(joaraUpload!, slot));
-
-    expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlementDetail", "workSettlement"]);
+    for (const upload of [raonJoaraUpload!, srJoaraUpload]) {
+      expect(upload.slots).toBeDefined();
+      const enabledSlots = upload.slots!.filter((slot) => isLiveUploadSlotEnabled(upload, slot));
+      expect(enabledSlots.map((slot) => slot.slotKey)).toEqual(["settlementDetail", "workSettlement"]);
+    }
   });
 
   it("stages a ridibooks base upload until file1 is also present", async () => {
@@ -817,27 +822,27 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 198,
+      parsedRowCount: 165,
       issueCount: 0,
       sourceFileNames: ["작품별정산_2026-04-01_2026-04-30.xlsx"],
       lastUploadedAt: "2026-06-09T23:59:00+09:00",
     }));
 
     const misterblueRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "misterblue");
-    expect(misterblueRows).toHaveLength(198);
+    expect(misterblueRows).toHaveLength(165);
     expect(misterblueRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
         workTitle: "대물로 태어나게 해주세요!",
         mailerContentTitle: "대물로 태어나게 해주세요!",
-        grossSales: 480000,
-        settlementAmount: 296949.5,
+        grossSales: 666000,
+        settlementAmount: 413761,
         sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
       }),
       expect.objectContaining({
         workTitle: "대물로 태어나게 해주세요!",
         mailerContentTitle: "대물로 태어나게 해주세요!(app)",
-        grossSales: 99960,
-        settlementAmount: 61839.7,
+        grossSales: 168360,
+        settlementAmount: 104796.2,
         sourceFileName: "작품별정산_2026-04-01_2026-04-30.xlsx",
       }),
     ]));
@@ -1187,13 +1192,13 @@ describe("uploadMutation", () => {
       status: "parsed",
       fileCount: 1,
       sourceFileNames: ["라온이엔엠[2026-05]__소설__작품별내역__무툰.xlsx"],
-      parsedRowCount: 194,
+      parsedRowCount: 187,
       issueCount: 0,
       lastUploadedAt: "2026-06-10T01:30:00+09:00",
     }));
 
     const mootoonRows = nextState.rows.filter((row) => row.company === "raon" && row.platform === "mootoon");
-    expect(mootoonRows).toHaveLength(194);
+    expect(mootoonRows).toHaveLength(187);
     expect(mootoonRows[0]).toEqual(expect.objectContaining({
       workTitle: "강호돌파(江湖突破)",
       mailerContentTitle: "강호돌파(江湖突破)",
@@ -1275,15 +1280,15 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 11321,
+      parsedRowCount: 10293,
       issueCount: 0,
       sourceFileNames: ["정산내역_20260608_163327.xlsx"],
       lastUploadedAt: "2026-06-12T11:00:00+09:00",
     }));
 
     const onestoreRows = nextState.rows.filter((row) => row.platform === "onestore");
-    expect(onestoreRows).toHaveLength(11321);
-    expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더" && row.settlementAmount === 18144)).toBe(true);
+    expect(onestoreRows).toHaveLength(10293);
+    expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더" && row.settlementAmount === 18648)).toBe(true);
     expect(onestoreRows.some((row) => row.company === "raon")).toBe(true);
     expect(nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo")).toEqual(previousKyoboRows);
     expect(nextState.issues.filter((issue) => issue.platform === "onestore")).toEqual([]);
@@ -1323,7 +1328,8 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "error",
       fileCount: 1,
-      parsedRowCount: 11321,
+      parsedRowCount: 10293,
+      issueCount: 1,
       sourceFileNames: ["bad.csv"],
       lastUploadedAt: "2026-06-12T11:02:00+09:00",
     }));
