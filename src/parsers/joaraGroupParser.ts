@@ -265,6 +265,21 @@ function buildSettlementRows(
 ): SettlementRow[] {
   const rows: SettlementRow[] = [];
 
+  if (isCompletelyMismatchedFilePair(detailAggregates, workAggregates)) {
+    const firstDetail = Array.from(detailAggregates.values())[0];
+    const firstWork = Array.from(workAggregates.values())[0];
+    issues.push(
+      createIssue(
+        context,
+        "mapping_failed",
+        "error",
+        "조아라 정산 상세리스트와 작품별 정산리스트 사이에 같은 작품 그룹이 없습니다. 같은 정산월/같은 CP 범위의 짝 파일인지 확인한 뒤 두 파일을 함께 다시 업로드하세요.",
+        [firstDetail?.sourceFileName, firstWork?.sourceFileName].filter(Boolean).join(", "),
+      ),
+    );
+    return rows;
+  }
+
   for (const [groupKey, detail] of Array.from(detailAggregates.entries())) {
     const work = workAggregates.get(groupKey);
     if (!work) {
@@ -349,6 +364,21 @@ function readIdentityRow(
 
 function buildGroupKey(identity: GroupKeyParts): string {
   return [identity.workTitle, identity.workCode, identity.author].join("\u001f");
+}
+
+function isCompletelyMismatchedFilePair(
+  detailAggregates: Map<string, DetailAggregate>,
+  workAggregates: Map<string, WorkAggregate>,
+): boolean {
+  if (detailAggregates.size === 0 || workAggregates.size === 0) {
+    return false;
+  }
+
+  if (detailAggregates.size + workAggregates.size <= 2) {
+    return false;
+  }
+
+  return Array.from(detailAggregates.keys()).every((key) => !workAggregates.has(key));
 }
 
 function buildGroupRowId(

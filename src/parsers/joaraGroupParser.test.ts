@@ -170,6 +170,33 @@ describe("joara group parser", () => {
     ]);
   });
 
+  it("collapses completely mismatched Joara file pairs into one actionable file-pair issue", () => {
+    const result = parseJoaraFileGroup(
+      baseContext,
+      createFiles({
+        detailRows: [
+          createDetailRow(),
+          createDetailRow({ 작품명: "칼든 자들의 도시", 작품코드: "1862403", 작가명: "장영훈", sourceRowIndex: 3 }),
+        ],
+        workRows: [
+          createWorkRow({ 작품명: "다른 작품 A", 작품코드: "1000001", 작가명: "작가A", sourceRowIndex: 2 }),
+          createWorkRow({ 작품명: "다른 작품 B", 작품코드: "1000002", 작가명: "작가B", sourceRowIndex: 3 }),
+        ],
+      }),
+    );
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "mapping_failed",
+        sourceFileName: "joara-detail.csv, joara-work.csv",
+        sourceRowIndex: undefined,
+        message: expect.stringContaining("같은 작품 그룹이 없습니다"),
+      }),
+    ]);
+  });
+
+
   it("blocks when the workSettlement file is missing a required column", () => {
     const result = parseJoaraFileGroup(
       baseContext,

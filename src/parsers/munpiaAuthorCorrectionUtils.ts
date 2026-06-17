@@ -39,7 +39,7 @@ export function applyMunpiaAuthorCorrection({
           context,
           row: correctionRows[0],
           issueType: "mapping_failed",
-          message: `Munpia author correction could not be matched for ${workCode || workTitle}.`,
+          message: `문피아 작가 보정 파일에서 ${workCode || workTitle}에 해당하는 행을 찾지 못했습니다. AreteBooks 같은 계정/회사 작가명은 원본 정산 파일만으로 실제 작가를 확정할 수 없으므로 작품코드/작품/작가명이 포함된 작가 보정 파일을 함께 업로드해야 합니다.`,
         }),
       ],
     };

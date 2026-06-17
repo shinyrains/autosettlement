@@ -216,6 +216,7 @@ describe("munpia single file parser", () => {
         issueType: "mapping_failed",
         sourceFileName: "아레떼북스.xlsx",
         sourceRowIndex: 12,
+        message: expect.stringContaining("작가 보정 파일"),
       }),
     ]);
   });
