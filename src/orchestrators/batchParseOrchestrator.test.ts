@@ -1448,7 +1448,7 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(10293);
+    expect(result.rows).toHaveLength(132);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",
@@ -1482,7 +1482,7 @@ describe("batch parse orchestrator", () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.rows).toHaveLength(90);
+    expect(result.rows).toHaveLength(88);
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
         company: "sr",

@@ -113,6 +113,16 @@ function readNovelpiaSampleHtmlXls(): Uint8Array {
   );
 }
 
+function readSeriesSampleHtmlXls(fileName: string): Uint8Array {
+  return readFileSync(
+    path.resolve(
+      process.cwd(),
+      "tmp/platform-samples/series",
+      fileName,
+    ),
+  );
+}
+
 function readJoaraSettlementDetailSampleCsv(): Uint8Array {
   return readFileSync(
     path.resolve(
@@ -171,6 +181,13 @@ function createSeriesHtmlFile(name: string): { name: string; arrayBuffer: () => 
   return {
     name,
     arrayBuffer: async () => bytes.buffer.slice(0),
+  };
+}
+
+function createSeriesSampleUpload(name: string): { name: string; arrayBuffer: () => Promise<ArrayBuffer> } {
+  return {
+    name,
+    arrayBuffer: async () => readSeriesSampleHtmlXls(name).slice().buffer as ArrayBuffer,
   };
 }
 
@@ -1145,18 +1162,18 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 14,
+      parsedRowCount: 13,
       issueCount: 0,
       sourceFileNames: ["정산내역조회.xlsx"],
       lastUploadedAt: "2026-06-10T01:30:00+09:00",
     }));
 
     const kyoboRows = nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo");
-    expect(kyoboRows).toHaveLength(14);
+    expect(kyoboRows).toHaveLength(13);
     expect(kyoboRows).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        workTitle: "1챕터의 고인물.",
-        mailerContentTitle: "1챕터의 고인물.",
+        workTitle: "1챕터의 고인물",
+        mailerContentTitle: "1챕터의 고인물",
         author: "산호초",
         publisher: "Arete",
         grossSales: 14400,
@@ -1280,14 +1297,14 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "parsed",
       fileCount: 1,
-      parsedRowCount: 10293,
+      parsedRowCount: 132,
       issueCount: 0,
       sourceFileNames: ["정산내역_20260608_163327.xlsx"],
       lastUploadedAt: "2026-06-12T11:00:00+09:00",
     }));
 
     const onestoreRows = nextState.rows.filter((row) => row.platform === "onestore");
-    expect(onestoreRows).toHaveLength(10293);
+    expect(onestoreRows).toHaveLength(132);
     expect(onestoreRows.some((row) => row.company === "sr" && row.workTitle === "레이드 커맨더" && row.settlementAmount === 18648)).toBe(true);
     expect(onestoreRows.some((row) => row.company === "raon")).toBe(true);
     expect(nextState.rows.filter((row) => row.company === "sr" && row.platform === "kyobo")).toEqual(previousKyoboRows);
@@ -1328,7 +1345,7 @@ describe("uploadMutation", () => {
     expect(nextUpload).toEqual(expect.objectContaining({
       status: "error",
       fileCount: 1,
-      parsedRowCount: 10293,
+      parsedRowCount: 132,
       issueCount: 1,
       sourceFileNames: ["bad.csv"],
       lastUploadedAt: "2026-06-12T11:02:00+09:00",
@@ -1682,6 +1699,45 @@ describe("uploadMutation", () => {
         fileCount: 3,
       }),
     ]));
+  });
+
+  it("parses real series HTML-XLS live upload bytes without string-content adapter errors", async () => {
+    const state = createEmptySeriesUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-series");
+    expect(upload).toBeDefined();
+
+    const afterGeneral = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "seriesGeneral" },
+      [
+        createSeriesSampleUpload("네이버_sample_1.xls"),
+        createSeriesSampleUpload("네이버_sample_2.xls"),
+        createSeriesSampleUpload("네이버_sample_3.xls"),
+      ],
+      { now: () => "2026-06-12T09:20:00+09:00" },
+    );
+
+    const afterApp = await applyLiveUploadMutation(
+      afterGeneral,
+      { upload: afterGeneral.uploads.find((item) => item.uploadId === "upload-raon-series")!, slotKey: "seriesApp" },
+      [
+        createSeriesSampleUpload("네이버_sample_app1.xls"),
+        createSeriesSampleUpload("네이버_sample_app2.xls"),
+        createSeriesSampleUpload("네이버_sample_app3.xls"),
+      ],
+      { now: () => "2026-06-12T09:21:00+09:00" },
+    );
+
+    expect(afterApp.issues.map((issue) => issue.message)).not.toContain(
+      "HTML XLS adapter expects string file contents.",
+    );
+    expect(afterApp.rows.filter((row) => row.platform === "series").length).toBeGreaterThan(0);
+    expect(afterApp.uploads.find((item) => item.uploadId === "upload-raon-series")).toEqual(
+      expect.objectContaining({
+        status: "parsed",
+        fileCount: 6,
+      }),
+    );
   });
 
   it("reruns joara grouped parsing when settlementDetail and workSettlement are uploaded", async () => {

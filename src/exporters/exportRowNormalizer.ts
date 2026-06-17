@@ -7,13 +7,15 @@ export function normalizeExportWorkTitle(title: string): string {
   while (previous !== normalized) {
     previous = normalized;
     normalized = normalized
-      .replace(/\s*[\[\(（](?:완결|외전|단행본)[\]\)）](?=\s*(?:\([^)]*\)|$))/g, "")
-      .replace(/\s+\d+(?:-\d+)?\s*[권화]$/, "")
+      .replace(/\s*(?:[\[\(（](?:완결|외전|단행본|연재|19세 완전판 외전)[\]\)）]\s*)+(?=\s*(?:\([^)]*\)|$))/g, "")
+      .replace(/\s*[.。．]?\s+\d+(?:-\d+)?\s*[권화]$/, "")
+      .replace(/\s+\d+회$/, "")
+      .replace(/\s+외전$/, "")
       .trim();
 
     if (containsHangul(normalized)) {
       normalized = normalized
-        .replace(/\s+\d+(?:-\d+)?\s*$/, "")
+        .replace(/\s*[.。．]?\s+\d+(?:-\d+)?\s*$/, "")
         .trim();
     }
   }

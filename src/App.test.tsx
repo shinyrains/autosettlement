@@ -1405,7 +1405,7 @@ describe("AutoSettlement UI shell", () => {
       expect(liveUpload).toEqual(expect.objectContaining({
         status: "parsed",
         fileCount: 1,
-        parsedRowCount: 14,
+        parsedRowCount: 13,
         sourceFileNames: ["정산내역조회.xlsx"],
       }));
     });
@@ -1438,7 +1438,7 @@ describe("AutoSettlement UI shell", () => {
       expect(liveUpload).toEqual(expect.objectContaining({
         status: "parsed",
         fileCount: 1,
-        parsedRowCount: 90,
+        parsedRowCount: 88,
         sourceFileNames: ["카카오페이지 일반계약_2026-05_주식회사 에스알이앤엠_CP월정산내역.xlsx"],
       }));
     });
@@ -1549,7 +1549,7 @@ describe("AutoSettlement UI shell", () => {
         status: "parsed",
         company: "raon",
         fileCount: 1,
-        parsedRowCount: 10293,
+        parsedRowCount: 132,
         sourceFileNames: ["정산내역_20260608_163327.xlsx"],
       }));
       expect(parsedDraft.rows.some((row: { platform: string; company: string; workTitle: string; settlementAmount: number }) => (

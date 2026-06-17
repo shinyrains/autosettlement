@@ -2084,7 +2084,7 @@ function runGroupedSlotAdapter(
   }
 
   if (snapshot.fileKind === "html_xls") {
-    return parseHtmlXlsAdapter(baseInput, snapshot.content);
+    return parseHtmlXlsAdapter(baseInput, decodeTextFileContent(snapshot.content));
   }
 
   return parseXlsxAdapter(baseInput, snapshot.content);
@@ -2563,6 +2563,10 @@ function matchesReplacementTarget(
   platform: Platform,
 ): boolean {
   return targets.some((target) => target.company === company && target.platform === platform);
+}
+
+function decodeTextFileContent(content: Uint8Array): string {
+  return new TextDecoder().decode(content);
 }
 
 function inferFileKind(fileName: string): FileKind | null {
