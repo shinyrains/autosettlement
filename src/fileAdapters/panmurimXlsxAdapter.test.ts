@@ -27,8 +27,8 @@ function createWorkbookWithoutCoverRate(): Uint8Array {
   const workbook = XLSX.utils.book_new();
   const cover = XLSX.utils.aoa_to_sheet([["정산월", "2026년 5월"]]);
   const detail = XLSX.utils.aoa_to_sheet([
-    [],
-    [],
+    ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "합계 총액", ""],
+    [""],
     ["", "", "", "", "카테고리", "", "", "", "", "", "", "소장", "", "", "대여", "", "", "정액제", "유료대여권", "", "", ""],
     ["", "NO", "시리즈 코드", "각 권 코드", "대분류", "중분류", "작품 제목", "회차 제목", "저자", "CP", "출판사", "웹판매건수", "앱판매건수", "판매금액", "웹판매건수", "앱판매건수", "판매금액", "이용건수", "이용건수", "판매금액", "포인트 사용", "판매금액"],
     ["", 1, 2765347, 2765349, "단행본", "현대 판타지", "그의 비밀", "그의 비밀 2권", "시커먼스", "（주）라온이앤엠", "라온E&M", 1, 0, 3200, 0, 0, 0, 0, 0, 0, 0, 3200],
@@ -37,6 +37,22 @@ function createWorkbookWithoutCoverRate(): Uint8Array {
   XLSX.utils.book_append_sheet(workbook, detail, "세부내역");
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as Uint8Array;
 }
+
+function createWorkbookWithVariantSheetNames(): Uint8Array {
+  const workbook = XLSX.utils.book_new();
+  const cover = XLSX.utils.aoa_to_sheet([["정산비율", "70%"]]);
+  const detail = XLSX.utils.aoa_to_sheet([
+    ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "합계 총액", ""],
+    [""],
+    ["", "", "", "", "카테고리", "", "", "", "", "", "", "소장", "", "", "대여", "", "", "정액제", "유료대여권", "", "", ""],
+    ["", "NO", "시리즈 코드", "각 권 코드", "대분류", "중분류", "작품 제목", "회차 제목", "저자", "CP", "출판사", "웹판매건수", "앱판매건수", "판매금액", "웹판매건수", "앱판매건수", "판매금액", "이용건수", "이용건수", "판매금액", "포인트 사용", "판매금액"],
+    ["", 1, 2765347, 2765349, "단행본", "현대 판타지", "그의 비밀", "그의 비밀 2권", "시커먼스", "（주）라온이앤엠", "라온E&M", 1, 0, 3200, 0, 0, 0, 0, 0, 0, 0, 3200],
+  ]);
+  XLSX.utils.book_append_sheet(workbook, cover, " ﻿표지 ");
+  XLSX.utils.book_append_sheet(workbook, detail, "세부내역 ");
+  return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as Uint8Array;
+}
+
 
 describe("panmurim xlsx adapter", () => {
   it("reads the audited workbook and injects the normalized cover-sheet settlement rate", () => {
@@ -58,6 +74,19 @@ describe("panmurim xlsx adapter", () => {
       }),
     );
   });
+
+  it("accepts Panmurim cover/detail sheet names with surrounding whitespace or BOM", () => {
+    const result = parsePanmurimXlsxAdapter(baseContext, createWorkbookWithVariantSheetNames());
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toEqual(expect.objectContaining({
+      "작품 제목": "그의 비밀",
+      "표지 / 정산비율": 0.7,
+      sourceRowIndex: 5,
+    }));
+  });
+
 
   it("returns parse_error when the cover-sheet settlement rate is missing", () => {
     const result = parsePanmurimXlsxAdapter(baseContext, createWorkbookWithoutCoverRate());

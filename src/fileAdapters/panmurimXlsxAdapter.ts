@@ -22,7 +22,7 @@ export function parsePanmurimXlsxAdapter(
     return { rows: [], issues: [workbookResult.issue] };
   }
 
-  const coverSheet = workbookResult.workbook.Sheets[COVER_SHEET_NAME];
+  const coverSheet = findWorksheet(workbookResult.workbook, COVER_SHEET_NAME);
   if (!coverSheet) {
     return {
       rows: [],
@@ -30,7 +30,7 @@ export function parsePanmurimXlsxAdapter(
     };
   }
 
-  const detailSheet = workbookResult.workbook.Sheets[DETAIL_SHEET_NAME];
+  const detailSheet = findWorksheet(workbookResult.workbook, DETAIL_SHEET_NAME);
   if (!detailSheet) {
     return {
       rows: [],
@@ -215,6 +215,20 @@ function readWorkbook(
 
 function normalizeHeaderCell(cell: unknown): string {
   return String(cell ?? "").trim().replace(/^\uFEFF/, "");
+}
+
+function normalizeSheetName(name: string): string {
+  return name.replace(/\uFEFF/g, "").trim();
+}
+
+function findWorksheet(workbook: XLSX.WorkBook, expectedName: string): XLSX.WorkSheet | undefined {
+  const exact = workbook.Sheets[expectedName];
+  if (exact) {
+    return exact;
+  }
+
+  const actualName = workbook.SheetNames.find((name) => normalizeSheetName(name) === expectedName);
+  return actualName ? workbook.Sheets[actualName] : undefined;
 }
 
 function createIssue(context: FileAdapterContext, message: string): ParseIssue {
