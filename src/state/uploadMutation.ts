@@ -975,8 +975,33 @@ async function applyRidibooksSlotUploadMutation(
     uploadedAt,
   };
   saveRuntimeSnapshot(state, upload, slot.slotKey, runtimeSnapshot);
-  const persistedSnapshot = createPersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, runtimeSnapshot, eventPeriod);
-  savePersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, persistedSnapshot);
+
+  let persistedSnapshot: PersistedGroupedSlotSnapshot;
+  try {
+    persistedSnapshot = createPersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, runtimeSnapshot, eventPeriod);
+    savePersistedRidibooksSlotSnapshot(state, upload, slot.slotKey, persistedSnapshot);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "알 수 없는 저장 오류";
+    return applyStageOnlyRidibooksResult(
+      state,
+      upload,
+      updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
+        status: "error",
+        fileCount: 1,
+        sourceFileNames: [file.name],
+        issueCount: 1,
+        lastUploadedAt: uploadedAt,
+      }),
+      uploadedAt,
+      createStageOnlyIssue(
+        state,
+        upload,
+        slot.slotKey,
+        file.name,
+        `리디북스 업로드 중 브라우저 저장 공간에 snapshot을 저장하지 못했습니다. 새로고침 후에도 같은 문제가 반복되면 기존 임시 업로드 상태를 초기화한 뒤 다시 업로드하세요. (${message})`,
+      ),
+    );
+  }
 
   const stagedSlots = updateMunpiaSlotMetadata(upload.slots ?? [], slot.slotKey, {
     status: "uploaded",

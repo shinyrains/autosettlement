@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   APP_STATE_STORAGE_KEY,
   clearAppDraftState,
@@ -36,6 +36,23 @@ describe("appState persistence", () => {
       expect.objectContaining({ rowId: "row-005", status: "held", note: "출판사 값 확인 필요" }),
     ]);
   });
+
+  it("does not throw when browser draft persistence is unavailable", () => {
+    const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+      if (key === APP_STATE_STORAGE_KEY) {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      }
+      return originalSetItem(key, value);
+    });
+
+    try {
+      expect(() => saveAppDraftState(createSeedAppState(), window.localStorage)).not.toThrow();
+    } finally {
+      setItemSpy.mockRestore();
+    }
+  });
+
 
   it("falls back to the seed draft when storage contains invalid JSON", () => {
     window.localStorage.setItem(APP_STATE_STORAGE_KEY, "not-json");

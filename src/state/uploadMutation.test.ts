@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSeedAppState } from "./appState";
 import type { BatchParseOrchestratorInput, BatchParseOrchestratorResult } from "../orchestrators/batchParseOrchestrator";
 import {
@@ -643,6 +643,83 @@ describe("uploadMutation", () => {
         message: expect.stringContaining("eventPeriod"),
       }),
     ]));
+  });
+
+
+  it("parses real ridibooks base and file1 samples without throwing through live upload", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+
+    const afterBase = await applyLiveUploadMutation(
+      state,
+      { upload: upload!, slotKey: "base" },
+      [{
+        name: "calculate_1.csv",
+        arrayBuffer: async () => readRidibooksBaseSampleCsv().slice().buffer as ArrayBuffer,
+      }],
+      { now: () => "2026-06-13T09:30:00+09:00" },
+    );
+
+    const afterFile1 = await applyLiveUploadMutation(
+      afterBase,
+      { upload: afterBase.uploads.find((item) => item.uploadId === "upload-raon-ridibooks")!, slotKey: "file1" },
+      [{
+        name: "calculate_1 (1).csv",
+        arrayBuffer: async () => readRidibooksFile1SampleCsv().slice().buffer as ArrayBuffer,
+      }],
+      { now: () => "2026-06-13T09:31:00+09:00" },
+    );
+
+    const nextUpload = afterFile1.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(nextUpload).toEqual(expect.objectContaining({
+      status: "parsed",
+      fileCount: 2,
+      issueCount: 0,
+      sourceFileNames: ["calculate_1.csv", "calculate_1 (1).csv"],
+    }));
+    expect(afterFile1.rows.filter((row) => row.platform === "ridibooks").length).toBeGreaterThan(0);
+  });
+
+
+  it("keeps ridibooks upload failures in state when browser snapshot persistence throws", async () => {
+    const state = createEmptyRidibooksUploadDraft();
+    const upload = state.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+    expect(upload).toBeDefined();
+    const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+      if (key === "autosettlement.ridibooks-grouped-slot-snapshots.v1") {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      }
+      return originalSetItem(key, value);
+    });
+
+    try {
+      const nextState = await applyLiveUploadMutation(
+        state,
+        { upload: upload!, slotKey: "base" },
+        [createTextUpload("calculate_1.csv", "work,sale\nbase,1\n")],
+        { now: () => "2026-06-13T09:19:00+09:00" },
+      );
+
+      const nextUpload = nextState.uploads.find((item) => item.uploadId === "upload-raon-ridibooks");
+      expect(nextUpload).toEqual(expect.objectContaining({
+        status: "error",
+        fileCount: 1,
+        parsedRowCount: 0,
+        sourceFileNames: ["calculate_1.csv"],
+      }));
+      expect(nextState.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          company: "raon",
+          platform: "ridibooks",
+          sourceFileName: "calculate_1.csv",
+          message: expect.stringContaining("브라우저 저장 공간"),
+        }),
+      ]));
+    } finally {
+      setItemSpy.mockRestore();
+    }
   });
 
   it("reruns ridibooks grouped parsing when event is uploaded with eventPeriod", async () => {

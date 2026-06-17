@@ -88,7 +88,12 @@ export function saveAppDraftState(
     return;
   }
 
-  storage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(normalizeAppDraftState(state)));
+  try {
+    storage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(normalizeAppDraftState(state)));
+  } catch {
+    // Keep the in-memory React state alive even when browser persistence is unavailable
+    // (for example, localStorage quota exceeded after large platform uploads).
+  }
 }
 
 export function clearAppDraftState(storage: Storage | undefined = getBrowserStorage()): void {
