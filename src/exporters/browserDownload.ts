@@ -27,7 +27,7 @@ export function downloadExportPackage(
   environment.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  environment.revokeObjectURL(objectUrl);
+  setTimeout(() => environment.revokeObjectURL(objectUrl), 0);
 }
 
 function getBrowserDownloadEnvironment(): BrowserDownloadEnvironment {

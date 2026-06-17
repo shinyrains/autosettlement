@@ -133,4 +133,66 @@ describe("series single file parser", () => {
     expect(result.rows[0].workTitle).toBe("천마하라고 누가 칼들고 협박함 [독점]");
     expect(result.rows[0].sourceRowIndex).toBe(5);
   });
+
+  it("reports missing Series identity fields instead of emitting blank settlement rows", () => {
+    const result = parseSeriesSingleFileRows(context, [
+      seriesRow({
+        workTitle: "",
+        author: "크루크루",
+        sourceRowIndex: 8,
+        cookieAutoCharge: 100,
+        total: 100,
+      }),
+      seriesRow({
+        workTitle: "작품명 있음",
+        author: "",
+        sourceRowIndex: 9,
+        cookieAutoCharge: 100,
+        total: 100,
+      }),
+    ], "general");
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "missing_field",
+        severity: "error",
+        sourceFileName: "contentsSelling_2026-06-08.xls",
+        sourceRowIndex: 8,
+        message: expect.stringContaining("컨텐츠"),
+      }),
+      expect.objectContaining({
+        issueType: "missing_field",
+        severity: "error",
+        sourceFileName: "contentsSelling_2026-06-08.xls",
+        sourceRowIndex: 9,
+        message: expect.stringContaining("작가명"),
+      }),
+    ]);
+  });
+
+  it("reports invalid Series numeric cells instead of silently treating them as zero", () => {
+    const result = parseSeriesSingleFileRows(context, [{
+      ...seriesRow({
+        workTitle: "숫자 오류 작품",
+        author: "작가",
+        sourceRowIndex: 10,
+        cookieAutoCharge: 100,
+        total: 100,
+      }),
+      [SERIES_CATEGORY_COLUMN_MAPPINGS.google_external[1]]: "bad-money",
+    }], "general");
+
+    expect(result.rows).toEqual([]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        issueType: "invalid_value",
+        severity: "error",
+        sourceFileName: "contentsSelling_2026-06-08.xls",
+        sourceRowIndex: 10,
+        message: expect.stringContaining(SERIES_CATEGORY_COLUMN_MAPPINGS.google_external[1]),
+      }),
+    ]);
+  });
+
 });
